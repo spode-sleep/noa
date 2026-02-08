@@ -68,7 +68,7 @@
 
         <!-- EPUB Reader -->
         <div v-else-if="book.format === 'epub'" class="epub-reader">
-          <VueReader :url="epubUrl" :getRendition="onRendition" v-model:location="epubLocation" />
+          <VueReader :url="epubUrl" :getRendition="onRendition" :location="epubLocation" @update:location="onEpubLocationChange" />
         </div>
 
         <!-- FB2 Reader -->
@@ -149,7 +149,18 @@ const ttsMessage = ref('')
 
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
-const epubLocation = ref<any>(null)
+const epubLocation = ref<string | undefined>(undefined)
+const epubCfi = ref<string>('') // current CFI for bookmarks
+
+function onEpubLocationChange(detail: any) {
+  // vue-book-reader emits the full relocate detail object
+  // Extract the CFI string for bookmark storage
+  if (detail && typeof detail === 'object' && detail.cfi) {
+    epubCfi.value = detail.cfi
+  } else if (typeof detail === 'string') {
+    epubCfi.value = detail
+  }
+}
 
 function onRendition(view: any) {
   // Apply dark theme by injecting CSS into each loaded document
@@ -187,9 +198,9 @@ async function readAloud() {
 async function addBookmark() {
   const note = newBookmarkNote.value.trim()
   let position: any = window.scrollY
-  // For EPUB, save the reader location (CFI/fraction)
-  if (book.value?.format === 'epub' && epubLocation.value) {
-    position = JSON.stringify(epubLocation.value)
+  // For EPUB, save the CFI string
+  if (book.value?.format === 'epub' && epubCfi.value) {
+    position = epubCfi.value
   }
   try {
     const res = await fetch(`/api/bookmarks/${bookId}/manual`, {
@@ -218,12 +229,8 @@ function restorePosition() {
   positionRestored.value = true
   if (savedPosition.value != null) {
     if (book.value?.format === 'epub') {
-      try {
-        const loc = JSON.parse(String(savedPosition.value))
-        epubLocation.value = loc
-      } catch {
-        epubLocation.value = savedPosition.value
-      }
+      // Saved position is a CFI string
+      epubLocation.value = String(savedPosition.value)
     } else {
       window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
     }
@@ -233,14 +240,8 @@ function restorePosition() {
 function navigateToBookmark(bm: ManualBookmark) {
   if (bm.page != null) {
     if (book.value?.format === 'epub') {
-      // EPUB bookmarks store location as JSON string
-      try {
-        const loc = JSON.parse(String(bm.page))
-        epubLocation.value = loc
-      } catch {
-        // If not JSON, try using it directly
-        epubLocation.value = bm.page
-      }
+      // EPUB bookmarks store CFI string directly
+      epubLocation.value = String(bm.page)
     } else if (book.value?.format === 'pdf') {
       const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
       if (iframe) {
@@ -255,9 +256,9 @@ function navigateToBookmark(bm: ManualBookmark) {
 async function savePosition() {
   try {
     let positionData: any = window.scrollY
-    // For EPUB, save the reader location
-    if (book.value?.format === 'epub' && epubLocation.value) {
-      positionData = JSON.stringify(epubLocation.value)
+    // For EPUB, save the CFI string
+    if (book.value?.format === 'epub' && epubCfi.value) {
+      positionData = epubCfi.value
     }
     await fetch(`/api/bookmarks/${bookId}/position`, {
       method: 'PUT',
