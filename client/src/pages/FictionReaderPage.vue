@@ -66,11 +66,13 @@
         </div>
 
         <!-- EPUB Reader -->
-        <div v-else-if="book.format === 'epub'" class="epub-notice glass">
-          <p>EPUB reader requires the epub.js library.</p>
-          <a :href="'/api/fiction/read/' + book.id" class="btn" download>
-            📥 Download EPUB
-          </a>
+        <div v-else-if="book.format === 'epub'" class="epub-reader">
+          <div class="epub-controls glass">
+            <button class="ctrl-btn" @click="epubPrev" title="Previous page">← Prev</button>
+            <span class="epub-location">{{ epubLocation }}</span>
+            <button class="ctrl-btn" @click="epubNext" title="Next page">Next →</button>
+          </div>
+          <div ref="epubContainer" class="epub-container"></div>
         </div>
 
         <!-- FB2 Reader -->
@@ -107,8 +109,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import ePub from 'epubjs'
+import type { Book as EpubBook, Rendition } from 'epubjs'
 
 interface Book {
   id: string
@@ -148,9 +152,64 @@ const fb2Loading = ref(false)
 const showTtsMessage = ref(false)
 const ttsMessage = ref('')
 
+// EPUB state
+const epubContainer = ref<HTMLElement | null>(null)
+const epubLocation = ref('')
+let epubBook: EpubBook | null = null
+let epubRendition: Rendition | null = null
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString()
+}
+
+// EPUB functions
+async function initEpubReader() {
+  if (book.value?.format !== 'epub' || !epubContainer.value) return
+  try {
+    epubBook = ePub(`/api/fiction/read/${bookId}`)
+    epubRendition = epubBook.renderTo(epubContainer.value, {
+      width: '100%',
+      height: '100%',
+      spread: 'none',
+      flow: 'paginated',
+    })
+    epubRendition.themes.default({
+      body: {
+        color: '#e0e0e0 !important',
+        background: 'transparent !important',
+        'font-family': 'Georgia, serif',
+        'line-height': '1.8',
+      },
+      'a': {
+        color: '#00e8b8 !important',
+      },
+    })
+    epubRendition.on('relocated', (location: { start: { cfi: string }; end: { cfi: string } }) => {
+      const startCfi = location.start.cfi
+      const match = startCfi.match(/\[(\d+)\//)
+      epubLocation.value = match ? `Section ${match[1]}` : ''
+    })
+    await epubRendition.display()
+  } catch (e) {
+    console.error('Failed to init EPUB reader:', e)
+  }
+}
+
+function epubPrev() {
+  epubRendition?.prev()
+}
+
+function epubNext() {
+  epubRendition?.next()
+}
+
+function destroyEpubReader() {
+  if (epubBook) {
+    epubBook.destroy()
+    epubBook = null
+    epubRendition = null
+  }
 }
 
 async function readAloud() {
@@ -272,6 +331,10 @@ onMounted(async () => {
   try {
     await fetchBook()
     await Promise.all([fetchBookmarks(), fetchFb2Content()])
+    if (book.value?.format === 'epub') {
+      await nextTick()
+      await initEpubReader()
+    }
   } finally {
     loading.value = false
   }
@@ -279,6 +342,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   savePosition()
+  destroyEpubReader()
 })
 </script>
 
@@ -572,16 +636,33 @@ onUnmounted(() => {
   background: #fff;
 }
 
-/* EPUB notice */
-.epub-notice {
-  text-align: center;
-  padding: 48px 24px;
+/* EPUB Reader */
+.epub-reader {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
 }
 
-.epub-notice p {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-  margin-bottom: 20px;
+.epub-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.epub-location {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.epub-container {
+  flex: 1;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: rgba(10, 10, 26, 0.6);
+  overflow: hidden;
 }
 
 /* FB2 */

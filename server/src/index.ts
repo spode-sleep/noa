@@ -13,6 +13,7 @@ import referenceRouter from './routes/reference';
 import aiRouter from './routes/ai';
 import ttsRouter from './routes/tts';
 import bookmarksRouter from './routes/bookmarks';
+import { startKiwixServe, stopKiwixServe } from './kiwix';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,10 +40,12 @@ app.get('/api/health', (_req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(`Noa server running on port ${PORT}`);
+  startKiwixServe();
 });
 
 function shutdown() {
   console.log('Shutting down server...');
+  stopKiwixServe();
   server.close(() => {
     process.exit(0);
   });
