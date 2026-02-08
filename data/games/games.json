@@ -1,0 +1,146 @@
+{
+  "365160": {
+    "appId": "365160",
+    "name": "Kona",
+    "description": "Northern Canada, 1970. A strange blizzard ravages Atamipek Lake. Step into the shoes of a detective to explore the eerie village, investigate surreal events, and battle the elements to survive. Kona is a chilly interactive tale you won't soon forget.",
+    "tags": [
+      "SURVIVAL",
+      "ADVENTURE",
+      "DETECTIVE",
+      "ATMOSPHERIC",
+      "FIRST-PERSON",
+      "OPEN WORLD",
+      "EXPLORATION",
+      "SINGLEPLAYER",
+      "HORROR",
+      "STORY RICH",
+      "INDIE",
+      "WALKING SIMULATOR",
+      "SURVIVAL HORROR",
+      "NARRATION",
+      "SURREAL",
+      "GREAT SOUNDTRACK",
+      "PUZZLE",
+      "CASUAL",
+      "CROWDFUNDED",
+      "ACHIEVEMENTS",
+      "CONTROLLER SUPPORT"
+    ],
+    "protondb_reports": [],
+    "source": "steam"
+  },
+  "3487340": {
+    "appId": "3487340",
+    "name": "Zavod",
+    "description": "The visual novel &quot;Zavod&quot; is an adventure that will take you to the industrial and factory everyday life of ordinary workers.",
+    "tags": [
+      "ADVENTURE",
+      "VISUAL NOVEL",
+      "ANIME",
+      "ROMANCE",
+      "IDLER",
+      "SCI-FI",
+      "SINGLEPLAYER",
+      "EARLY ACCESS",
+      "CHOICES MATTER",
+      "INDIE",
+      "HENTAI"
+    ],
+    "protondb_reports": [],
+    "source": "steam"
+  },
+  "1029890": {
+    "appId": "1029890",
+    "name": "Layers of Fear 2 (2019)",
+    "description": "Layers of Fear 2 is a first-person psychological horror game with an emphasis on exploration and story. Players control a Hollywood actor who heeds the call of an enigmatic director to take on the lead role in a film shot aboard an ocean liner. Beware, for all may not truly be what it seems.",
+    "tags": [
+      "PSYCHOLOGICAL HORROR",
+      "INDIE",
+      "HORROR",
+      "ATMOSPHERIC",
+      "DARK",
+      "STORY RICH",
+      "WALKING SIMULATOR",
+      "SINGLEPLAYER",
+      "ADVENTURE",
+      "PSYCHOLOGICAL",
+      "EXPLORATION",
+      "PUZZLE",
+      "CASUAL",
+      "SURREAL",
+      "GREAT SOUNDTRACK",
+      "FIRST-PERSON",
+      "DRAMA",
+      "BEAUTIFUL",
+      "MATURE",
+      "CHOICES MATTER",
+      "STORY",
+      "PSYCHEDELIC",
+      "NIGHTMARE",
+      "FEAR"
+    ],
+    "protondb_reports": [
+      {
+        "timestamp": 1570306045,
+        "rating": "Silver",
+        "notes": "Game is playable now without launch options, but videos are not played. Manually installing media foundation fixes the videos, rating this silver because those are not freely distributable files and IMO goes beyond a tweak. ",
+        "os": "Linux Mint 19.2 Tina",
+        "gpuDriver": "4.5 Mesa 19.3.0-devel",
+        "specs": null,
+        "protonVersion": "4.11-6"
+      },
+      {
+        "timestamp": 1559146252,
+        "rating": "Gold",
+        "notes": "Working fine if you have -onethread in launch options on STEAM. Game is not playable becuse cutscenes ingame not working even if you install everything you need. \"they say\"..",
+        "os": "Linux",
+        "gpuDriver": "NVIDIA 430.14",
+        "specs": null,
+        "protonVersion": "4.2-5"
+      },
+      {
+        "timestamp": 1559077529,
+        "rating": "Silver",
+        "notes": "Game won't launch without setting launch option \"-onethread\", also videos are skipped.",
+        "os": "Linux Mint 19.1 Tessa",
+        "gpuDriver": "4.5 Mesa 19.0.1 - padoka PPA",
+        "specs": null,
+        "protonVersion": "4.2-5"
+      },
+      {
+        "timestamp": 1559062142,
+        "rating": "Borked",
+        "notes": "Doesn't start, I see a black screen flashing for an instant and after that Steam thinks it is running but I can't see it. When opening the system monitor I can only find an entry for a CrashReportClient.exe which disappears after a while together with Steam stopping to show that the game would be running.\nTried PROTON_NO_ESYNC=1 and PROTON_USE_WINED3D=1 to no avail (PROTON_NO_D3D11=1 wouldn't make sense as a minimum system requirement of the game is DirectX11). ",
+        "os": "Linux Mint 19.1 Tessa",
+        "gpuDriver": "4.6.13556 Compatibility Profile Context 19.10.9.418",
+        "specs": null,
+        "protonVersion": "4.2-5"
+      }
+    ],
+    "source": "steam"
+  },
+  "Manifold_Garden": {
+    "appId": "Manifold_Garden",
+    "name": "Manifold Garden",
+    "description": "Manifold Garden is a game that reimagines the laws of physics.\nRediscover gravity and explore an Escher-esque world of impossible architecture. Witness infinity in first-person, and master its rules to solve physics-defying puzzles. Cultivate a garden to open new paths forward, where an eternal expanse awaits.\nIn November 2012, William Chyr began working on Manifold Garden. Initially the project was called Relativity, and it drew inspiration from various physics thought experiments. In early 2015, Manifold Garden was backed by Indie Fund. Over the course of its development, the game has been shown in over 20 game conventions and festivals, including E3, Tokyo Game Show, Gamercamp, and Indiecade East.Key FeaturesA unique gravity-manipulation mechanic that allows players to walk on any visible surface.\nAn expansive and beautiful world filled with secrets for players to explore.\nMind boggling Escher-esque architecture.",
+    "tags": [
+      "SINGLEPLAYER",
+      "CONTROLLER SUPPORT",
+      "ADVENTURE",
+      "INDIE",
+      "ATMOSPHERIC",
+      "GREAT SOUNDTRACK",
+      "FIRST-PERSON",
+      "PUZZLE",
+      "EXPLORATION",
+      "COLORFUL",
+      "MYSTERY",
+      "MINIMALIST",
+      "PSYCHEDELIC",
+      "ABSTRACT",
+      "PHILOSOPHICAL",
+      "NONLINEAR"
+    ],
+    "source": "rawg"
+  }
+}
