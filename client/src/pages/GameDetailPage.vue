@@ -6,12 +6,16 @@
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <template v-else-if="game">
+      <div class="game-top">
+        <div class="game-header">
+          <h1>{{ game.name }}</h1>
+          <span class="source-badge" :class="game.source">{{ game.source }}</span>
+        </div>
+        <span class="app-id">{{ game.appId || game.id }}</span>
+      </div>
+
       <div class="game-layout">
         <div class="game-left">
-          <div class="game-header">
-            <h1>{{ game.name }}</h1>
-            <span class="source-badge" :class="game.source">{{ game.source }}</span>
-          </div>
           <img
             :src="game.imageUrl"
             :alt="game.name"
@@ -19,7 +23,13 @@
           />
         </div>
         <div class="game-right">
-          <p v-if="game.description" class="description" v-html="game.description"></p>
+          <div v-if="game.description" class="description-wrapper" :class="{ expanded: descExpanded }">
+            <div class="description-content" v-html="game.description"></div>
+            <button class="expand-btn" @click="descExpanded = !descExpanded">
+              <Icon :icon="descExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+              {{ descExpanded ? 'Show less' : 'Show more' }}
+            </button>
+          </div>
           <div v-if="game.tags?.length" class="tags-section">
             <div class="tags-list">
               <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
@@ -56,6 +66,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 interface ProtonReport {
   timestamp: number
@@ -81,6 +92,7 @@ const route = useRoute()
 const game = ref<Game | null>(null)
 const loading = ref(true)
 const error = ref('')
+const descExpanded = ref(false)
 
 function ratingClass(rating: string): string {
   return (rating || '').toLowerCase()
@@ -171,7 +183,18 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.app-id {
+  font-size: 0.85rem;
+  color: var(--text-muted);
   margin-bottom: 20px;
+  display: block;
+}
+
+.game-top {
+  margin-bottom: 12px;
 }
 
 h1 {
@@ -210,10 +233,38 @@ h1 {
   border-radius: var(--radius-md);
 }
 
-.description {
+.description-wrapper {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.description-content {
   color: var(--text-secondary);
   line-height: 1.7;
-  margin-bottom: 24px;
+  max-height: 120px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.description-wrapper.expanded .description-content {
+  max-height: 2000px;
+}
+
+.expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--accent-teal);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  margin-top: 4px;
+}
+
+.expand-btn:hover {
+  opacity: 0.8;
 }
 
 .tags-section {

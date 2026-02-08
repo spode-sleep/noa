@@ -181,7 +181,10 @@ const {
 
 .ctrl-active {
   color: var(--accent-teal);
-  border: 1px solid var(--accent-teal);
+}
+
+.ctrl-active:hover {
+  color: var(--accent-teal);
 }
 
 .ctrl-add:hover {
