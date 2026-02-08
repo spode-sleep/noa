@@ -38,8 +38,8 @@
         <div v-else class="bookmark-list">
           <div v-for="bm in manualBookmarks" :key="bm.id" class="bookmark-item" role="button" tabindex="0" @click="navigateToBookmark(bm)" @keydown.enter="navigateToBookmark(bm)" @keydown.space.prevent="navigateToBookmark(bm)">
             <div class="bookmark-info">
-              <span v-if="bm.page && book?.format !== 'epub'" class="bookmark-page">Page {{ bm.page }}</span>
-              <span v-else-if="bm.page != null && book?.format === 'epub'" class="bookmark-page">📖 {{ getEpubPercent(bm.page) }}%</span>
+              <span v-if="bm.page && book?.format !== 'epub' && book?.format !== 'fb2'" class="bookmark-page">Page {{ bm.page }}</span>
+              <span v-else-if="bm.page != null && (book?.format === 'epub' || book?.format === 'fb2')" class="bookmark-page">📖 {{ getBookmarkPercent(bm.page) }}%</span>
               <span class="bookmark-note">{{ bm.note || 'No note' }}</span>
               <span class="bookmark-date">{{ formatDate(bm.created) }}</span>
             </div>
@@ -52,7 +52,7 @@
       <div class="reader-content" :class="{ 'with-sidebar': showBookmarks }">
         <!-- Continue from last position prompt -->
         <div v-if="savedPosition && !positionRestored" class="resume-prompt glass">
-          <span>📖 You left off at position {{ savedPosition }}.</span>
+          <span>📖 You left off at {{ savedPositionLabel }}.</span>
           <button class="btn btn-sm" @click="restorePosition">Continue reading</button>
           <button class="btn btn-sm btn-ghost" @click="positionRestored = true">Start over</button>
         </div>
@@ -139,7 +139,7 @@ const loading = ref(true)
 const showBookmarks = ref(false)
 const newBookmarkNote = ref('')
 const manualBookmarks = ref<ManualBookmark[]>([])
-const savedPosition = ref<number | null>(null)
+const savedPosition = ref<string | number | null>(null)
 const positionRestored = ref(false)
 const fontSize = ref(18)
 const fb2Chapters = ref<Fb2Chapter[]>([])
@@ -153,6 +153,25 @@ const readerRef = ref<any>(null) // template ref to VueReader component
 const epubFraction = ref<number>(0) // 0-1 reading progress for display
 const epubCfi = ref<string>('') // CFI string for precise bookmark navigation
 const epubView = ref<any>(null) // foliate-view element reference for direct navigation
+
+// FB2 scroll position tracking
+const fb2ScrollRatio = ref<number>(0)
+let fb2ScrollTimer: ReturnType<typeof setInterval> | null = null
+
+function onFb2Scroll() {
+  const h = document.documentElement.scrollHeight - window.innerHeight
+  if (h > 0) fb2ScrollRatio.value = window.scrollY / h
+}
+
+const savedPositionLabel = computed(() => {
+  if (savedPosition.value == null) return ''
+  try {
+    const parsed = JSON.parse(String(savedPosition.value))
+    if (typeof parsed.fraction === 'number') return `${Math.round(parsed.fraction * 100)}%`
+    if (typeof parsed.ratio === 'number') return `${Math.round(parsed.ratio * 100)}%`
+  } catch { /* plain number */ }
+  return 'saved position'
+})
 
 function onEpubLocationChange(detail: any) {
   // vue-book-reader emits the full relocate detail object from foliate-view
@@ -186,10 +205,11 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString()
 }
 
-function getEpubPercent(page: any): number {
+function getBookmarkPercent(page: any): number {
   try {
     const parsed = JSON.parse(String(page))
     if (typeof parsed.fraction === 'number') return Math.round(parsed.fraction * 100)
+    if (typeof parsed.ratio === 'number') return Math.round(parsed.ratio * 100)
   } catch { /* legacy format */ }
   return Math.round(Number(page) * 100)
 }
@@ -212,9 +232,12 @@ async function readAloud() {
 async function addBookmark() {
   const note = newBookmarkNote.value.trim()
   let position: any = window.scrollY
-  // For EPUB, save the CFI (precise location) with fraction for display
   if (book.value?.format === 'epub') {
     position = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
+  } else if (book.value?.format === 'fb2') {
+    const h = document.documentElement.scrollHeight - window.innerHeight
+    const ratio = h > 0 ? window.scrollY / h : 0
+    position = JSON.stringify({ ratio })
   }
   try {
     const res = await fetch(`/api/bookmarks/${bookId}/manual`, {
@@ -243,19 +266,29 @@ function restorePosition() {
   positionRestored.value = true
   if (savedPosition.value != null) {
     if (book.value?.format === 'epub') {
-      // Try to parse CFI from saved position
       let cfi: string | null = null
       try {
         const parsed = JSON.parse(String(savedPosition.value))
         if (parsed.cfi) cfi = parsed.cfi
-      } catch {
-        // Legacy saved position — fraction number
-      }
+      } catch { /* Legacy */ }
       if (cfi && epubView.value) {
         epubView.value.goTo(cfi)
       } else if (epubView.value) {
         epubView.value.goToFraction(Number(savedPosition.value))
       }
+    } else if (book.value?.format === 'fb2') {
+      let ratio = 0
+      try {
+        const parsed = JSON.parse(String(savedPosition.value))
+        if (typeof parsed.ratio === 'number') ratio = parsed.ratio
+      } catch {
+        ratio = 0
+      }
+      // Delay to ensure content is rendered
+      setTimeout(() => {
+        const h = document.documentElement.scrollHeight - window.innerHeight
+        if (h > 0) window.scrollTo({ top: ratio * h, behavior: 'smooth' })
+      }, 200)
     } else {
       window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
     }
@@ -278,6 +311,18 @@ function navigateToBookmark(bm: ManualBookmark) {
       } else if (epubView.value) {
         epubView.value.goToFraction(Number(bm.page))
       }
+    } else if (book.value?.format === 'fb2') {
+      let ratio = 0
+      try {
+        const parsed = JSON.parse(String(bm.page))
+        if (typeof parsed.ratio === 'number') ratio = parsed.ratio
+      } catch {
+        // Legacy: raw scroll number — use as-is
+        window.scrollTo({ top: Number(bm.page), behavior: 'smooth' })
+        return
+      }
+      const h = document.documentElement.scrollHeight - window.innerHeight
+      if (h > 0) window.scrollTo({ top: ratio * h, behavior: 'smooth' })
     } else if (book.value?.format === 'pdf') {
       const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
       if (iframe) {
@@ -292,9 +337,10 @@ function navigateToBookmark(bm: ManualBookmark) {
 async function savePosition() {
   try {
     let positionData: any = window.scrollY
-    // For EPUB, save the CFI for precise position restore
     if (book.value?.format === 'epub') {
       positionData = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
+    } else if (book.value?.format === 'fb2') {
+      positionData = JSON.stringify({ ratio: fb2ScrollRatio.value })
     }
     await fetch(`/api/bookmarks/${bookId}/position`, {
       method: 'PUT',
@@ -352,6 +398,11 @@ onMounted(async () => {
   try {
     await fetchBook()
     await Promise.all([fetchBookmarks(), fetchFb2Content()])
+    // Set up FB2 scroll tracking
+    if (book.value?.format === 'fb2') {
+      window.addEventListener('scroll', onFb2Scroll)
+      fb2ScrollTimer = setInterval(savePosition, 10000) // save every 10s
+    }
   } finally {
     loading.value = false
   }
@@ -359,6 +410,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   savePosition()
+  if (fb2ScrollTimer) clearInterval(fb2ScrollTimer)
+  window.removeEventListener('scroll', onFb2Scroll)
 })
 </script>
 
