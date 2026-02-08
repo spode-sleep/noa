@@ -11,6 +11,7 @@ const routes = [
   { path: '/games/:id', name: 'GameDetail', component: () => import('../pages/GameDetailPage.vue') },
   { path: '/music', name: 'Music', component: MusicPage },
   { path: '/fiction', name: 'Fiction', component: FictionPage },
+  { path: '/fiction/:id', name: 'FictionReader', component: () => import('../pages/FictionReaderPage.vue') },
   { path: '/reference', name: 'Reference', component: ReferencePage },
   { path: '/ai', name: 'AI', component: AiPage },
 ]
