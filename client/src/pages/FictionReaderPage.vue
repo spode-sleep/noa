@@ -167,7 +167,7 @@ function formatDate(dateStr: string): string {
 async function initEpubReader() {
   if (book.value?.format !== 'epub' || !epubContainer.value) return
   try {
-    epubBook = ePub(`/api/fiction/read/${bookId}`)
+    epubBook = ePub(`/api/fiction/read/${bookId}`, { openAs: 'epub' })
     epubRendition = epubBook.renderTo(epubContainer.value, {
       width: '100%',
       height: '100%',
