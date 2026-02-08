@@ -24,10 +24,10 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const links = [
-  { to: '/games', label: 'Games', color: '#e74c3c' },
-  { to: '/music', label: 'Music', color: '#00bcd4' },
-  { to: '/fiction', label: 'Fiction', color: '#f39c12' },
-  { to: '/reference', label: 'Reference', color: '#2ecc71' },
+  { to: '/games', label: 'Games', color: '#4cc9f0' },
+  { to: '/music', label: 'Music', color: '#8b6cee' },
+  { to: '/fiction', label: 'Fiction', color: '#7ec8e3' },
+  { to: '/reference', label: 'Reference', color: '#34d399' },
   { to: '/ai', label: 'AI Librarian', color: '#a855f7' },
 ]
 

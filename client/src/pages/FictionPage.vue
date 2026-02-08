@@ -200,7 +200,7 @@ onMounted(async () => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -242,7 +242,7 @@ h1 {
 }
 
 .btn {
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   border: none;
   color: #fff;
   padding: 10px 20px;
