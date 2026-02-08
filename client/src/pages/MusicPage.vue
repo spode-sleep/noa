@@ -96,7 +96,7 @@
           class="search-input playlist-name-input"
           @keyup.enter="createPlaylist"
         />
-        <button class="btn" @click="createPlaylist">
+        <button class="btn" :disabled="!newPlaylistName.trim()" @click="createPlaylist">
           Create Playlist
         </button>
       </div>
@@ -139,8 +139,7 @@
             <button class="play-btn" @click="playTrack(track)">
               {{ currentTrack?.id === track.id && isPlaying ? '⏸' : '▶' }}
             </button>
-            <span class="track-title">{{ track.title }}</span>
-            <span class="track-artist">{{ track.artist }}</span>
+            <span class="track-title">{{ track.title }} <span class="track-artist">— {{ track.artist }}</span></span>
             <span class="track-duration">{{ formatDuration(track.duration) }}</span>
             <button class="btn btn-sm btn-danger" @click="removeFromPlaylist(selectedPlaylist!.id, track.id)">
               Remove
@@ -417,11 +416,48 @@ async function fetchTracks() {
     if (data.last_scan) {
       lastScanDate.value = new Date(data.last_scan).toLocaleString()
     }
+    // Resolve durations for tracks where backend returned 0
+    resolveZeroDurations()
   } catch (e) {
     console.error('Failed to fetch tracks:', e)
   } finally {
     loading.value = false
   }
+}
+
+function resolveZeroDurations() {
+  const zeroDuration = tracks.value.filter(t => !t.duration)
+  const BATCH_SIZE = 5
+  let i = 0
+
+  function processBatch() {
+    const batch = zeroDuration.slice(i, i + BATCH_SIZE)
+    if (batch.length === 0) return
+
+    for (const track of batch) {
+      const tmpAudio = new Audio(`/api/music/stream/${track.id}`)
+      const onMeta = () => {
+        if (tmpAudio.duration && isFinite(tmpAudio.duration)) {
+          track.duration = Math.round(tmpAudio.duration)
+        }
+        cleanup()
+      }
+      const onError = () => cleanup()
+      const cleanup = () => {
+        tmpAudio.removeEventListener('loadedmetadata', onMeta)
+        tmpAudio.removeEventListener('error', onError)
+        tmpAudio.src = ''
+      }
+      tmpAudio.addEventListener('loadedmetadata', onMeta)
+      tmpAudio.addEventListener('error', onError)
+      tmpAudio.load()
+    }
+    i += BATCH_SIZE
+    if (i < zeroDuration.length) {
+      setTimeout(processBatch, 500)
+    }
+  }
+  processBatch()
 }
 
 async function rescanLibrary() {
@@ -1110,24 +1146,24 @@ h1 {
 }
 
 .add-to-playlist-btn {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-muted);
-  width: 26px;
-  height: 26px;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: opacity var(--transition-fast);
+  line-height: 1;
 }
 
 .add-to-playlist-btn:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
-  background: rgba(0, 232, 184, 0.1);
+  opacity: 0.85;
 }
 
 /* Playlist picker modal */

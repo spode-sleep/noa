@@ -9,6 +9,8 @@ const referencePaths = (process.env.REFERENCE_LIBRARY_PATH || '')
   .map(p => p.trim())
   .filter(Boolean);
 
+const KIWIX_PORT = parseInt(process.env.KIWIX_PORT || '9454', 10);
+
 // GET /api/reference/archives - List ZIM archives
 router.get('/archives', (_req: Request, res: Response) => {
   try {
@@ -40,15 +42,19 @@ router.get('/archives', (_req: Request, res: Response) => {
   }
 });
 
+// GET /api/reference/archives/:filename/viewer - Return kiwix-serve URL for this ZIM
+router.get('/archives/:filename/viewer', (req: Request, res: Response) => {
+  const filename = req.params.filename as string;
+  const basename = path.basename(filename, '.zim');
+  res.json({
+    viewerUrl: `http://localhost:${KIWIX_PORT}/viewer#/search?content=${encodeURIComponent(basename)}&pattern=`,
+  });
+});
+
 // GET /api/reference/archives/:filename/search - Placeholder search
 router.get('/archives/:filename/search', (req: Request, res: Response) => {
   const q = req.query.q || '';
-  res.json({ message: 'ZIM search requires node-libzim', query: q, results: [] });
-});
-
-// GET /api/reference/archives/:filename/article/* - Placeholder article
-router.get('/archives/:filename/article/*', (_req: Request, res: Response) => {
-  res.json({ message: 'ZIM reading requires node-libzim' });
+  res.json({ message: 'ZIM search requires kiwix-serve', query: q, results: [] });
 });
 
 export default router;

@@ -7,14 +7,12 @@
         <span class="header-author">{{ book.author }}</span>
       </div>
       <div class="header-controls">
-        <template v-if="book?.format === 'fb2'">
-          <button class="ctrl-btn" @click="decreaseFontSize" title="Decrease font size">A−</button>
-          <button class="ctrl-btn" @click="increaseFontSize" title="Increase font size">A+</button>
-        </template>
         <button class="ctrl-btn" @click="readAloud" title="Read Aloud">🔊</button>
-        <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
-          ⭐
-        </button>
+        <template v-if="book?.format !== 'pdf'">
+          <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
+            ⭐
+          </button>
+        </template>
       </div>
     </div>
 
@@ -23,8 +21,8 @@
     <div v-else-if="!book" class="empty">Book not found.</div>
 
     <div v-else class="reader-layout">
-      <!-- Bookmarks Sidebar -->
-      <aside v-if="showBookmarks" class="bookmarks-sidebar glass">
+      <!-- Bookmarks Sidebar (not for PDF) -->
+      <aside v-if="showBookmarks && book?.format !== 'pdf'" class="bookmarks-sidebar glass">
         <h3>Bookmarks</h3>
         <div class="add-bookmark">
           <input
@@ -153,14 +151,6 @@ const ttsMessage = ref('')
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString()
-}
-
-function increaseFontSize() {
-  if (fontSize.value < 32) fontSize.value += 2
-}
-
-function decreaseFontSize() {
-  if (fontSize.value > 12) fontSize.value -= 2
 }
 
 async function readAloud() {
