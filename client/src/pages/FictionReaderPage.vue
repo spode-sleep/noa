@@ -72,6 +72,9 @@
             <span class="epub-location">{{ epubLocation }}</span>
             <button class="ctrl-btn" @click="epubNext" title="Next page">Next →</button>
           </div>
+          <div v-if="epubError" class="epub-error glass">
+            <p>⚠️ {{ epubError }}</p>
+          </div>
           <div ref="epubContainer" class="epub-container"></div>
         </div>
 
@@ -155,6 +158,7 @@ const ttsMessage = ref('')
 // EPUB state
 const epubContainer = ref<HTMLElement | null>(null)
 const epubLocation = ref('')
+const epubError = ref('')
 let epubBook: EpubBook | null = null
 let epubRendition: Rendition | null = null
 
@@ -166,11 +170,29 @@ function formatDate(dateStr: string): string {
 // EPUB functions
 async function initEpubReader() {
   if (book.value?.format !== 'epub' || !epubContainer.value) return
+  epubError.value = ''
   try {
-    epubBook = ePub(`/api/fiction/read/${bookId}`, { openAs: 'epub' })
+    // Fetch the EPUB as an ArrayBuffer first (more reliable than epub.js internal XHR)
+    const response = await fetch(`/api/fiction/read/${bookId}`)
+    if (!response.ok) {
+      epubError.value = `Failed to fetch EPUB: ${response.status} ${response.statusText}`
+      return
+    }
+    const arrayBuffer = await response.arrayBuffer()
+    if (arrayBuffer.byteLength === 0) {
+      epubError.value = 'EPUB file is empty'
+      return
+    }
+
+    epubBook = ePub(arrayBuffer as any)
+
+    // Calculate concrete pixel height (epub.js iframes need fixed pixel dimensions)
+    const containerRect = epubContainer.value.getBoundingClientRect()
+    const height = Math.max(containerRect.height, 400)
+
     epubRendition = epubBook.renderTo(epubContainer.value, {
       width: '100%',
-      height: '100%',
+      height: `${height}px`,
       spread: 'none',
       flow: 'paginated',
     })
@@ -191,8 +213,9 @@ async function initEpubReader() {
       epubLocation.value = match ? `Section ${match[1]}` : ''
     })
     await epubRendition.display()
-  } catch (e) {
+  } catch (e: any) {
     console.error('Failed to init EPUB reader:', e)
+    epubError.value = `EPUB rendering error: ${e?.message || e}`
   }
 }
 
@@ -659,10 +682,18 @@ onUnmounted(() => {
 
 .epub-container {
   flex: 1;
+  min-height: 400px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   background: rgba(10, 10, 26, 0.6);
   overflow: hidden;
+}
+
+.epub-error {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  color: #e74c3c;
+  font-size: 0.9rem;
 }
 
 /* FB2 */
