@@ -117,9 +117,9 @@ cp server/.env.example server/.env
 | Variable               | Description                                      | Example                          |
 |------------------------|--------------------------------------------------|----------------------------------|
 | `PORT`                 | Backend API port                                 | `3001`                           |
-| `MUSIC_LIBRARY_PATH`   | Absolute path to your music directory            | `/home/user/Music`               |
-| `FICTION_LIBRARY_PATH`  | Absolute path to your books directory            | `/home/user/Books`               |
-| `REFERENCE_LIBRARY_PATH`| Absolute path to ZIM archives directory          | `/home/user/Reference`           |
+| `MUSIC_LIBRARY_PATH`   | Music directories (comma-separated for multiple) | `/home/user/Music,/mnt/ext/Music`|
+| `FICTION_LIBRARY_PATH`  | Book directories (comma-separated for multiple)  | `/home/user/Books,/mnt/ext/Books`|
+| `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference`           |
 | `TTS_MODEL_PATH`       | Path to Piper TTS model files                   | `/home/user/models/piper`        |
 | `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-medium`                   |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
@@ -128,15 +128,15 @@ cp server/.env.example server/.env
 
 ```env
 PORT=3001
-MUSIC_LIBRARY_PATH=/home/user/Music
-FICTION_LIBRARY_PATH=/home/user/Books/Fiction
+MUSIC_LIBRARY_PATH=/home/user/Music,/mnt/external/Music
+FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/mnt/external/Books
 REFERENCE_LIBRARY_PATH=/home/user/Books/Reference
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-medium
 DATA_PATH=../data
 ```
 
-**Important**: All library paths must be absolute paths. The `DATA_PATH` can be relative to the server directory.
+**Important**: All library paths must be absolute paths. Use commas to specify multiple directories. The `DATA_PATH` can be relative to the server directory.
 
 ---
 

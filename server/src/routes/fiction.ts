@@ -196,12 +196,18 @@ router.get('/books/:id', (req, res) => {
 // GET /api/fiction/scan - Scan fiction library
 router.get('/scan', async (_req, res) => {
   try {
-    const libraryPath = process.env.FICTION_LIBRARY_PATH;
-    if (!libraryPath) {
+    const libraryPaths = (process.env.FICTION_LIBRARY_PATH || '')
+      .split(',')
+      .map(p => p.trim())
+      .filter(Boolean);
+    if (libraryPaths.length === 0) {
       return res.status(400).json({ error: 'FICTION_LIBRARY_PATH not set' });
     }
 
-    const files = await walkDir(libraryPath, ['.pdf', '.epub', '.fb2']);
+    const files: string[] = [];
+    for (const lp of libraryPaths) {
+      files.push(...await walkDir(lp, ['.pdf', '.epub', '.fb2']));
+    }
     const books: BookMeta[] = [];
 
     for (const filepath of files) {

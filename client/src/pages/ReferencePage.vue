@@ -9,7 +9,7 @@
       <div class="empty-icon">📚</div>
       <h2>No reference archives found</h2>
       <p>Place ZIM archive files (.zim) in your reference library directory</p>
-      <code>Configure path in server .env file: REFERENCE_LIBRARY_PATH=/path/to/reference</code>
+      <code>Configure path(s) in server .env file: REFERENCE_LIBRARY_PATH=/path/to/reference,/another/path</code>
     </div>
 
     <!-- Archive list -->

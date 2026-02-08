@@ -47,13 +47,15 @@ Edit `server/.env`:
 
 ```env
 PORT=3001
-MUSIC_LIBRARY_PATH=/path/to/your/music
-FICTION_LIBRARY_PATH=/path/to/your/books
-REFERENCE_LIBRARY_PATH=/path/to/your/zim-archives
+MUSIC_LIBRARY_PATH=/path/to/your/music,/another/music/folder
+FICTION_LIBRARY_PATH=/path/to/your/books,/another/books/folder
+REFERENCE_LIBRARY_PATH=/path/to/your/zim-archives,/another/zim/folder
 TTS_MODEL_PATH=/path/to/tts/models
 TTS_DEFAULT_VOICE=ru_RU-medium
 DATA_PATH=../data
 ```
+
+> **Multiple folders**: Library paths support comma-separated values to scan multiple directories.
 
 ### Running
 
@@ -153,13 +155,13 @@ noa/
 Place game data JSON in `data/games/games.json` and header images in `data/games/header_images/`.
 
 ### Music
-Set `MUSIC_LIBRARY_PATH` in .env to your music directory, then use the "Rescan Library" button in the Music section.
+Set `MUSIC_LIBRARY_PATH` in .env to your music directory (or multiple directories, comma-separated), then use the "Rescan Library" button in the Music section.
 
 ### Fiction
-Set `FICTION_LIBRARY_PATH` in .env to your books directory (PDF, EPUB, FB2 files), then use the "Rescan Library" button.
+Set `FICTION_LIBRARY_PATH` in .env to your books directory (or multiple directories, comma-separated) with PDF, EPUB, FB2 files, then use the "Rescan Library" button.
 
 ### Reference
-Set `REFERENCE_LIBRARY_PATH` in .env and place .zim archive files there.
+Set `REFERENCE_LIBRARY_PATH` in .env (comma-separated for multiple directories) and place .zim archive files there.
 
 ## Offline-First Design
 

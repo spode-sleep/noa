@@ -8,7 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 const router = Router();
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
-const musicPath = process.env.MUSIC_LIBRARY_PATH || '';
+const musicPaths = (process.env.MUSIC_LIBRARY_PATH || '')
+  .split(',')
+  .map(p => p.trim())
+  .filter(Boolean);
 const metadataDir = path.join(dataPath, 'metadata');
 const libraryFile = path.join(metadataDir, 'music_library.json');
 const playlistsFile = path.join(metadataDir, 'playlists.json');
@@ -104,17 +107,17 @@ router.get('/tracks', (_req: Request, res: Response) => {
 // GET /api/music/scan
 router.get('/scan', async (_req: Request, res: Response) => {
   try {
-    if (!musicPath) {
+    if (musicPaths.length === 0) {
       res.status(400).json({ error: 'MUSIC_LIBRARY_PATH not configured' });
       return;
     }
 
-    if (!fs.existsSync(musicPath)) {
-      res.status(404).json({ error: 'Music library path not found' });
-      return;
+    const files: string[] = [];
+    for (const mp of musicPaths) {
+      if (fs.existsSync(mp)) {
+        files.push(...walkDir(mp));
+      }
     }
-
-    const files = walkDir(musicPath);
     const tracks: Track[] = [];
 
     for (const filepath of files) {

@@ -4,24 +4,31 @@ import * as path from 'path';
 
 const router = Router();
 
-const referencePath = process.env.REFERENCE_LIBRARY_PATH || '';
+const referencePaths = (process.env.REFERENCE_LIBRARY_PATH || '')
+  .split(',')
+  .map(p => p.trim())
+  .filter(Boolean);
 
 // GET /api/reference/archives - List ZIM archives
 router.get('/archives', (_req: Request, res: Response) => {
   try {
-    if (!referencePath || !fs.existsSync(referencePath)) {
+    if (referencePaths.length === 0) {
       res.json({ archives: [] });
       return;
     }
 
-    const entries = fs.readdirSync(referencePath, { withFileTypes: true });
-    const archives = entries
-      .filter(e => !e.isDirectory() && e.name.toLowerCase().endsWith('.zim'))
-      .map(e => {
-        const fullPath = path.join(referencePath, e.name);
-        const stat = fs.statSync(fullPath);
-        return { name: e.name, path: fullPath, size: stat.size };
-      });
+    const archives: { name: string; path: string; size: number }[] = [];
+    for (const refPath of referencePaths) {
+      if (!fs.existsSync(refPath)) continue;
+      const entries = fs.readdirSync(refPath, { withFileTypes: true });
+      for (const e of entries) {
+        if (!e.isDirectory() && e.name.toLowerCase().endsWith('.zim')) {
+          const fullPath = path.join(refPath, e.name);
+          const stat = fs.statSync(fullPath);
+          archives.push({ name: e.name, path: fullPath, size: stat.size });
+        }
+      }
+    }
 
     res.json({ archives });
   } catch (err) {
