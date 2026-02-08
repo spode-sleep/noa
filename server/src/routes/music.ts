@@ -2,8 +2,16 @@ import { Router, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import * as mm from 'music-metadata';
 import { v4 as uuidv4 } from 'uuid';
+
+// music-metadata is ESM-only; use dynamic import for cross-Node.js compatibility
+let mmModule: typeof import('music-metadata') | null = null;
+async function getMM() {
+  if (!mmModule) {
+    mmModule = await import('music-metadata');
+  }
+  return mmModule;
+}
 
 const router = Router();
 
@@ -127,6 +135,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
 
     for (const filepath of files) {
       try {
+        const mm = await getMM();
         const metadata = await mm.parseFile(filepath, { duration: true });
         const common = metadata.common;
         tracks.push({
@@ -139,7 +148,8 @@ router.get('/scan', async (_req: Request, res: Response) => {
           genre: common.genre?.[0] || '',
           duration: Math.round(metadata.format.duration || 0),
         });
-      } catch {
+      } catch (e) {
+        console.warn(`[music] Failed to parse metadata for ${filepath}:`, e);
         // Skip files that can't be parsed
         tracks.push({
           id: hashFilepath(filepath),
