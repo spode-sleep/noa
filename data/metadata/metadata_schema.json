@@ -1,0 +1,68 @@
+{
+  "description": "NOA metadata schema documentation",
+  "schemas": {
+    "music_library": {
+      "file": "music_library.json",
+      "structure": {
+        "tracks": "Array of track objects",
+        "last_scan": "ISO 8601 timestamp of last scan"
+      },
+      "track_fields": {
+        "id": "MD5 hash of filepath",
+        "filepath": "Absolute path to audio file",
+        "title": "Track title from ID3/metadata tags",
+        "artist": "Artist name",
+        "album": "Album name",
+        "year": "Release year (number)",
+        "genre": "Music genre",
+        "duration": "Duration in seconds (number)"
+      }
+    },
+    "fiction_library": {
+      "file": "fiction_library.json",
+      "structure": {
+        "books": "Array of book objects",
+        "zim_archives": "Array of ZIM archive objects",
+        "last_scan": "ISO 8601 timestamp of last scan"
+      },
+      "book_fields": {
+        "id": "MD5 hash of filepath",
+        "filepath": "Absolute path to book file",
+        "format": "File format (pdf, epub, fb2)",
+        "title": "Book title",
+        "author": "Author name",
+        "year": "Publication year (number)",
+        "language": "Language code (e.g., 'ru', 'en')",
+        "isbn": "ISBN if available",
+        "page_count": "Number of pages (number)",
+        "file_size": "File size in bytes (number)"
+      }
+    },
+    "fiction_bookmarks": {
+      "file": "../bookmarks/fiction_bookmarks.json",
+      "structure": {
+        "bookmarks": "Array of bookmark objects"
+      },
+      "bookmark_fields": {
+        "book_id": "Reference to book id",
+        "filepath": "Path to book file",
+        "format": "Book format",
+        "last_position": "Object with page, chapter, position_percent, scroll_offset",
+        "last_read": "ISO 8601 timestamp",
+        "manual_bookmarks": "Array of manual bookmark objects with id, page, note, created"
+      }
+    },
+    "playlists": {
+      "file": "playlists.json",
+      "structure": {
+        "playlists": "Array of playlist objects"
+      },
+      "playlist_fields": {
+        "id": "UUID v4",
+        "name": "Playlist name",
+        "trackIds": "Array of track IDs",
+        "created": "ISO 8601 timestamp"
+      }
+    }
+  }
+}
