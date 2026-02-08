@@ -91,16 +91,24 @@ router.use('/proxy', (req: Request, res: Response) => {
     port: KIWIX_PORT,
     path: targetPath,
     method: req.method,
-    headers: { ...req.headers, host: `localhost:${KIWIX_PORT}` },
+    headers: {
+      ...req.headers,
+      host: `localhost:${KIWIX_PORT}`,
+      'accept-encoding': 'identity', // Request uncompressed so we can modify HTML
+    },
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
     const contentType = proxyRes.headers['content-type'] || '';
     const isHtml = contentType.includes('text/html');
 
-    // Forward status and headers (except content-length for HTML since we modify it)
+    // Forward status and headers (except content-length/encoding for HTML since we modify it)
     const headers = { ...proxyRes.headers };
-    if (isHtml) delete headers['content-length'];
+    if (isHtml) {
+      delete headers['content-length'];
+      delete headers['content-encoding'];
+      delete headers['transfer-encoding'];
+    }
     res.writeHead(proxyRes.statusCode || 200, headers);
 
     if (isHtml) {
