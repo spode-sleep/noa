@@ -68,7 +68,7 @@
 
         <!-- EPUB Reader -->
         <div v-else-if="book.format === 'epub'" class="epub-reader">
-          <VueReader :url="epubUrl" :getRendition="onRendition" :location="epubLocation" @update:location="onEpubLocationChange" />
+          <VueReader ref="readerRef" :url="epubUrl" :getRendition="onRendition" @update:location="onEpubLocationChange" />
         </div>
 
         <!-- FB2 Reader -->
@@ -149,7 +149,7 @@ const ttsMessage = ref('')
 
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
-const epubLocation = ref<any>(undefined)
+const readerRef = ref<any>(null) // template ref to VueReader component
 const epubFraction = ref<number>(0) // 0-1 reading progress for bookmarks
 
 function onEpubLocationChange(detail: any) {
@@ -227,9 +227,8 @@ function restorePosition() {
   positionRestored.value = true
   if (savedPosition.value != null) {
     if (book.value?.format === 'epub') {
-      // Saved position is a fraction (0-1); pass as object with fraction property
-      // so foliate-view's resolveNavigation picks it up
-      epubLocation.value = { fraction: Number(savedPosition.value) }
+      // Call VueReader's setLocation directly (prop-based navigation doesn't work - no watcher)
+      readerRef.value?.setLocation({ fraction: Number(savedPosition.value) })
     } else {
       window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
     }
@@ -239,8 +238,8 @@ function restorePosition() {
 function navigateToBookmark(bm: ManualBookmark) {
   if (bm.page != null) {
     if (book.value?.format === 'epub') {
-      // EPUB bookmarks store fraction (0-1); pass as object for resolveNavigation
-      epubLocation.value = { fraction: Number(bm.page) }
+      // Call VueReader's exposed setLocation method with fraction object
+      readerRef.value?.setLocation({ fraction: Number(bm.page) })
     } else if (book.value?.format === 'pdf') {
       const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
       if (iframe) {
