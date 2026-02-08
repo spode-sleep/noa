@@ -15,11 +15,11 @@
 
 <script setup lang="ts">
 const links = [
-  { to: '/games', label: 'Games' },
-  { to: '/music', label: 'Music' },
-  { to: '/fiction', label: 'Fiction' },
-  { to: '/reference', label: 'Reference' },
-  { to: '/ai', label: 'AI' },
+  { to: '/games', label: 'Игры' },
+  { to: '/music', label: 'Музыка' },
+  { to: '/fiction', label: 'Художественная литература' },
+  { to: '/reference', label: 'Справочная литература' },
+  { to: '/ai', label: 'ИИ помощник' },
 ]
 </script>
 

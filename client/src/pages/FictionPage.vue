@@ -55,7 +55,7 @@
             </span>
             <span v-if="book.year" class="book-year">{{ book.year }}</span>
             <span v-if="book.language" class="book-lang">{{ book.language }}</span>
-            <span class="book-size">{{ formatFileSize(book.fileSize) }}</span>
+            <span class="book-size">{{ formatFileSize(book.file_size) }}</span>
           </div>
           <div v-if="getBookProgress(book.id)" class="progress-badge">
             📖 Continue reading · {{ getBookProgress(book.id) }}%
@@ -76,7 +76,7 @@ interface Book {
   format: string
   year?: number
   language?: string
-  fileSize: number
+  file_size: number
 }
 
 interface BookBookmark {

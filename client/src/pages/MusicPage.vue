@@ -111,7 +111,7 @@
           >
             <div class="playlist-info">
               <span class="playlist-name">{{ pl.name }}</span>
-              <span class="playlist-count">{{ pl.tracks?.length || 0 }} tracks</span>
+              <span class="playlist-count">{{ pl.trackIds?.length || 0 }} tracks</span>
             </div>
             <button class="btn btn-danger" @click.stop="deletePlaylist(pl.id)">Delete</button>
           </div>
@@ -197,6 +197,7 @@ interface Track {
 interface Playlist {
   id: string
   name: string
+  trackIds: string[]
   tracks?: Track[]
 }
 
@@ -361,7 +362,11 @@ async function fetchTracks() {
   loading.value = true
   try {
     const res = await fetch('/api/music/tracks')
-    tracks.value = await res.json()
+    const data = await res.json()
+    tracks.value = data.tracks || []
+    if (data.last_scan) {
+      lastScanDate.value = new Date(data.last_scan).toLocaleString()
+    }
   } catch (e) {
     console.error('Failed to fetch tracks:', e)
   } finally {
@@ -386,7 +391,8 @@ async function fetchPlaylists() {
   loadingPlaylists.value = true
   try {
     const res = await fetch('/api/music/playlists')
-    playlists.value = await res.json()
+    const data = await res.json()
+    playlists.value = data.playlists || []
   } catch (e) {
     console.error('Failed to fetch playlists:', e)
   } finally {
@@ -420,13 +426,11 @@ async function deletePlaylist(id: string) {
   }
 }
 
-async function selectPlaylist(pl: Playlist) {
-  try {
-    const res = await fetch(`/api/music/playlists/${pl.id}`)
-    selectedPlaylist.value = await res.json()
-  } catch (e) {
-    console.error('Failed to fetch playlist:', e)
-  }
+function selectPlaylist(pl: Playlist) {
+  const resolvedTracks = (pl.trackIds || [])
+    .map(id => tracks.value.find(t => t.id === id))
+    .filter((t): t is Track => t !== undefined)
+  selectedPlaylist.value = { ...pl, tracks: resolvedTracks }
 }
 
 async function removeFromPlaylist(playlistId: string, trackId: string) {

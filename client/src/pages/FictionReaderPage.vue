@@ -119,7 +119,7 @@ interface Book {
   format: string
   year?: number
   language?: string
-  fileSize: number
+  file_size: number
 }
 
 interface ManualBookmark {
