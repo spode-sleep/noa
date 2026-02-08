@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
 
@@ -110,22 +110,14 @@ function copyAppId() {
 }
 
 function checkOverflow() {
-  if (descRef.value) {
-    const el = descRef.value
-    // Temporarily remove clamp to measure true height
-    const origDisplay = el.style.display
-    const origClamp = el.style.webkitLineClamp
-    el.style.display = 'block'
-    el.style.webkitLineClamp = 'unset'
-    const fullHeight = el.scrollHeight
-    el.style.display = origDisplay || ''
-    el.style.webkitLineClamp = origClamp || ''
-    // After restoring clamp, compare
-    requestAnimationFrame(() => {
-      descOverflows.value = fullHeight > el.clientHeight
-    })
-  }
+  if (!descRef.value) return
+  const el = descRef.value
+  descOverflows.value = el.scrollHeight > el.clientHeight + 1
 }
+
+watch(game, () => {
+  nextTick(() => setTimeout(checkOverflow, 50))
+})
 
 function ratingClass(rating: string): string {
   return (rating || '').toLowerCase()
@@ -239,6 +231,7 @@ onMounted(async () => {
   font-size: 0.9rem;
   opacity: 0.6;
   transition: opacity 0.2s, color 0.2s;
+  margin-top: 2px;
 }
 .copy-btn:hover {
   opacity: 1;
