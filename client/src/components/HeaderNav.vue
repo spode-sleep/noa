@@ -1,7 +1,7 @@
 <template>
   <nav class="header-nav glass">
     <div class="nav-content container">
-      <span class="nav-logo">Noa</span>
+      <span class="nav-logo"><Icon icon="mdi:package-variant-closed" class="nav-logo-icon" /> BOX</span>
       <ul class="nav-links">
         <li v-for="link in links" :key="link.to">
           <router-link
@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 const route = useRoute()
 
@@ -66,6 +67,15 @@ function isActive(to: string): boolean {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   filter: drop-shadow(0 0 12px rgba(0, 232, 184, 0.3));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-logo-icon {
+  font-size: 1.4rem;
+  -webkit-text-fill-color: var(--accent-teal);
+  filter: drop-shadow(0 0 6px rgba(0, 232, 184, 0.5));
 }
 
 .nav-links {
