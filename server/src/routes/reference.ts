@@ -49,10 +49,25 @@ router.get('/archives/:filename/viewer', (_req: Request, res: Response) => {
   });
 });
 
-// GET /api/reference/archives/:filename/search - Placeholder search
-router.get('/archives/:filename/search', (req: Request, res: Response) => {
-  const q = req.query.q || '';
-  res.json({ message: 'ZIM search requires kiwix-serve', query: q, results: [] });
+// GET /api/reference/status - Return kiwix-serve URL if available
+router.get('/status', (_req: Request, res: Response) => {
+  // Check if any ZIM files exist
+  let hasZim = false;
+  for (const refPath of referencePaths) {
+    if (fs.existsSync(refPath)) {
+      const entries = fs.readdirSync(refPath);
+      if (entries.some(e => e.toLowerCase().endsWith('.zim'))) {
+        hasZim = true;
+        break;
+      }
+    }
+  }
+
+  if (hasZim) {
+    res.json({ kiwixUrl: `http://localhost:${KIWIX_PORT}/` });
+  } else {
+    res.json({ kiwixUrl: null });
+  }
 });
 
 export default router;

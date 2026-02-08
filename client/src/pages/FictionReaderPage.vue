@@ -67,15 +67,7 @@
 
         <!-- EPUB Reader -->
         <div v-else-if="book.format === 'epub'" class="epub-reader">
-          <div class="epub-controls glass">
-            <button class="ctrl-btn" @click="epubPrev" title="Previous page">← Prev</button>
-            <span class="epub-location">{{ epubLocation }}</span>
-            <button class="ctrl-btn" @click="epubNext" title="Next page">Next →</button>
-          </div>
-          <div v-if="epubError" class="epub-error glass">
-            <p>⚠️ {{ epubError }}</p>
-          </div>
-          <div ref="epubContainer" class="epub-container"></div>
+          <VueReader :url="epubUrl" :getRendition="getRendition" />
         </div>
 
         <!-- FB2 Reader -->
@@ -112,10 +104,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import ePub from 'epubjs'
-import type { Book as EpubBook, Rendition } from 'epubjs'
+import { VueReader } from 'vue-book-reader'
 
 interface Book {
   id: string
@@ -156,83 +147,23 @@ const showTtsMessage = ref(false)
 const ttsMessage = ref('')
 
 // EPUB state
-const epubContainer = ref<HTMLElement | null>(null)
-const epubLocation = ref('')
-const epubError = ref('')
-let epubBook: EpubBook | null = null
-let epubRendition: Rendition | null = null
+const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
+
+function getRendition(rendition: any) {
+  rendition.themes.default({
+    body: {
+      color: '#e0e0e0 !important',
+      background: 'transparent !important',
+      'font-family': 'Georgia, serif',
+      'line-height': '1.8',
+    },
+    a: { color: '#00e8b8 !important' },
+  })
+}
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString()
-}
-
-// EPUB functions
-async function initEpubReader() {
-  if (book.value?.format !== 'epub' || !epubContainer.value) return
-  epubError.value = ''
-  try {
-    // Fetch the EPUB as an ArrayBuffer first (more reliable than epub.js internal XHR)
-    const response = await fetch(`/api/fiction/read/${bookId}`)
-    if (!response.ok) {
-      epubError.value = `Failed to fetch EPUB: ${response.status} ${response.statusText}`
-      return
-    }
-    const arrayBuffer = await response.arrayBuffer()
-    if (arrayBuffer.byteLength === 0) {
-      epubError.value = 'EPUB file is empty'
-      return
-    }
-
-    epubBook = ePub(arrayBuffer as any)
-
-    // Calculate concrete pixel height (epub.js iframes need fixed pixel dimensions)
-    const containerRect = epubContainer.value.getBoundingClientRect()
-    const height = Math.max(containerRect.height, 400)
-
-    epubRendition = epubBook.renderTo(epubContainer.value, {
-      width: '100%',
-      height: `${height}px`,
-      spread: 'none',
-      flow: 'paginated',
-    })
-    epubRendition.themes.default({
-      body: {
-        color: '#e0e0e0 !important',
-        background: 'transparent !important',
-        'font-family': 'Georgia, serif',
-        'line-height': '1.8',
-      },
-      'a': {
-        color: '#00e8b8 !important',
-      },
-    })
-    epubRendition.on('relocated', (location: { start: { cfi: string }; end: { cfi: string } }) => {
-      const startCfi = location.start.cfi
-      const match = startCfi.match(/\[(\d+)\//)
-      epubLocation.value = match ? `Section ${match[1]}` : ''
-    })
-    await epubRendition.display()
-  } catch (e: any) {
-    console.error('Failed to init EPUB reader:', e)
-    epubError.value = `EPUB rendering error: ${e?.message || e}`
-  }
-}
-
-function epubPrev() {
-  epubRendition?.prev()
-}
-
-function epubNext() {
-  epubRendition?.next()
-}
-
-function destroyEpubReader() {
-  if (epubBook) {
-    epubBook.destroy()
-    epubBook = null
-    epubRendition = null
-  }
 }
 
 async function readAloud() {
@@ -354,10 +285,6 @@ onMounted(async () => {
   try {
     await fetchBook()
     await Promise.all([fetchBookmarks(), fetchFb2Content()])
-    if (book.value?.format === 'epub') {
-      await nextTick()
-      await initEpubReader()
-    }
   } finally {
     loading.value = false
   }
@@ -365,7 +292,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   savePosition()
-  destroyEpubReader()
 })
 </script>
 
@@ -659,41 +585,12 @@ onUnmounted(() => {
   background: #fff;
 }
 
-/* EPUB Reader */
+/* EPUB Reader (vue-book-reader) */
 .epub-reader {
-  display: flex;
-  flex-direction: column;
   height: calc(100vh - 120px);
-}
-
-.epub-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
-}
-
-.epub-location {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.epub-container {
-  flex: 1;
-  min-height: 400px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  background: rgba(10, 10, 26, 0.6);
   overflow: hidden;
-}
-
-.epub-error {
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  color: #e74c3c;
-  font-size: 0.9rem;
 }
 
 /* FB2 */
