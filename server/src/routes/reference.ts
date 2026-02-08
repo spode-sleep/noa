@@ -43,11 +43,9 @@ router.get('/archives', (_req: Request, res: Response) => {
 });
 
 // GET /api/reference/archives/:filename/viewer - Return kiwix-serve URL for this ZIM
-router.get('/archives/:filename/viewer', (req: Request, res: Response) => {
-  const filename = req.params.filename as string;
-  const basename = path.basename(filename, '.zim');
+router.get('/archives/:filename/viewer', (_req: Request, res: Response) => {
   res.json({
-    viewerUrl: `http://localhost:${KIWIX_PORT}/viewer#/search?content=${encodeURIComponent(basename)}&pattern=`,
+    viewerUrl: `http://localhost:${KIWIX_PORT}/`,
   });
 });
 
