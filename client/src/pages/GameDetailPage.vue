@@ -11,7 +11,12 @@
           <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
           <h1>{{ game.name }}</h1>
         </div>
-        <span class="app-id">{{ game.appId || game.id }}</span>
+        <span class="app-id">
+          {{ game.appId || game.id }}
+          <button class="copy-btn" @click="copyAppId" :title="copied ? 'Copied!' : 'Copy App ID'">
+            <Icon :icon="copied ? 'mdi:check' : 'mdi:content-copy'" />
+          </button>
+        </span>
       </div>
 
       <div class="game-layout">
@@ -25,9 +30,8 @@
         <div class="game-right">
           <div v-if="game.description" class="description-wrapper" :class="{ expanded: descExpanded }">
             <div ref="descRef" class="description-content" v-html="game.description"></div>
-            <button v-if="descOverflows || descExpanded" class="expand-btn" @click="descExpanded = !descExpanded">
+            <button v-if="descOverflows || descExpanded" class="expand-btn" @click="descExpanded = !descExpanded" :title="descExpanded ? 'Show less' : 'Show more'">
               <Icon :icon="descExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
-              {{ descExpanded ? 'Show less' : 'Show more' }}
             </button>
           </div>
           <div v-if="game.tags?.length" class="tags-section">
@@ -95,10 +99,31 @@ const error = ref('')
 const descExpanded = ref(false)
 const descRef = ref<HTMLElement | null>(null)
 const descOverflows = ref(false)
+const copied = ref(false)
+
+function copyAppId() {
+  const id = game.value?.appId || game.value?.id || ''
+  navigator.clipboard.writeText(String(id)).then(() => {
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 1500)
+  })
+}
 
 function checkOverflow() {
   if (descRef.value) {
-    descOverflows.value = descRef.value.scrollHeight > descRef.value.clientHeight
+    const el = descRef.value
+    // Temporarily remove clamp to measure true height
+    const origDisplay = el.style.display
+    const origClamp = el.style.webkitLineClamp
+    el.style.display = 'block'
+    el.style.webkitLineClamp = 'unset'
+    const fullHeight = el.scrollHeight
+    el.style.display = origDisplay || ''
+    el.style.webkitLineClamp = origClamp || ''
+    // After restoring clamp, compare
+    requestAnimationFrame(() => {
+      descOverflows.value = fullHeight > el.clientHeight
+    })
   }
 }
 
@@ -200,7 +225,24 @@ onMounted(async () => {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-bottom: 20px;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.9rem;
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s;
+}
+.copy-btn:hover {
+  opacity: 1;
+  color: var(--accent-teal);
 }
 
 .game-top {
@@ -222,10 +264,12 @@ h1 {
 
 .source-icon.steam {
   color: #66c0f4;
+  filter: drop-shadow(0 0 6px rgba(102, 192, 244, 0.4));
 }
 
 .source-icon.rawg {
   color: var(--accent-purple);
+  filter: drop-shadow(0 0 6px rgba(123, 104, 238, 0.4));
 }
 
 .hero-image {
@@ -257,18 +301,20 @@ h1 {
 .expand-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   background: transparent;
   border: none;
   color: var(--accent-teal);
   cursor: pointer;
-  font-size: 0.85rem;
-  padding: 6px 0;
-  margin-top: 4px;
+  font-size: 1.3rem;
+  padding: 2px 0;
+  margin: 4px auto 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
 }
 
 .expand-btn:hover {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .tags-section {
