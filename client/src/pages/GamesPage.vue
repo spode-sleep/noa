@@ -15,7 +15,7 @@
         <option value="rawg">RAWG</option>
       </select>
       <button class="tags-btn" @click="showTagModal = true">
-        🏷️ Tags
+        <Icon icon="mdi:tag-multiple" class="tags-icon" /> Tags
         <span v-if="selectedTags.size" class="tags-count">{{ selectedTags.size }}</span>
       </button>
     </div>

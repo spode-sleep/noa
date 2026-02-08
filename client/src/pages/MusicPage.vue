@@ -35,12 +35,127 @@
         </button>
       </div>
 
+      <!-- Search sub-tabs -->
+      <div v-if="search" class="search-tabs">
+        <button
+          class="search-tab"
+          :class="{ active: searchMode === 'track' }"
+          @click="searchMode = 'track'"
+        >Track</button>
+        <button
+          class="search-tab"
+          :class="{ active: searchMode === 'album' }"
+          @click="searchMode = 'album'"
+        >Album</button>
+        <button
+          class="search-tab"
+          :class="{ active: searchMode === 'author' }"
+          @click="searchMode = 'author'"
+        >Author</button>
+      </div>
+
       <div v-if="lastScanDate" class="scan-info">
         Last scanned: {{ lastScanDate }}
       </div>
 
       <div v-if="loading" class="loading">Loading tracks...</div>
 
+      <!-- Search results: flat track list -->
+      <div v-else-if="search && searchMode === 'track'">
+        <div v-if="filteredTracks.length === 0" class="empty">No tracks found.</div>
+        <div v-else class="track-list search-track-list">
+          <div
+            v-for="track in filteredTracks"
+            :key="track.id"
+            class="track-row"
+            :class="{ active: currentTrack?.id === track.id }"
+          >
+            <button class="play-btn" @click="handlePlay(track)">
+              <Icon :icon="currentTrack?.id === track.id && isPlaying ? 'mdi:pause' : 'mdi:play'" />
+            </button>
+            <span class="track-title">{{ track.title }} <span class="track-artist">— {{ track.artist }}</span></span>
+            <span class="track-duration">{{ formatDuration(track.duration) }}</span>
+            <div class="track-actions">
+              <button class="add-to-playlist-btn" @click.stop="openPlaylistPicker(track)" title="Add to playlist">
+                <Icon icon="mdi:playlist-plus" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search results: grouped by album -->
+      <div v-else-if="search && searchMode === 'album'">
+        <div v-if="albumGroups.length === 0" class="empty">No albums found.</div>
+        <div v-else class="album-grid">
+          <div v-for="ag in albumGroups" :key="ag.album" class="album-card glass">
+            <div class="album-card-header">
+              <Icon icon="mdi:album" class="album-icon" />
+              <div class="album-card-info">
+                <span class="album-card-name">{{ ag.album }}</span>
+                <span class="album-card-artist">{{ ag.artist }}</span>
+              </div>
+            </div>
+            <div class="track-list">
+              <div
+                v-for="track in ag.tracks"
+                :key="track.id"
+                class="track-row"
+                :class="{ active: currentTrack?.id === track.id }"
+              >
+                <button class="play-btn" @click="handlePlay(track)">
+                  <Icon :icon="currentTrack?.id === track.id && isPlaying ? 'mdi:pause' : 'mdi:play'" />
+                </button>
+                <span class="track-title">{{ track.title }}</span>
+                <span class="track-duration">{{ formatDuration(track.duration) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search results: grouped by author (same as default tree) -->
+      <div v-else-if="search && searchMode === 'author'">
+        <div v-if="artistKeys.length === 0" class="empty">No artists found.</div>
+        <div v-else class="track-tree">
+          <div v-for="artist in artistKeys" :key="artist" class="artist-section glass">
+            <button class="artist-header" @click="toggleArtist(artist)">
+              <span class="collapse-icon">{{ expandedArtists.has(artist) ? '▾' : '▸' }}</span>
+              <span class="artist-name">{{ artist }}</span>
+              <span class="artist-count">{{ artistTrackCount(artist) }} tracks</span>
+            </button>
+            <div v-if="expandedArtists.has(artist)" class="artist-body">
+              <div v-for="album in Object.keys(groupedTracks[artist])" :key="album" class="album-section">
+                <div class="album-header">
+                  <Icon icon="mdi:album" class="album-icon" />
+                  <span class="album-name">{{ album }}</span>
+                </div>
+                <div class="track-list">
+                  <div
+                    v-for="track in groupedTracks[artist][album]"
+                    :key="track.id"
+                    class="track-row"
+                    :class="{ active: currentTrack?.id === track.id }"
+                  >
+                    <button class="play-btn" @click="handlePlay(track)">
+                      <Icon :icon="currentTrack?.id === track.id && isPlaying ? 'mdi:pause' : 'mdi:play'" />
+                    </button>
+                    <span class="track-title">{{ track.title }}</span>
+                    <span class="track-duration">{{ formatDuration(track.duration) }}</span>
+                    <div class="track-actions">
+                      <button class="add-to-playlist-btn" @click.stop="openPlaylistPicker(track)" title="Add to playlist">
+                        <Icon icon="mdi:playlist-plus" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Default view (no search): artist/album tree -->
       <div v-else-if="artistKeys.length === 0" class="empty">
         No tracks found.
       </div>
@@ -207,6 +322,7 @@ const {
 
 const activeTab = ref<'tracks' | 'playlists'>('tracks')
 const search = ref('')
+const searchMode = ref<'track' | 'album' | 'author'>('track')
 const loading = ref(true)
 const scanning = ref(false)
 const lastScanDate = ref('')
@@ -246,6 +362,16 @@ const groupedTracks = computed(() => {
 })
 
 const artistKeys = computed(() => Object.keys(groupedTracks.value).sort())
+
+const albumGroups = computed(() => {
+  const map: Record<string, { album: string; artist: string; tracks: Track[] }> = {}
+  for (const t of filteredTracks.value) {
+    const album = t.album || 'Unknown Album'
+    if (!map[album]) map[album] = { album, artist: t.artist || 'Unknown Artist', tracks: [] }
+    map[album].tracks.push(t)
+  }
+  return Object.values(map).sort((a, b) => a.album.localeCompare(b.album))
+})
 
 function artistTrackCount(artist: string): number {
   const albums = groupedTracks.value[artist]
@@ -657,6 +783,7 @@ h1 {
   align-items: center;
   gap: 8px;
   padding: 8px 0;
+  margin-bottom: 6px;
   color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
@@ -796,6 +923,81 @@ h1 {
   .track-row {
     padding-left: 8px;
   }
+}
+
+/* Search sub-tabs */
+.search-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+}
+
+.search-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.search-tab:hover {
+  color: var(--text-primary);
+}
+
+.search-tab.active {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: #fff;
+}
+
+/* Search track list */
+.search-track-list {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+/* Album grid for album search */
+.album-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.album-card {
+  padding: 16px;
+}
+
+.album-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.album-card-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.album-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.album-card-artist {
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 /* Track actions */

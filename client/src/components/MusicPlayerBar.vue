@@ -1,10 +1,12 @@
 <template>
-  <!-- Mini mode: floating circle in bottom-right corner -->
+  <!-- Mini mode: quarter-arc in bottom-right corner -->
   <div v-if="currentTrack && minimized" class="mini-player" @click="minimized = false">
-    <div v-if="isPlaying" class="wave wave1"></div>
-    <div v-if="isPlaying" class="wave wave2"></div>
-    <div v-if="isPlaying" class="wave wave3"></div>
-    <div class="mini-circle">
+    <svg v-if="isPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2"/>
+      <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
+      <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
+    </svg>
+    <div class="mini-arc">
       <Icon icon="mdi:music-note" />
     </div>
   </div>
@@ -299,75 +301,77 @@ const {
   color: var(--accent-teal);
 }
 
-/* Mini player floating circle */
+/* Mini player quarter-arc in bottom-right corner */
 .mini-player {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 0;
+  right: 0;
   z-index: 1000;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 72px;
+  height: 72px;
 }
 
-.mini-circle {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+.mini-arc {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 72px;
+  height: 72px;
   background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  border-radius: 72px 0 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-top: 12px;
+  padding-left: 12px;
   font-size: 1.5rem;
   color: #fff;
-  box-shadow: 0 0 16px rgba(0, 232, 184, 0.5);
-  position: relative;
+  box-shadow: -4px -4px 20px rgba(0, 232, 184, 0.35);
   z-index: 2;
   transition: transform 0.2s ease;
 }
 
-.mini-player:hover .mini-circle {
-  transform: scale(1.1);
+.mini-player:hover .mini-arc {
+  transform: scale(1.08);
+  transform-origin: bottom right;
 }
 
-/* Animated waves */
-.wave {
+.arc-waves {
   position: absolute;
-  border-radius: 50%;
-  border: 2px solid var(--accent-teal);
+  bottom: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.arc-wave {
   opacity: 0;
-  animation: wave-pulse 2.4s ease-out infinite;
+  transform-origin: 200px 200px;
 }
 
-.wave1 {
-  width: 52px;
-  height: 52px;
-  animation-delay: 0s;
+.arc-wave1 {
+  animation: arc-pulse 2.4s ease-out infinite;
 }
 
-.wave2 {
-  width: 52px;
-  height: 52px;
-  animation-delay: 0.8s;
+.arc-wave2 {
+  animation: arc-pulse 2.4s ease-out 0.8s infinite;
 }
 
-.wave3 {
-  width: 52px;
-  height: 52px;
-  animation-delay: 1.6s;
+.arc-wave3 {
+  animation: arc-pulse 2.4s ease-out 1.6s infinite;
 }
 
-@keyframes wave-pulse {
+@keyframes arc-pulse {
   0% {
-    width: 52px;
-    height: 52px;
-    opacity: 0.6;
+    opacity: 0.7;
+    stroke-width: 3;
   }
   100% {
-    width: 120px;
-    height: 120px;
     opacity: 0;
+    stroke-width: 1;
   }
 }
 </style>
