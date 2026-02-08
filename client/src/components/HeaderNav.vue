@@ -4,7 +4,12 @@
       <span class="nav-logo">Noa</span>
       <ul class="nav-links">
         <li v-for="link in links" :key="link.to">
-          <router-link :to="link.to" class="nav-link">
+          <router-link
+            :to="link.to"
+            class="nav-link"
+            :class="{ active: isActive(link.to) }"
+            :style="isActive(link.to) ? { color: link.color, background: link.color + '14', boxShadow: '0 0 16px ' + link.color + '14' } : {}"
+          >
             {{ link.label }}
           </router-link>
         </li>
@@ -14,13 +19,21 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
 const links = [
-  { to: '/games', label: 'Игры' },
-  { to: '/music', label: 'Музыка' },
-  { to: '/fiction', label: 'Художественная литература' },
-  { to: '/reference', label: 'Справочная литература' },
-  { to: '/ai', label: 'ИИ помощник' },
+  { to: '/games', label: 'Games', color: '#e74c3c' },
+  { to: '/music', label: 'Music', color: '#00bcd4' },
+  { to: '/fiction', label: 'Fiction', color: '#f39c12' },
+  { to: '/reference', label: 'Reference', color: '#2ecc71' },
+  { to: '/ai', label: 'AI Librarian', color: '#a855f7' },
 ]
+
+function isActive(to: string): boolean {
+  return route.path === to || route.path.startsWith(to + '/')
+}
 </script>
 
 <style scoped>
@@ -76,9 +89,7 @@ const links = [
   text-shadow: 0 0 10px rgba(0, 232, 184, 0.15);
 }
 
-.nav-link.router-link-active {
-  color: var(--accent-teal);
-  background: rgba(0, 232, 184, 0.08);
-  box-shadow: 0 0 16px rgba(0, 232, 184, 0.08);
+.nav-link.active {
+  font-weight: 600;
 }
 </style>
