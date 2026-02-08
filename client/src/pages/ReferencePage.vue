@@ -110,8 +110,6 @@ h1 {
   height: 100%;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  background: #1a1a2e;
-  /* Invert colors for dark theme (0.88 = near-full invert, hue-rotate restores original hues) */
-  filter: invert(0.88) hue-rotate(180deg);
+  background: #fff;
 }
 </style>

@@ -38,7 +38,8 @@
         <div v-else class="bookmark-list">
           <div v-for="bm in manualBookmarks" :key="bm.id" class="bookmark-item" role="button" tabindex="0" @click="navigateToBookmark(bm)" @keydown.enter="navigateToBookmark(bm)" @keydown.space.prevent="navigateToBookmark(bm)">
             <div class="bookmark-info">
-              <span v-if="bm.page" class="bookmark-page">Page {{ bm.page }}</span>
+              <span v-if="bm.page && book?.format !== 'epub'" class="bookmark-page">Page {{ bm.page }}</span>
+              <span v-else-if="bm.page && book?.format === 'epub'" class="bookmark-page">📖 Position saved</span>
               <span class="bookmark-note">{{ bm.note || 'No note' }}</span>
               <span class="bookmark-date">{{ formatDate(bm.created) }}</span>
             </div>
@@ -67,7 +68,7 @@
 
         <!-- EPUB Reader -->
         <div v-else-if="book.format === 'epub'" class="epub-reader">
-          <VueReader :url="epubUrl" :getRendition="onRendition" />
+          <VueReader :url="epubUrl" :getRendition="onRendition" v-model:location="epubLocation" />
         </div>
 
         <!-- FB2 Reader -->
@@ -120,7 +121,7 @@ interface Book {
 
 interface ManualBookmark {
   id: string
-  page: number
+  page: number | string
   note: string
   created: string
 }
@@ -148,6 +149,7 @@ const ttsMessage = ref('')
 
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
+const epubLocation = ref<any>(null)
 
 function onRendition(view: any) {
   // Apply dark theme by injecting CSS into each loaded document
@@ -184,12 +186,16 @@ async function readAloud() {
 
 async function addBookmark() {
   const note = newBookmarkNote.value.trim()
-  const scrollPos = window.scrollY
+  let position: any = window.scrollY
+  // For EPUB, save the reader location (CFI/fraction)
+  if (book.value?.format === 'epub' && epubLocation.value) {
+    position = JSON.stringify(epubLocation.value)
+  }
   try {
     const res = await fetch(`/api/bookmarks/${bookId}/manual`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note, page: scrollPos }),
+      body: JSON.stringify({ note, page: position }),
     })
     const bm = await res.json()
     manualBookmarks.value.push(bm)
@@ -211,29 +217,52 @@ async function deleteBookmark(id: string) {
 function restorePosition() {
   positionRestored.value = true
   if (savedPosition.value != null) {
-    window.scrollTo({ top: savedPosition.value, behavior: 'smooth' })
+    if (book.value?.format === 'epub') {
+      try {
+        const loc = JSON.parse(String(savedPosition.value))
+        epubLocation.value = loc
+      } catch {
+        epubLocation.value = savedPosition.value
+      }
+    } else {
+      window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
+    }
   }
 }
 
 function navigateToBookmark(bm: ManualBookmark) {
   if (bm.page != null) {
-    if (book.value?.format === 'pdf') {
+    if (book.value?.format === 'epub') {
+      // EPUB bookmarks store location as JSON string
+      try {
+        const loc = JSON.parse(String(bm.page))
+        epubLocation.value = loc
+      } catch {
+        // If not JSON, try using it directly
+        epubLocation.value = bm.page
+      }
+    } else if (book.value?.format === 'pdf') {
       const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
       if (iframe) {
         iframe.src = `/api/fiction/read/${book.value.id}#page=${bm.page}`
       }
     } else {
-      window.scrollTo({ top: bm.page, behavior: 'smooth' })
+      window.scrollTo({ top: Number(bm.page), behavior: 'smooth' })
     }
   }
 }
 
 async function savePosition() {
   try {
+    let positionData: any = window.scrollY
+    // For EPUB, save the reader location
+    if (book.value?.format === 'epub' && epubLocation.value) {
+      positionData = JSON.stringify(epubLocation.value)
+    }
     await fetch(`/api/bookmarks/${bookId}/position`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scroll_offset: window.scrollY }),
+      body: JSON.stringify({ scroll_offset: positionData }),
     })
   } catch {
     // Silently fail - position saving is best-effort
