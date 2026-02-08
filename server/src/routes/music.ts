@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import * as jsmediatags from 'jsmediatags';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const jsmediatags = require('jsmediatags');
 
 // music-metadata is ESM-only; use dynamic import for cross-Node.js compatibility
 let mmModule: typeof import('music-metadata') | null = null;
