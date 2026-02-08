@@ -204,9 +204,16 @@ router.get('/scan', async (_req, res) => {
       return res.status(400).json({ error: 'FICTION_LIBRARY_PATH not set' });
     }
 
+    const scannedPaths: string[] = [];
+    const unavailablePaths: string[] = [];
     const files: string[] = [];
     for (const lp of libraryPaths) {
-      files.push(...await walkDir(lp, ['.pdf', '.epub', '.fb2']));
+      if (fs.existsSync(lp)) {
+        scannedPaths.push(lp);
+        files.push(...await walkDir(lp, ['.pdf', '.epub', '.fb2']));
+      } else {
+        unavailablePaths.push(lp);
+      }
     }
     const books: BookMeta[] = [];
 
@@ -247,7 +254,7 @@ router.get('/scan', async (_req, res) => {
       last_scan: new Date().toISOString(),
     };
     writeLibrary(library);
-    res.json(library);
+    res.json({ ...library, scanned_paths: scannedPaths, unavailable_paths: unavailablePaths });
   } catch (err: any) {
     res.status(500).json({ error: 'Scan failed', details: err.message });
   }

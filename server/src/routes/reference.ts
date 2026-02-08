@@ -18,8 +18,12 @@ router.get('/archives', (_req: Request, res: Response) => {
     }
 
     const archives: { name: string; path: string; size: number }[] = [];
+    const unavailablePaths: string[] = [];
     for (const refPath of referencePaths) {
-      if (!fs.existsSync(refPath)) continue;
+      if (!fs.existsSync(refPath)) {
+        unavailablePaths.push(refPath);
+        continue;
+      }
       const entries = fs.readdirSync(refPath, { withFileTypes: true });
       for (const e of entries) {
         if (!e.isDirectory() && e.name.toLowerCase().endsWith('.zim')) {
@@ -30,7 +34,7 @@ router.get('/archives', (_req: Request, res: Response) => {
       }
     }
 
-    res.json({ archives });
+    res.json({ archives, unavailable_paths: unavailablePaths });
   } catch (err) {
     res.status(500).json({ error: 'Failed to list archives', details: String(err) });
   }

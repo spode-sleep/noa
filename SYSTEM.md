@@ -117,9 +117,9 @@ cp server/.env.example server/.env
 | Variable               | Description                                      | Example                          |
 |------------------------|--------------------------------------------------|----------------------------------|
 | `PORT`                 | Backend API port                                 | `3001`                           |
-| `MUSIC_LIBRARY_PATH`   | Music directories (comma-separated for multiple) | `/home/user/Music,/mnt/ext/Music`|
-| `FICTION_LIBRARY_PATH`  | Book directories (comma-separated for multiple)  | `/home/user/Books,/mnt/ext/Books`|
-| `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference`           |
+| `MUSIC_LIBRARY_PATH`   | Music directories (comma-separated for multiple) | `/home/user/Music,/media/user/USB/Music`|
+| `FICTION_LIBRARY_PATH`  | Book directories (comma-separated for multiple)  | `/home/user/Books,/media/user/USB/Books`|
+| `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference,/media/user/USB/ZIM`|
 | `TTS_MODEL_PATH`       | Path to Piper TTS model files                   | `/home/user/models/piper`        |
 | `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-medium`                   |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
@@ -128,15 +128,15 @@ cp server/.env.example server/.env
 
 ```env
 PORT=3001
-MUSIC_LIBRARY_PATH=/home/user/Music,/mnt/external/Music
-FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/mnt/external/Books
-REFERENCE_LIBRARY_PATH=/home/user/Books/Reference
+MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
+FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/media/user/USB_DRIVE/Books
+REFERENCE_LIBRARY_PATH=/home/user/Books/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-medium
 DATA_PATH=../data
 ```
 
-**Important**: All library paths must be absolute paths. Use commas to specify multiple directories. The `DATA_PATH` can be relative to the server directory.
+**Important**: All library paths must be absolute paths. Use commas to specify multiple directories (e.g. local + USB drive). Unavailable paths (unmounted drives) are silently skipped during scans. The `DATA_PATH` can be relative to the server directory.
 
 ---
 
@@ -257,6 +257,48 @@ Example `games.json` structure:
 
 ---
 
+## Using External Drives (USB, HDD)
+
+NOA supports reading content from external/removable drives. On Linux Mint, USB drives are typically mounted at `/media/<username>/<DRIVE_LABEL>`.
+
+### Setup
+
+Add the external drive paths to your `.env` alongside local paths:
+
+```env
+MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/MY_USB/Music
+FICTION_LIBRARY_PATH=/home/user/Books,/media/user/MY_USB/Books
+REFERENCE_LIBRARY_PATH=/home/user/Reference,/media/user/MY_USB/ZIM
+```
+
+### How It Works
+
+- During scans, each configured path is checked for availability
+- If a drive is **not mounted**, that path is skipped (no errors)
+- The scan response includes `scanned_paths` and `unavailable_paths` so you know what was included
+- Previously scanned content from the drive remains in the metadata JSON until the next rescan
+- To include new content from a freshly plugged-in drive, click **"Rescan Library"**
+
+### Finding Your Drive Path
+
+```bash
+# List mounted drives
+lsblk
+# or
+df -h
+
+# USB drives are typically at:
+ls /media/$USER/
+```
+
+### Tips
+
+- Use consistent drive labels so mount paths stay the same
+- You can configure as many paths as needed (comma-separated)
+- Paths on unmounted drives are silently skipped — no restart needed
+
+---
+
 ## Scanning & Rescanning Libraries
 
 ### When to Rescan
@@ -264,6 +306,7 @@ Example `games.json` structure:
 - After adding new files to music or fiction directories
 - After removing or renaming files
 - After changing library paths in `.env`
+- After plugging in an external drive with new content
 
 ### How to Rescan
 

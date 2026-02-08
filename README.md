@@ -47,15 +47,15 @@ Edit `server/.env`:
 
 ```env
 PORT=3001
-MUSIC_LIBRARY_PATH=/path/to/your/music,/another/music/folder
-FICTION_LIBRARY_PATH=/path/to/your/books,/another/books/folder
-REFERENCE_LIBRARY_PATH=/path/to/your/zim-archives,/another/zim/folder
+MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
+FICTION_LIBRARY_PATH=/home/user/Books,/media/user/USB_DRIVE/Books
+REFERENCE_LIBRARY_PATH=/home/user/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/path/to/tts/models
 TTS_DEFAULT_VOICE=ru_RU-medium
 DATA_PATH=../data
 ```
 
-> **Multiple folders**: Library paths support comma-separated values to scan multiple directories.
+> **Multiple folders & external drives**: Library paths support comma-separated values to scan multiple directories, including paths on USB/external drives (e.g. `/media/user/USB_DRIVE/Music`). Unavailable paths (unmounted drives) are silently skipped.
 
 ### Running
 

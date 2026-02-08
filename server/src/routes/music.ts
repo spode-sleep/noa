@@ -112,10 +112,15 @@ router.get('/scan', async (_req: Request, res: Response) => {
       return;
     }
 
+    const scannedPaths: string[] = [];
+    const unavailablePaths: string[] = [];
     const files: string[] = [];
     for (const mp of musicPaths) {
       if (fs.existsSync(mp)) {
+        scannedPaths.push(mp);
         files.push(...walkDir(mp));
+      } else {
+        unavailablePaths.push(mp);
       }
     }
     const tracks: Track[] = [];
@@ -155,7 +160,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
     };
 
     writeJSON(libraryFile, library);
-    res.json(library);
+    res.json({ ...library, scanned_paths: scannedPaths, unavailable_paths: unavailablePaths });
   } catch (err) {
     res.status(500).json({ error: 'Scan failed', details: String(err) });
   }
