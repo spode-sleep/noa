@@ -67,7 +67,7 @@
 
         <!-- EPUB Reader -->
         <div v-else-if="book.format === 'epub'" class="epub-reader">
-          <VueReader :url="epubUrl" :getRendition="getRendition" />
+          <VueReader :url="epubUrl" :getRendition="onRendition" />
         </div>
 
         <!-- FB2 Reader -->
@@ -149,15 +149,16 @@ const ttsMessage = ref('')
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
 
-function getRendition(rendition: any) {
-  rendition.themes.default({
-    body: {
-      color: '#e0e0e0 !important',
-      background: 'transparent !important',
-      'font-family': 'Georgia, serif',
-      'line-height': '1.8',
-    },
-    a: { color: '#00e8b8 !important' },
+function onRendition(view: any) {
+  // Apply dark theme by injecting CSS into each loaded document
+  view.addEventListener('load', ({ detail: { doc } }: any) => {
+    const style = doc.createElement('style')
+    style.textContent = `
+      body, html { color: #e0e0e0 !important; background: transparent !important; font-family: Georgia, serif; line-height: 1.8; }
+      a { color: #00e8b8 !important; }
+      img { max-width: 100%; height: auto; }
+    `
+    doc.head.appendChild(style)
   })
 }
 
@@ -591,6 +592,34 @@ onUnmounted(() => {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  background: #0a0a1a;
+  color: #e0e0e0;
+}
+
+/* Style vue-book-reader internal elements for dark theme */
+.epub-reader :deep(.container) {
+  background: #0a0a1a !important;
+}
+.epub-reader :deep(.readerArea) {
+  background: #0a0a1a !important;
+}
+.epub-reader :deep(.titleArea) {
+  color: #e0e0e0 !important;
+}
+.epub-reader :deep(.tocButton) {
+  color: #e0e0e0 !important;
+}
+.epub-reader :deep(.tocArea) {
+  background: #12122a !important;
+}
+.epub-reader :deep(.tocAreaButton) {
+  color: #ccc !important;
+}
+.epub-reader :deep(.tocAreaButton:hover) {
+  color: #00e8b8 !important;
+}
+.epub-reader :deep(.arrow) {
+  color: #e0e0e0 !important;
 }
 
 /* FB2 */
