@@ -601,7 +601,7 @@ onMounted(() => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  background: linear-gradient(135deg, #8b6cee, var(--accent-blue));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

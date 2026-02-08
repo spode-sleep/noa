@@ -207,7 +207,7 @@ onMounted(async () => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+  background: linear-gradient(135deg, #4cc9f0, var(--accent-teal));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

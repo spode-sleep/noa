@@ -181,6 +181,7 @@ const {
 
 .ctrl-active {
   color: var(--accent-teal);
+  border: 1px solid var(--accent-teal);
 }
 
 .ctrl-add:hover {
@@ -238,6 +239,8 @@ const {
 .volume-bar-wrapper {
   position: relative;
   width: 80px;
+  display: flex;
+  align-items: center;
 }
 
 .volume-slider {

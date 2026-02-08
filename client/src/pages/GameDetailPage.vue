@@ -1,28 +1,30 @@
 <template>
   <div class="page">
-    <router-link to="/games" class="back-link">← Back to Games</router-link>
+    <router-link to="/games" class="btn btn-back">← Games</router-link>
 
     <div v-if="loading" class="loading">Loading game...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <template v-else-if="game">
-      <div class="game-header">
-        <h1>{{ game.name }}</h1>
-        <span class="source-badge" :class="game.source">{{ game.source }}</span>
-        <span class="app-id">AppID: {{ game.appId }}</span>
-      </div>
-
-      <img
-        :src="game.imageUrl"
-        :alt="game.name"
-        class="hero-image glass"
-      />
-
-      <p v-if="game.description" class="description" v-html="game.description"></p>
-
-      <div v-if="game.tags?.length" class="tags-section">
-        <div class="tags-list">
-          <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+      <div class="game-layout">
+        <div class="game-left">
+          <div class="game-header">
+            <h1>{{ game.name }}</h1>
+            <span class="source-badge" :class="game.source">{{ game.source }}</span>
+          </div>
+          <img
+            :src="game.imageUrl"
+            :alt="game.name"
+            class="hero-image glass"
+          />
+        </div>
+        <div class="game-right">
+          <p v-if="game.description" class="description" v-html="game.description"></p>
+          <div v-if="game.tags?.length" class="tags-section">
+            <div class="tags-list">
+              <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -110,16 +112,23 @@ onMounted(async () => {
   padding: 24px 0;
 }
 
-.back-link {
-  display: inline-block;
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
   margin-bottom: 20px;
-  color: var(--accent-teal);
-  font-size: 0.95rem;
-  transition: color var(--transition-fast);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.back-link:hover {
-  color: var(--accent-blue);
+.btn-back:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-teal);
 }
 
 .loading,
@@ -134,6 +143,29 @@ onMounted(async () => {
   color: #f44;
 }
 
+.game-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.game-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-right {
+  display: flex;
+  flex-direction: column;
+}
+
 .game-header {
   display: flex;
   align-items: center;
@@ -144,7 +176,7 @@ onMounted(async () => {
 
 h1 {
   font-size: 2rem;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+  background: linear-gradient(135deg, #4cc9f0, var(--accent-teal));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -171,25 +203,17 @@ h1 {
   border: 1px solid var(--accent-purple);
 }
 
-.app-id {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
 .hero-image {
   width: 100%;
-  max-width: 640px;
   aspect-ratio: 460 / 215;
   object-fit: cover;
   border-radius: var(--radius-md);
-  margin-bottom: 20px;
 }
 
 .description {
   color: var(--text-secondary);
   line-height: 1.7;
   margin-bottom: 24px;
-  max-width: 720px;
 }
 
 .tags-section {

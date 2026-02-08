@@ -216,7 +216,7 @@ onMounted(async () => {
 
 .chat-header h1 {
   font-size: 1.5rem;
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-teal));
+  background: linear-gradient(135deg, #a855f7, var(--accent-purple));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
