@@ -37,8 +37,18 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Noa server running on port ${PORT}`);
 });
+
+function shutdown() {
+  console.log('Shutting down server...');
+  server.close(() => {
+    process.exit(0);
+  });
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 export default app;
