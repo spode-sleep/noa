@@ -4,24 +4,28 @@ Offline Knowledge & Media Hub — a fully offline local application for long-ter
 
 ## Features
 
-- **🎮 Games** — Browse game library from SteamDB/RAWG data with ProtonDB compatibility reports
-- **🎵 Music** — Local music player with library scanning, metadata extraction, and playlists
-- **📖 Fiction** — PDF/EPUB/FB2 reader with bookmarks and reading position tracking
-- **📚 Reference** — ZIM archive browser for offline Wikipedia, WikiHow, and other references
-- **🤖 AI Assistant** — Local AI chat with RAG support and library context integration
+- **🎮 Игры** — Библиотека игр из SteamDB/RAWG с отчётами совместимости ProtonDB
+- **🎵 Музыка** — Локальный музыкальный плеер со сканированием библиотеки, метаданными и плейлистами
+- **📖 Художественная литература** — Читалка PDF/EPUB/FB2 с закладками и сохранением позиции чтения
+- **📚 Справочная литература** — Браузер ZIM-архивов для офлайн Wikipedia, WikiHow и других справочников
+- **🤖 ИИ помощник** — Локальный ИИ-чат с подключением контекста библиотек (Ollama / llama.cpp)
+- **🔊 TTS** — Озвучка текста через Piper TTS для чтения ответов ИИ, статей и книг вслух
 
 ## Tech Stack
 
 - **Frontend**: Vue 3, TypeScript, Composition API, Vue Router, Vite
 - **Backend**: Node.js, Express, TypeScript
+- **AI**: Ollama / llama.cpp (local LLM)
+- **TTS**: Piper TTS (local, offline)
 - **Design**: Dark Frutiger Aurora theme, glassmorphism, desktop-first
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 18+ (recommended: 20 LTS)
 - npm 9+
+- Linux Mint 22 / Ubuntu 24.04 (or compatible)
 
 ### Installation
 
@@ -50,8 +54,11 @@ PORT=3001
 MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
 FICTION_LIBRARY_PATH=/home/user/Books,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Reference,/media/user/USB_DRIVE/ZIM
-TTS_MODEL_PATH=/path/to/tts/models
+TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-medium
+LLM_API_URL=http://localhost:11434
+LLM_MODEL=qwen2.5:8b
+LLM_API_TYPE=auto
 DATA_PATH=../data
 ```
 
@@ -82,6 +89,143 @@ npm run build
 cd client
 npm run build
 ```
+
+---
+
+## 🤖 Настройка ИИ помощника (AI Assistant)
+
+NOA использует **локальную LLM модель** для ИИ помощника. Поддерживаются два варианта: **Ollama** (проще) и **llama.cpp** (больше контроля).
+
+### Вариант A: Ollama (рекомендуется)
+
+```bash
+# 1. Установить Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Скачать модель (Qwen2.5 8B рекомендуется для RU/EN)
+ollama pull qwen2.5:8b
+
+# 3. Проверить что Ollama работает
+curl http://localhost:11434/api/tags
+```
+
+Ollama запускается автоматически как сервис на порту 11434.
+
+**Настройка в `.env`:**
+```env
+LLM_API_URL=http://localhost:11434
+LLM_MODEL=qwen2.5:8b
+LLM_API_TYPE=auto
+```
+
+> `LLM_API_TYPE` может быть `auto` (определяется по порту), `ollama` или `openai` (для llama.cpp и совместимых серверов).
+
+### Вариант B: llama.cpp
+
+```bash
+# 1. Склонировать и собрать
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+cmake -B build
+cmake --build build --config Release
+
+# 2. Скачать GGUF модель (например Qwen2.5-8B-Instruct)
+# Разместить .gguf файл в папке моделей
+
+# 3. Запустить сервер
+./build/bin/llama-server -m /path/to/model.gguf -c 4096 --port 8080
+```
+
+**Настройка в `.env`:**
+```env
+LLM_API_URL=http://localhost:8080
+LLM_MODEL=qwen2.5
+```
+
+### Рекомендуемые модели
+
+| Модель | Размер | Языки | Примечания |
+|--------|--------|-------|------------|
+| Qwen2.5-8B-Instruct | ~5 GB | RU, EN | Лучший баланс качества и скорости |
+| Mistral-7B-Instruct | ~4 GB | EN, RU | Быстрая, хороший английский |
+| Llama-3.1-8B-Instruct | ~5 GB | EN | Сильное рассуждение |
+
+Используйте квантизации **Q4_K_M** или **Q5_K_M** для лучшего соотношения качества/производительности.
+
+### Возможности ИИ помощника
+
+- Ведение диалогов на общие темы (RU/EN)
+- Подключение метаданных библиотек через свичи перед началом диалога:
+  - **Музыкальная библиотека** — ИИ видит все ваши треки, альбомы, артистов
+  - **Художественная литература** — ИИ видит все ваши книги, авторов, форматы
+- Примеры вопросов:
+  - "Какие книги Толстого у меня есть?"
+  - "Сколько альбомов группы X в библиотеке?"
+  - "Покажи все книги на русском языке"
+  - "Есть ли у меня музыка жанра Jazz?"
+- TTS озвучка ответов (кнопка "Read Aloud" под каждым ответом)
+
+---
+
+## 🔊 Настройка TTS (Text-to-Speech)
+
+NOA использует **Piper TTS** для локальной офлайн озвучки текста.
+
+### Установка Piper TTS
+
+```bash
+# 1. Скачать бинарник Piper
+wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
+tar -xzf piper_linux_x86_64.tar.gz
+sudo mv piper /usr/local/bin/
+
+# 2. Проверить установку
+piper --help
+```
+
+### Скачивание голосовых моделей
+
+```bash
+# Создать директорию для моделей
+mkdir -p ~/models/piper
+cd ~/models/piper
+
+# Скачать русский голос
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx.json
+
+# Скачать английский голос (опционально)
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
+```
+
+Полный список голосов: https://rhasspy.github.io/piper-samples/
+
+### Настройка в `.env`
+
+```env
+TTS_MODEL_PATH=/home/user/models/piper
+TTS_DEFAULT_VOICE=ru_RU-medium
+```
+
+### Проверка TTS
+
+```bash
+# Тест из командной строки
+echo "Привет, мир!" | piper --model ~/models/piper/ru_RU-medium.onnx --output_file /tmp/test.wav
+aplay /tmp/test.wav
+
+# Тест через API (при запущенном сервере)
+curl http://localhost:3001/api/tts/status
+```
+
+### Где используется TTS
+
+- **ИИ помощник** — кнопка "Read Aloud 🔊" под каждым ответом ИИ
+- **Художественная литература** — кнопка чтения вслух в ридере
+- **Справочная литература** — озвучка статей из ZIM архивов
+
+---
 
 ## Project Structure
 
@@ -141,13 +285,13 @@ noa/
 - `GET /api/reference/archives/:filename/search` — Search archive
 
 ### AI Assistant
-- `POST /api/ai/chat` — Send chat message
-- `GET /api/ai/status` — AI availability status
+- `POST /api/ai/chat` — Send chat message (body: `{ message, history, context }`)
+- `GET /api/ai/status` — AI availability status (checks LLM server)
 
 ### TTS
-- `POST /api/tts/synthesize` — Synthesize speech
-- `GET /api/tts/voices` — Available voices
-- `GET /api/tts/status` — TTS availability
+- `POST /api/tts/synthesize` — Synthesize speech (body: `{ text, voice?, speed? }`) → audio/wav stream
+- `GET /api/tts/voices` — Available voice models
+- `GET /api/tts/status` — TTS availability (checks Piper + models)
 
 ## Adding Data
 
@@ -168,8 +312,8 @@ Set `REFERENCE_LIBRARY_PATH` in .env (comma-separated for multiple directories) 
 NOA is designed for permanent offline use:
 - All data stored locally in JSON files
 - No external API calls required
-- AI assistant uses local LLM (when configured)
-- TTS uses local Piper engine (when configured)
+- AI assistant uses local LLM (Ollama / llama.cpp)
+- TTS uses local Piper engine
 - All metadata cached for fast access
 
 ## License
