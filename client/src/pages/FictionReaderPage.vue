@@ -38,13 +38,13 @@
         </div>
         <div v-if="manualBookmarks.length === 0" class="bookmark-empty">No bookmarks yet.</div>
         <div v-else class="bookmark-list">
-          <div v-for="bm in manualBookmarks" :key="bm.id" class="bookmark-item">
+          <div v-for="bm in manualBookmarks" :key="bm.id" class="bookmark-item" role="button" tabindex="0" @click="navigateToBookmark(bm)" @keydown.enter="navigateToBookmark(bm)" @keydown.space.prevent="navigateToBookmark(bm)">
             <div class="bookmark-info">
               <span v-if="bm.page" class="bookmark-page">Page {{ bm.page }}</span>
               <span class="bookmark-note">{{ bm.note || 'No note' }}</span>
               <span class="bookmark-date">{{ formatDate(bm.created) }}</span>
             </div>
-            <button class="btn-delete" @click="deleteBookmark(bm.id)" title="Delete">✕</button>
+            <button class="btn-delete" @click.stop="deleteBookmark(bm.id)" title="Delete">✕</button>
           </div>
         </div>
       </aside>
@@ -180,11 +180,12 @@ async function readAloud() {
 
 async function addBookmark() {
   const note = newBookmarkNote.value.trim()
+  const scrollPos = window.scrollY
   try {
     const res = await fetch(`/api/bookmarks/${bookId}/manual`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note, page: 0 }),
+      body: JSON.stringify({ note, page: scrollPos }),
     })
     const bm = await res.json()
     manualBookmarks.value.push(bm)
@@ -205,7 +206,15 @@ async function deleteBookmark(id: string) {
 
 function restorePosition() {
   positionRestored.value = true
-  // For FB2, scroll to approximate position; for PDF the iframe handles it
+  if (savedPosition.value) {
+    window.scrollTo({ top: savedPosition.value, behavior: 'smooth' })
+  }
+}
+
+function navigateToBookmark(bm: ManualBookmark) {
+  if (bm.page) {
+    window.scrollTo({ top: bm.page, behavior: 'smooth' })
+  }
 }
 
 async function savePosition() {
@@ -415,6 +424,7 @@ onUnmounted(() => {
   padding: 16px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
+  overflow-x: hidden;
   position: sticky;
   top: 80px;
 }
@@ -433,6 +443,8 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .bookmark-input {
@@ -473,6 +485,14 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.bookmark-item:hover {
+  background: rgba(0, 232, 184, 0.06);
 }
 
 .bookmark-info {
@@ -480,6 +500,8 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  overflow: hidden;
+  flex: 1;
 }
 
 .bookmark-page {

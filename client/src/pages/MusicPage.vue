@@ -75,6 +75,9 @@
                   </button>
                   <span class="track-title">{{ track.title }}</span>
                   <span class="track-duration">{{ formatDuration(track.duration) }}</span>
+                  <div class="track-actions">
+                    <button class="add-to-playlist-btn" @click.stop="openPlaylistPicker(track)" title="Add to playlist">+</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -159,6 +162,7 @@
           {{ isPlaying ? '⏸' : '▶' }}
         </button>
         <button class="ctrl-btn" @click="nextTrack">⏭</button>
+        <button class="ctrl-btn" @click="openPlaylistPicker(currentTrack!)" title="Add to playlist">+🎵</button>
       </div>
       <div class="player-progress">
         <span class="time">{{ formatDuration(currentTime) }}</span>
@@ -169,17 +173,59 @@
       </div>
       <div class="player-volume">
         <span class="volume-icon">🔊</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          :value="volume"
-          class="volume-slider"
-          @input="setVolume($event)"
-        />
+        <div class="volume-bar-wrapper">
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="volume"
+            class="volume-slider"
+            :style="{ '--volume-pct': (volume * 100) + '%' }"
+            @input="setVolume($event)"
+          />
+        </div>
       </div>
     </div>
+
+    <!-- Playlist picker modal -->
+    <Teleport to="body">
+      <div v-if="showPlaylistPicker" class="playlist-picker-overlay" @click.self="showPlaylistPicker = false">
+        <div class="playlist-picker glass">
+          <div class="picker-header">
+            <h3>Add to Playlist</h3>
+            <button class="picker-close" @click="showPlaylistPicker = false">✕</button>
+          </div>
+          <div class="picker-track-info">
+            {{ pickerTrack?.title }} — {{ pickerTrack?.artist }}
+          </div>
+          <div v-if="playlists.length === 0" class="picker-empty">
+            No playlists yet. Create one first.
+          </div>
+          <div v-else class="picker-list">
+            <button
+              v-for="pl in playlists"
+              :key="pl.id"
+              class="picker-item"
+              @click="addTrackToPlaylist(pl.id)"
+            >
+              <span class="picker-item-name">{{ pl.name }}</span>
+              <span class="picker-item-count">{{ pl.trackIds?.length || 0 }} tracks</span>
+            </button>
+          </div>
+          <div class="picker-create">
+            <input
+              v-model="pickerNewName"
+              type="text"
+              placeholder="New playlist name..."
+              class="picker-input"
+              @keyup.enter="createAndAdd"
+            />
+            <button class="btn btn-sm" :disabled="!pickerNewName.trim()" @click="createAndAdd">Create & Add</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -213,6 +259,10 @@ const playlists = ref<Playlist[]>([])
 const loadingPlaylists = ref(false)
 const newPlaylistName = ref('')
 const selectedPlaylist = ref<Playlist | null>(null)
+
+const showPlaylistPicker = ref(false)
+const pickerTrack = ref<Track | null>(null)
+const pickerNewName = ref('')
 
 const currentTrack = ref<Track | null>(null)
 const isPlaying = ref(false)
@@ -446,6 +496,51 @@ async function removeFromPlaylist(playlistId: string, trackId: string) {
     }
   } catch (e) {
     console.error('Failed to remove track:', e)
+  }
+}
+
+function openPlaylistPicker(track: Track) {
+  pickerTrack.value = track
+  pickerNewName.value = ''
+  showPlaylistPicker.value = true
+  if (playlists.value.length === 0) {
+    fetchPlaylists()
+  }
+}
+
+async function addTrackToPlaylist(playlistId: string) {
+  if (!pickerTrack.value) return
+  try {
+    await fetch(`/api/music/playlists/${playlistId}/tracks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackId: pickerTrack.value.id }),
+    })
+    // Update local playlist data
+    const pl = playlists.value.find(p => p.id === playlistId)
+    if (pl && !pl.trackIds.includes(pickerTrack.value.id)) {
+      pl.trackIds.push(pickerTrack.value.id)
+    }
+    showPlaylistPicker.value = false
+  } catch (e) {
+    console.error('Failed to add track to playlist:', e)
+  }
+}
+
+async function createAndAdd() {
+  const name = pickerNewName.value.trim()
+  if (!name || !pickerTrack.value) return
+  try {
+    const res = await fetch('/api/music/playlists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    const pl = await res.json()
+    playlists.value.push(pl)
+    await addTrackToPlaylist(pl.id)
+  } catch (e) {
+    console.error('Failed to create playlist:', e)
   }
 }
 
@@ -900,21 +995,21 @@ h1 {
 
 .progress-bar {
   flex: 1;
-  height: 4px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  border-radius: 3px;
   cursor: pointer;
   position: relative;
 }
 
 .progress-bar:hover {
-  height: 6px;
+  height: 8px;
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.1s linear;
 }
 
@@ -929,33 +1024,52 @@ h1 {
   font-size: 0.85rem;
 }
 
+.volume-bar-wrapper {
+  position: relative;
+  width: 80px;
+}
+
 .volume-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 80px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--accent-teal) 0%,
+    var(--accent-teal) var(--volume-pct, 100%),
+    rgba(255, 255, 255, 0.1) var(--volume-pct, 100%),
+    rgba(255, 255, 255, 0.1) 100%
+  );
   outline: none;
 }
 
 .volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--accent-teal);
   cursor: pointer;
+  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
 }
 
 .volume-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--accent-teal);
   cursor: pointer;
   border: none;
+  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
+}
+
+.volume-slider::-moz-range-progress {
+  background: var(--accent-teal);
+  border-radius: 3px;
+  height: 6px;
 }
 
 /* Responsive */
@@ -988,5 +1102,166 @@ h1 {
   .track-row {
     padding-left: 8px;
   }
+}
+
+/* Track actions */
+.track-actions {
+  flex-shrink: 0;
+}
+
+.add-to-playlist-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  opacity: 0;
+}
+
+.track-row:hover .add-to-playlist-btn {
+  opacity: 1;
+}
+
+.add-to-playlist-btn:hover {
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+  background: rgba(0, 232, 184, 0.1);
+}
+
+/* Playlist picker modal */
+.playlist-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+}
+
+.playlist-picker {
+  width: 100%;
+  max-width: 400px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+}
+
+.picker-header h3 {
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.picker-close {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.picker-close:hover {
+  border-color: var(--accent-teal);
+  color: var(--text-primary);
+}
+
+.picker-track-info {
+  padding: 4px 20px 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-empty {
+  padding: 24px 20px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.picker-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.picker-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.picker-item-name {
+  font-size: 0.95rem;
+}
+
+.picker-item-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.picker-create {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.picker-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.picker-input:focus {
+  border-color: var(--accent-teal);
 }
 </style>
