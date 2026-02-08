@@ -1,0 +1,15 @@
+{
+  "tracks": [
+    {
+      "id": "6c303493ca3770e140cdd63a35fd7dc3",
+      "filepath": "/tmp/test_music/test.ogg",
+      "title": "test",
+      "artist": "Unknown Artist",
+      "album": "Unknown Album",
+      "year": null,
+      "genre": "",
+      "duration": 0
+    }
+  ],
+  "last_scan": "2026-02-08T08:07:59.553Z"
+}

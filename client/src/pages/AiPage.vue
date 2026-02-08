@@ -201,7 +201,7 @@ onMounted(async () => {
 .chat-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px);
+  height: calc(100vh - 80px - 24px - 48px);
   padding: 0;
   overflow: hidden;
 }

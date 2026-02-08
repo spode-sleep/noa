@@ -253,7 +253,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: transparent;
+  background: #1a1a2e;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);

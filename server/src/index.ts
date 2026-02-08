@@ -3,6 +3,9 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 
+// Load .env BEFORE importing routes so env vars are available at module init
+dotenv.config();
+
 import gamesRouter from './routes/games';
 import musicRouter from './routes/music';
 import fictionRouter from './routes/fiction';
@@ -10,8 +13,6 @@ import referenceRouter from './routes/reference';
 import aiRouter from './routes/ai';
 import ttsRouter from './routes/tts';
 import bookmarksRouter from './routes/bookmarks';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

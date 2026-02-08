@@ -512,7 +512,6 @@ h1 {
 .tab-btn.active {
   background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
   color: #fff;
-  font-weight: 600;
 }
 
 /* Toolbar */
