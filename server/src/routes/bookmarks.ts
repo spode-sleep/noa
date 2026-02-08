@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -119,7 +119,7 @@ router.post('/:bookId/manual', (req, res) => {
   }
 
   const manualBookmark: ManualBookmark = {
-    id: crypto.randomUUID(),
+    id: uuidv4(),
     page: page || 0,
     note: note || '',
     created: new Date().toISOString(),

@@ -2,8 +2,8 @@ import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { execSync } from 'child_process';
 import { parseString } from 'xml2js';
+import StreamZip from 'node-stream-zip';
 
 const router = Router();
 
@@ -89,29 +89,33 @@ async function extractPdfMetadata(filepath: string): Promise<Partial<BookMeta>> 
   }
 }
 
+async function readZipEntry(filepath: string, entryName: string): Promise<string> {
+  const zip = new StreamZip.async({ file: filepath });
+  try {
+    const data = await zip.entryData(entryName);
+    return data.toString('utf-8');
+  } finally {
+    await zip.close();
+  }
+}
+
 async function extractEpubMetadata(filepath: string): Promise<Partial<BookMeta>> {
   try {
-    const containerXml = execSync(
-      `unzip -p ${JSON.stringify(filepath)} META-INF/container.xml`,
-      { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }
-    );
+    const containerXml = await readZipEntry(filepath, 'META-INF/container.xml');
     const container = await parseXmlAsync(containerXml);
     const rootfilePath =
       container?.container?.rootfiles?.rootfile?.$?.['full-path'] ||
       container?.container?.rootfiles?.rootfile?.['$']?.['full-path'] ||
       'content.opf';
 
-    const opfXml = execSync(
-      `unzip -p ${JSON.stringify(filepath)} ${JSON.stringify(rootfilePath)}`,
-      { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }
-    );
+    const opfXml = await readZipEntry(filepath, rootfilePath);
     const opf = await parseXmlAsync(opfXml);
     const metadata = opf?.package?.metadata || opf?.['opf:package']?.['opf:metadata'] || {};
 
     const getField = (field: string): string => {
       const val = metadata[`dc:${field}`] || metadata[field] || '';
       if (typeof val === 'string') return val;
-      if (val?._ ) return val._;
+      if (val?._) return val._;
       if (typeof val === 'object' && val['#text']) return val['#text'];
       return String(val || '');
     };
