@@ -1,0 +1,43 @@
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import dotenv from 'dotenv';
+
+import gamesRouter from './routes/games';
+import musicRouter from './routes/music';
+import fictionRouter from './routes/fiction';
+import referenceRouter from './routes/reference';
+import aiRouter from './routes/ai';
+import ttsRouter from './routes/tts';
+import bookmarksRouter from './routes/bookmarks';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
+
+// Serve game header images as static files
+const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', 'data');
+app.use('/data/games/header_images', express.static(path.join(dataPath, 'games', 'header_images')));
+
+// Routes
+app.use('/api/games', gamesRouter);
+app.use('/api/music', musicRouter);
+app.use('/api/fiction', fictionRouter);
+app.use('/api/reference', referenceRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/tts', ttsRouter);
+app.use('/api/bookmarks', bookmarksRouter);
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Noa server running on port ${PORT}`);
+});
+
+export default app;

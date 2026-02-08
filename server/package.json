@@ -1,0 +1,30 @@
+{
+  "name": "noa-server",
+  "version": "1.0.0",
+  "description": "Noa backend server",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "music-metadata": "^10.6.1",
+    "pdf-parse": "^1.1.1",
+    "xml2js": "^0.6.2",
+    "cheerio": "^1.0.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^22.7.9",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.1.7"
+  }
+}
