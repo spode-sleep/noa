@@ -8,6 +8,7 @@ import AiPage from '../pages/AiPage.vue'
 const routes = [
   { path: '/', redirect: '/games' },
   { path: '/games', name: 'Games', component: GamesPage },
+  { path: '/games/:id', name: 'GameDetail', component: () => import('../pages/GameDetailPage.vue') },
   { path: '/music', name: 'Music', component: MusicPage },
   { path: '/fiction', name: 'Fiction', component: FictionPage },
   { path: '/reference', name: 'Reference', component: ReferencePage },
