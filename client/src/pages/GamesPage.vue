@@ -88,10 +88,10 @@
         <div class="game-info">
           <div class="game-name">
             <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam">
-              <Icon icon="logos:steam-icon" width="20" height="20" />
+              <Icon icon="mdi:steam" width="22" height="22" />
             </span>
             <span class="source-icon rawg-icon" v-else title="RAWG">
-              <Icon icon="noto:video-game" width="20" height="20" />
+              <Icon icon="mdi:gamepad-variant" width="22" height="22" />
             </span>
             {{ game.name }}
           </div>
@@ -528,14 +528,15 @@ h1 {
 .source-icon {
   flex-shrink: 0;
   display: inline-flex;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
 }
 
 .steam-icon {
+  color: #66c0f4;
   filter: drop-shadow(0 0 6px rgba(102, 192, 244, 0.4));
 }
 
 .rawg-icon {
+  color: #8b6cee;
   filter: drop-shadow(0 0 6px rgba(123, 104, 238, 0.4));
 }
 

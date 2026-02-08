@@ -206,14 +206,21 @@ async function deleteBookmark(id: string) {
 
 function restorePosition() {
   positionRestored.value = true
-  if (savedPosition.value) {
+  if (savedPosition.value != null) {
     window.scrollTo({ top: savedPosition.value, behavior: 'smooth' })
   }
 }
 
 function navigateToBookmark(bm: ManualBookmark) {
-  if (bm.page) {
-    window.scrollTo({ top: bm.page, behavior: 'smooth' })
+  if (bm.page != null) {
+    if (book.value?.format === 'pdf') {
+      const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
+      if (iframe) {
+        iframe.src = `/api/fiction/read/${book.value.id}#page=${bm.page}`
+      }
+    } else {
+      window.scrollTo({ top: bm.page, behavior: 'smooth' })
+    }
   }
 }
 
@@ -378,6 +385,8 @@ onUnmounted(() => {
 .btn-sm {
   padding: 6px 14px;
   font-size: 0.85rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .btn-back {
@@ -443,12 +452,12 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
-  max-width: 100%;
-  overflow: hidden;
+  align-items: center;
 }
 
 .bookmark-input {
   flex: 1;
+  min-width: 0;
   background: var(--bg-secondary);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);

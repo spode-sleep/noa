@@ -93,10 +93,10 @@
           v-model="newPlaylistName"
           type="text"
           placeholder="New playlist name..."
-          class="search-input"
+          class="search-input playlist-name-input"
           @keyup.enter="createPlaylist"
         />
-        <button class="btn" :disabled="!newPlaylistName.trim()" @click="createPlaylist">
+        <button class="btn" @click="createPlaylist">
           Create Playlist
         </button>
       </div>
@@ -1122,11 +1122,6 @@ h1 {
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
-  opacity: 0;
-}
-
-.track-row:hover .add-to-playlist-btn {
-  opacity: 1;
 }
 
 .add-to-playlist-btn:hover {

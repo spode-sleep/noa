@@ -127,7 +127,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
 
     for (const filepath of files) {
       try {
-        const metadata = await mm.parseFile(filepath);
+        const metadata = await mm.parseFile(filepath, { duration: true });
         const common = metadata.common;
         tracks.push({
           id: hashFilepath(filepath),
