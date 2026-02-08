@@ -1,5 +1,15 @@
 <template>
-  <div v-if="currentTrack" class="player glass">
+  <!-- Mini mode: floating circle in bottom-right corner -->
+  <div v-if="currentTrack && minimized" class="mini-player" @click="minimized = false">
+    <div v-if="isPlaying" class="wave wave1"></div>
+    <div v-if="isPlaying" class="wave wave2"></div>
+    <div v-if="isPlaying" class="wave wave3"></div>
+    <div class="mini-circle">
+      <Icon icon="mdi:music-note" />
+    </div>
+  </div>
+  <!-- Full player bar -->
+  <div v-if="currentTrack && !minimized" class="player glass">
     <div class="player-info">
       <span class="player-title">{{ currentTrack.title }}</span>
       <span class="player-artist">{{ currentTrack.artist }}</span>
@@ -40,16 +50,22 @@
         />
       </div>
     </div>
+    <button class="ctrl-btn ctrl-minimize" @click="minimized = true" title="Minimize player">
+      <Icon icon="mdi:chevron-down" />
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useMusicPlayer, type Track } from '../composables/useMusicPlayer'
 
 defineEmits<{
   'open-playlist-picker': [track: Track]
 }>()
+
+const minimized = ref(false)
 
 const {
   currentTrack,
@@ -271,6 +287,87 @@ const {
 
   .player-volume {
     min-width: unset;
+  }
+}
+
+.ctrl-minimize {
+  margin-left: 4px;
+  font-size: 1.2rem;
+}
+
+.ctrl-minimize:hover {
+  color: var(--accent-teal);
+}
+
+/* Mini player floating circle */
+.mini-player {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(0, 232, 184, 0.5);
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+.mini-player:hover .mini-circle {
+  transform: scale(1.1);
+}
+
+/* Animated waves */
+.wave {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--accent-teal);
+  opacity: 0;
+  animation: wave-pulse 2.4s ease-out infinite;
+}
+
+.wave1 {
+  width: 52px;
+  height: 52px;
+  animation-delay: 0s;
+}
+
+.wave2 {
+  width: 52px;
+  height: 52px;
+  animation-delay: 0.8s;
+}
+
+.wave3 {
+  width: 52px;
+  height: 52px;
+  animation-delay: 1.6s;
+}
+
+@keyframes wave-pulse {
+  0% {
+    width: 52px;
+    height: 52px;
+    opacity: 0.6;
+  }
+  100% {
+    width: 120px;
+    height: 120px;
+    opacity: 0;
   }
 }
 </style>

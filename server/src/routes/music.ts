@@ -3,14 +3,40 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import * as jsmediatags from 'jsmediatags';
 
 // music-metadata is ESM-only; use dynamic import for cross-Node.js compatibility
 let mmModule: typeof import('music-metadata') | null = null;
 async function getMM() {
   if (!mmModule) {
-    mmModule = await import('music-metadata');
+    try {
+      mmModule = await import('music-metadata');
+    } catch {
+      console.warn('[music] music-metadata ESM import failed, will use jsmediatags fallback');
+    }
   }
   return mmModule;
+}
+
+// Fallback: read tags using jsmediatags (pure CJS, works everywhere)
+function readTagsJSMedia(filepath: string): Promise<{ title?: string; artist?: string; album?: string; year?: number; genre?: string }> {
+  return new Promise((resolve) => {
+    jsmediatags.read(filepath, {
+      onSuccess(tag: any) {
+        const t = tag.tags || {};
+        resolve({
+          title: t.title || undefined,
+          artist: t.artist || undefined,
+          album: t.album || undefined,
+          year: t.year ? parseInt(t.year, 10) : undefined,
+          genre: t.genre || undefined,
+        });
+      },
+      onError() {
+        resolve({});
+      },
+    });
+  });
 }
 
 const router = Router();
@@ -136,31 +162,59 @@ router.get('/scan', async (_req: Request, res: Response) => {
     for (const filepath of files) {
       try {
         const mm = await getMM();
-        const metadata = await mm.parseFile(filepath, { duration: true });
-        const common = metadata.common;
-        tracks.push({
-          id: hashFilepath(filepath),
-          filepath,
-          title: common.title || path.basename(filepath, path.extname(filepath)),
-          artist: common.artist || 'Unknown Artist',
-          album: common.album || 'Unknown Album',
-          year: common.year || null,
-          genre: common.genre?.[0] || '',
-          duration: Math.round(metadata.format.duration || 0),
-        });
+        if (mm) {
+          const metadata = await mm.parseFile(filepath, { duration: true });
+          const common = metadata.common;
+          tracks.push({
+            id: hashFilepath(filepath),
+            filepath,
+            title: common.title || path.basename(filepath, path.extname(filepath)),
+            artist: common.artist || 'Unknown Artist',
+            album: common.album || 'Unknown Album',
+            year: common.year || null,
+            genre: common.genre?.[0] || '',
+            duration: Math.round(metadata.format.duration || 0),
+          });
+        } else {
+          // Fallback to jsmediatags
+          const tags = await readTagsJSMedia(filepath);
+          tracks.push({
+            id: hashFilepath(filepath),
+            filepath,
+            title: tags.title || path.basename(filepath, path.extname(filepath)),
+            artist: tags.artist || 'Unknown Artist',
+            album: tags.album || 'Unknown Album',
+            year: tags.year || null,
+            genre: tags.genre || '',
+            duration: 0, // jsmediatags doesn't provide duration
+          });
+        }
       } catch (e) {
-        console.warn(`[music] Failed to parse metadata for ${filepath}:`, e);
-        // Skip files that can't be parsed
-        tracks.push({
-          id: hashFilepath(filepath),
-          filepath,
-          title: path.basename(filepath, path.extname(filepath)),
-          artist: 'Unknown Artist',
-          album: 'Unknown Album',
-          year: null,
-          genre: '',
-          duration: 0,
-        });
+        console.warn(`[music] music-metadata failed for ${filepath}, trying jsmediatags...`);
+        try {
+          const tags = await readTagsJSMedia(filepath);
+          tracks.push({
+            id: hashFilepath(filepath),
+            filepath,
+            title: tags.title || path.basename(filepath, path.extname(filepath)),
+            artist: tags.artist || 'Unknown Artist',
+            album: tags.album || 'Unknown Album',
+            year: tags.year || null,
+            genre: tags.genre || '',
+            duration: 0,
+          });
+        } catch {
+          tracks.push({
+            id: hashFilepath(filepath),
+            filepath,
+            title: path.basename(filepath, path.extname(filepath)),
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+            year: null,
+            genre: '',
+            duration: 0,
+          });
+        }
       }
     }
 

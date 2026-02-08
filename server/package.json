@@ -13,6 +13,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "jsmediatags": "^3.9.7",
     "music-metadata": "^10.6.1",
     "node-stream-zip": "^1.15.0",
     "pdf-parse": "^1.1.1",
