@@ -151,6 +151,7 @@ const ttsMessage = ref('')
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
 const readerRef = ref<any>(null) // template ref to VueReader component
 const epubFraction = ref<number>(0) // 0-1 reading progress for bookmarks
+const epubView = ref<any>(null) // foliate-view element reference for direct navigation
 
 function onEpubLocationChange(detail: any) {
   // vue-book-reader emits the full relocate detail object from foliate-view
@@ -161,6 +162,7 @@ function onEpubLocationChange(detail: any) {
 }
 
 function onRendition(view: any) {
+  epubView.value = view // store reference for goToFraction() calls
   // Apply dark theme by injecting CSS into each loaded document
   view.addEventListener('load', ({ detail: { doc } }: any) => {
     const style = doc.createElement('style')
@@ -227,8 +229,8 @@ function restorePosition() {
   positionRestored.value = true
   if (savedPosition.value != null) {
     if (book.value?.format === 'epub') {
-      // Call VueReader's setLocation directly (prop-based navigation doesn't work - no watcher)
-      readerRef.value?.setLocation({ fraction: Number(savedPosition.value) })
+      // Use foliate-view's goToFraction() for precise navigation
+      epubView.value?.goToFraction(Number(savedPosition.value))
     } else {
       window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
     }
@@ -238,8 +240,8 @@ function restorePosition() {
 function navigateToBookmark(bm: ManualBookmark) {
   if (bm.page != null) {
     if (book.value?.format === 'epub') {
-      // Call VueReader's exposed setLocation method with fraction object
-      readerRef.value?.setLocation({ fraction: Number(bm.page) })
+      // Use foliate-view's goToFraction() for precise page navigation
+      epubView.value?.goToFraction(Number(bm.page))
     } else if (book.value?.format === 'pdf') {
       const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
       if (iframe) {
