@@ -8,8 +8,8 @@
     <template v-else-if="game">
       <div class="game-top">
         <div class="game-header">
+          <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
           <h1>{{ game.name }}</h1>
-          <span class="source-badge" :class="game.source">{{ game.source }}</span>
         </div>
         <span class="app-id">{{ game.appId || game.id }}</span>
       </div>
@@ -24,8 +24,8 @@
         </div>
         <div class="game-right">
           <div v-if="game.description" class="description-wrapper" :class="{ expanded: descExpanded }">
-            <div class="description-content" v-html="game.description"></div>
-            <button class="expand-btn" @click="descExpanded = !descExpanded">
+            <div ref="descRef" class="description-content" v-html="game.description"></div>
+            <button v-if="descOverflows || descExpanded" class="expand-btn" @click="descExpanded = !descExpanded">
               <Icon :icon="descExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
               {{ descExpanded ? 'Show less' : 'Show more' }}
             </button>
@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
 
@@ -93,6 +93,14 @@ const game = ref<Game | null>(null)
 const loading = ref(true)
 const error = ref('')
 const descExpanded = ref(false)
+const descRef = ref<HTMLElement | null>(null)
+const descOverflows = ref(false)
+
+function checkOverflow() {
+  if (descRef.value) {
+    descOverflows.value = descRef.value.scrollHeight > descRef.value.clientHeight
+  }
+}
 
 function ratingClass(rating: string): string {
   return (rating || '').toLowerCase()
@@ -111,6 +119,8 @@ onMounted(async () => {
       return
     }
     game.value = await res.json()
+    await nextTick()
+    checkOverflow()
   } catch (e) {
     error.value = 'Failed to load game'
   } finally {
@@ -205,25 +215,17 @@ h1 {
   background-clip: text;
 }
 
-.source-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.source-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
 }
 
-.source-badge.steam {
-  background: linear-gradient(135deg, #1b2838, #2a475e);
+.source-icon.steam {
   color: #66c0f4;
-  border: 1px solid #66c0f4aa;
 }
 
-.source-badge.rawg {
-  background: linear-gradient(135deg, #202020, #333);
+.source-icon.rawg {
   color: var(--accent-purple);
-  border: 1px solid var(--accent-purple);
 }
 
 .hero-image {
@@ -241,13 +243,15 @@ h1 {
 .description-content {
   color: var(--text-secondary);
   line-height: 1.7;
-  max-height: 120px;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  transition: max-height 0.3s ease;
 }
 
 .description-wrapper.expanded .description-content {
-  max-height: 2000px;
+  -webkit-line-clamp: unset;
+  display: block;
 }
 
 .expand-btn {
