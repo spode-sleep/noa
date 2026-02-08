@@ -229,7 +229,7 @@ async function readAloud() {
   showTtsMessage.value = true
 }
 
-async function addBookmark() {
+function addBookmark() {
   const note = newBookmarkNote.value.trim()
   let position: any = window.scrollY
   if (book.value?.format === 'epub') {
@@ -239,27 +239,20 @@ async function addBookmark() {
     const ratio = h > 0 ? window.scrollY / h : 0
     position = JSON.stringify({ ratio })
   }
-  try {
-    const res = await fetch(`/api/bookmarks/${bookId}/manual`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note, page: position }),
-    })
-    const bm = await res.json()
-    manualBookmarks.value.push(bm)
-    newBookmarkNote.value = ''
-  } catch (e) {
-    console.error('Failed to add bookmark:', e)
+  const bm: ManualBookmark = {
+    id: Date.now().toString(),
+    note,
+    page: position,
+    created: new Date().toISOString(),
   }
+  manualBookmarks.value.push(bm)
+  localStorage.setItem(`noa-bookmarks-${bookId}`, JSON.stringify(manualBookmarks.value))
+  newBookmarkNote.value = ''
 }
 
-async function deleteBookmark(id: string) {
-  try {
-    await fetch(`/api/bookmarks/${bookId}/manual/${id}`, { method: 'DELETE' })
-    manualBookmarks.value = manualBookmarks.value.filter(b => b.id !== id)
-  } catch (e) {
-    console.error('Failed to delete bookmark:', e)
-  }
+function deleteBookmark(id: string) {
+  manualBookmarks.value = manualBookmarks.value.filter(b => b.id !== id)
+  localStorage.setItem(`noa-bookmarks-${bookId}`, JSON.stringify(manualBookmarks.value))
 }
 
 function restorePosition() {
@@ -334,22 +327,14 @@ function navigateToBookmark(bm: ManualBookmark) {
   }
 }
 
-async function savePosition() {
-  try {
-    let positionData: any = window.scrollY
-    if (book.value?.format === 'epub') {
-      positionData = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
-    } else if (book.value?.format === 'fb2') {
-      positionData = JSON.stringify({ ratio: fb2ScrollRatio.value })
-    }
-    await fetch(`/api/bookmarks/${bookId}/position`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scroll_offset: positionData }),
-    })
-  } catch {
-    // Silently fail - position saving is best-effort
+function savePosition() {
+  let positionData: any = window.scrollY
+  if (book.value?.format === 'epub') {
+    positionData = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
+  } else if (book.value?.format === 'fb2') {
+    positionData = JSON.stringify({ ratio: fb2ScrollRatio.value })
   }
+  localStorage.setItem(`noa-position-${bookId}`, String(positionData))
 }
 
 async function fetchBook() {
@@ -363,18 +348,14 @@ async function fetchBook() {
   }
 }
 
-async function fetchBookmarks() {
+function loadBookmarks() {
   try {
-    const res = await fetch(`/api/bookmarks/${bookId}`)
-    if (res.ok) {
-      const data = await res.json()
-      manualBookmarks.value = data.manual_bookmarks || []
-      if (data.last_position?.scroll_offset) {
-        savedPosition.value = data.last_position.scroll_offset
-      }
-    }
-  } catch (e) {
-    console.error('Failed to fetch bookmarks:', e)
+    const stored = localStorage.getItem(`noa-bookmarks-${bookId}`)
+    if (stored) manualBookmarks.value = JSON.parse(stored)
+    const pos = localStorage.getItem(`noa-position-${bookId}`)
+    if (pos) savedPosition.value = pos
+  } catch {
+    // Ignore parse errors
   }
 }
 
@@ -397,7 +378,8 @@ async function fetchFb2Content() {
 onMounted(async () => {
   try {
     await fetchBook()
-    await Promise.all([fetchBookmarks(), fetchFb2Content()])
+    loadBookmarks()
+    await fetchFb2Content()
     // Set up FB2 scroll tracking
     if (book.value?.format === 'fb2') {
       window.addEventListener('scroll', onFb2Scroll)
