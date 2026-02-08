@@ -32,29 +32,33 @@ const links = [
   border-top: none;
   border-left: none;
   border-right: none;
+  background: rgba(7, 11, 26, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .nav-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 16px;
-  padding-bottom: 16px;
+  padding-top: 14px;
+  padding-bottom: 14px;
 }
 
 .nav-logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple), var(--accent-blue));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(0, 232, 184, 0.3));
 }
 
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-link {
@@ -63,15 +67,18 @@ const links = [
   color: var(--text-secondary);
   transition: all var(--transition-fast);
   font-weight: 500;
+  font-size: 0.92rem;
 }
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+  text-shadow: 0 0 10px rgba(0, 232, 184, 0.15);
 }
 
 .nav-link.router-link-active {
   color: var(--accent-teal);
-  background: rgba(0, 212, 170, 0.1);
+  background: rgba(0, 232, 184, 0.08);
+  box-shadow: 0 0 16px rgba(0, 232, 184, 0.08);
 }
 </style>

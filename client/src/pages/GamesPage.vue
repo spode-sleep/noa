@@ -87,10 +87,12 @@
         />
         <div class="game-info">
           <div class="game-name">
-            <span class="source-icon" v-if="game.source === 'steam'" title="Steam">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.08 2 11.14c0 2.67 1.28 5.08 3.33 6.74l1.49-3.07c-.26-.3-.42-.7-.42-1.14 0-.97.78-1.75 1.75-1.75.14 0 .28.02.41.05l2.1-1.53c0-.03 0-.07 0-.1 0-1.45 1.18-2.63 2.63-2.63s2.63 1.18 2.63 2.63-1.18 2.63-2.63 2.63c-.1 0-.2 0-.3-.02l-1.5 2.13c.04.17.06.34.06.52 0 1.21-.98 2.19-2.19 2.19-.98 0-1.82-.65-2.09-1.55l-1.62 3.35C7.1 20.62 9.44 21.5 12 21.5c5.52 0 10-3.98 10-8.86S17.52 2 12 2z"/></svg>
+            <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam">
+              <Icon icon="logos:steam-icon" width="20" height="20" />
             </span>
-            <span class="source-icon" v-else title="RAWG">🎮</span>
+            <span class="source-icon rawg-icon" v-else title="RAWG">
+              <Icon icon="noto:video-game" width="20" height="20" />
+            </span>
             {{ game.name }}
           </div>
           <div class="game-tags">
@@ -110,6 +112,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { Icon } from '@iconify/vue'
 
 interface Game {
   appId: string
@@ -524,6 +527,16 @@ h1 {
 
 .source-icon {
   flex-shrink: 0;
+  display: inline-flex;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+
+.steam-icon {
+  filter: drop-shadow(0 0 6px rgba(102, 192, 244, 0.4));
+}
+
+.rawg-icon {
+  filter: drop-shadow(0 0 6px rgba(123, 104, 238, 0.4));
 }
 
 .game-tags {

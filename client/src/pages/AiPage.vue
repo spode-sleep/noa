@@ -203,6 +203,7 @@ onMounted(async () => {
   flex-direction: column;
   height: calc(100vh - 80px);
   padding: 0;
+  overflow: hidden;
 }
 
 .chat-header {
@@ -334,6 +335,7 @@ onMounted(async () => {
 /* Chat area */
 .chat-area {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px 20px;
   display: flex;
