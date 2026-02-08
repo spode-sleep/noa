@@ -39,7 +39,7 @@
           <div v-for="bm in manualBookmarks" :key="bm.id" class="bookmark-item" role="button" tabindex="0" @click="navigateToBookmark(bm)" @keydown.enter="navigateToBookmark(bm)" @keydown.space.prevent="navigateToBookmark(bm)">
             <div class="bookmark-info">
               <span v-if="bm.page && book?.format !== 'epub'" class="bookmark-page">Page {{ bm.page }}</span>
-              <span v-else-if="bm.page != null && book?.format === 'epub'" class="bookmark-page">📖 {{ Math.round(Number(bm.page) * 100) }}%</span>
+              <span v-else-if="bm.page != null && book?.format === 'epub'" class="bookmark-page">📖 {{ getEpubPercent(bm.page) }}%</span>
               <span class="bookmark-note">{{ bm.note || 'No note' }}</span>
               <span class="bookmark-date">{{ formatDate(bm.created) }}</span>
             </div>
@@ -150,14 +150,20 @@ const ttsMessage = ref('')
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
 const readerRef = ref<any>(null) // template ref to VueReader component
-const epubFraction = ref<number>(0) // 0-1 reading progress for bookmarks
+const epubFraction = ref<number>(0) // 0-1 reading progress for display
+const epubCfi = ref<string>('') // CFI string for precise bookmark navigation
 const epubView = ref<any>(null) // foliate-view element reference for direct navigation
 
 function onEpubLocationChange(detail: any) {
   // vue-book-reader emits the full relocate detail object from foliate-view
-  // It contains { fraction, cfi, tocItem, ... }
-  if (detail && typeof detail === 'object' && typeof detail.fraction === 'number') {
-    epubFraction.value = detail.fraction
+  // It contains { fraction, cfi, tocItem, range, ... }
+  if (detail && typeof detail === 'object') {
+    if (typeof detail.fraction === 'number') {
+      epubFraction.value = detail.fraction
+    }
+    if (typeof detail.cfi === 'string' && detail.cfi) {
+      epubCfi.value = detail.cfi
+    }
   }
 }
 
@@ -180,6 +186,14 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString()
 }
 
+function getEpubPercent(page: any): number {
+  try {
+    const parsed = JSON.parse(String(page))
+    if (typeof parsed.fraction === 'number') return Math.round(parsed.fraction * 100)
+  } catch { /* legacy format */ }
+  return Math.round(Number(page) * 100)
+}
+
 async function readAloud() {
   try {
     const res = await fetch('/api/tts/status')
@@ -198,9 +212,9 @@ async function readAloud() {
 async function addBookmark() {
   const note = newBookmarkNote.value.trim()
   let position: any = window.scrollY
-  // For EPUB, save the fraction (0-1 reading progress)
+  // For EPUB, save the CFI (precise location) with fraction for display
   if (book.value?.format === 'epub') {
-    position = epubFraction.value
+    position = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
   }
   try {
     const res = await fetch(`/api/bookmarks/${bookId}/manual`, {
@@ -229,8 +243,19 @@ function restorePosition() {
   positionRestored.value = true
   if (savedPosition.value != null) {
     if (book.value?.format === 'epub') {
-      // Use foliate-view's goToFraction() for precise navigation
-      epubView.value?.goToFraction(Number(savedPosition.value))
+      // Try to parse CFI from saved position
+      let cfi: string | null = null
+      try {
+        const parsed = JSON.parse(String(savedPosition.value))
+        if (parsed.cfi) cfi = parsed.cfi
+      } catch {
+        // Legacy saved position — fraction number
+      }
+      if (cfi && epubView.value) {
+        epubView.value.goTo(cfi)
+      } else if (epubView.value) {
+        epubView.value.goToFraction(Number(savedPosition.value))
+      }
     } else {
       window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
     }
@@ -240,8 +265,19 @@ function restorePosition() {
 function navigateToBookmark(bm: ManualBookmark) {
   if (bm.page != null) {
     if (book.value?.format === 'epub') {
-      // Use foliate-view's goToFraction() for precise page navigation
-      epubView.value?.goToFraction(Number(bm.page))
+      // Parse the stored bookmark — may be JSON {cfi, fraction} or legacy fraction number
+      let cfi: string | null = null
+      try {
+        const parsed = JSON.parse(String(bm.page))
+        if (parsed.cfi) cfi = parsed.cfi
+      } catch {
+        // Legacy bookmark — fraction only, use goToFraction
+      }
+      if (cfi && epubView.value) {
+        epubView.value.goTo(cfi)
+      } else if (epubView.value) {
+        epubView.value.goToFraction(Number(bm.page))
+      }
     } else if (book.value?.format === 'pdf') {
       const iframe = document.querySelector('.pdf-frame') as HTMLIFrameElement
       if (iframe) {
@@ -256,9 +292,9 @@ function navigateToBookmark(bm: ManualBookmark) {
 async function savePosition() {
   try {
     let positionData: any = window.scrollY
-    // For EPUB, save the fraction (0-1 progress)
+    // For EPUB, save the CFI for precise position restore
     if (book.value?.format === 'epub') {
-      positionData = epubFraction.value
+      positionData = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
     }
     await fetch(`/api/bookmarks/${bookId}/position`, {
       method: 'PUT',
