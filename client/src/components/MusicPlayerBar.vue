@@ -26,6 +26,14 @@
       <button class="ctrl-btn" @click="nextTrack">
         <Icon icon="mdi:skip-next" />
       </button>
+      <button
+        class="ctrl-btn"
+        :class="{ 'ctrl-active': repeatMode !== 'off' }"
+        @click="cycleRepeat"
+        :title="repeatMode === 'off' ? 'Repeat off' : repeatMode === 'all' ? 'Repeat all' : 'Repeat one'"
+      >
+        <Icon :icon="repeatMode === 'one' ? 'mdi:repeat-once' : 'mdi:repeat'" />
+      </button>
       <button class="ctrl-btn ctrl-add" @click="$emit('open-playlist-picker', currentTrack)" title="Add to playlist">
         <Icon icon="mdi:playlist-plus" />
       </button>
@@ -75,6 +83,7 @@ const {
   currentTime,
   duration,
   volume,
+  repeatMode,
   progressPercent,
   togglePlay,
   prevTrack,
@@ -82,6 +91,7 @@ const {
   seek,
   setVolume,
   formatDuration,
+  cycleRepeat,
 } = useMusicPlayer()
 </script>
 
@@ -167,6 +177,10 @@ const {
   height: 32px;
   border: 1px solid var(--glass-border);
   font-size: 1.2rem;
+}
+
+.ctrl-active {
+  color: var(--accent-teal);
 }
 
 .ctrl-add:hover {

@@ -72,6 +72,7 @@ interface Track {
   year: number | null;
   genre: string;
   duration: number;
+  trackNumber: number | null;
 }
 
 interface MusicLibrary {
@@ -175,6 +176,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
             year: common.year || null,
             genre: common.genre?.[0] || '',
             duration: Math.round(metadata.format.duration || 0),
+            trackNumber: common.track?.no ?? null,
           });
         } else {
           // Fallback to jsmediatags
@@ -188,6 +190,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
             year: tags.year || null,
             genre: tags.genre || '',
             duration: 0, // jsmediatags doesn't provide duration
+            trackNumber: null,
           });
         }
       } catch (e) {
@@ -203,6 +206,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
             year: tags.year || null,
             genre: tags.genre || '',
             duration: 0,
+            trackNumber: null,
           });
         } catch {
           tracks.push({
@@ -214,6 +218,7 @@ router.get('/scan', async (_req: Request, res: Response) => {
             year: null,
             genre: '',
             duration: 0,
+            trackNumber: null,
           });
         }
       }

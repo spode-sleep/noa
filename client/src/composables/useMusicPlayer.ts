@@ -6,6 +6,7 @@ export interface Track {
   artist: string
   album: string
   duration: number
+  trackNumber?: number | null
 }
 
 export interface Playlist {
@@ -21,6 +22,7 @@ const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
 const volume = ref(1)
+const repeatMode = ref<'off' | 'all' | 'one'>('off')
 
 let audio: HTMLAudioElement | null = null
 let flatList: Track[] = []
@@ -41,7 +43,7 @@ function initAudio() {
     duration.value = audio!.duration
   })
   audio.addEventListener('ended', () => {
-    nextTrack()
+    handleTrackEnded()
   })
   audio.addEventListener('play', () => {
     isPlaying.value = true
@@ -49,6 +51,35 @@ function initAudio() {
   audio.addEventListener('pause', () => {
     isPlaying.value = false
   })
+}
+
+function handleTrackEnded() {
+  if (repeatMode.value === 'one') {
+    // Repeat current track
+    if (audio) {
+      audio.currentTime = 0
+      audio.play()
+    }
+    return
+  }
+  if (!currentTrack.value || flatList.length === 0) return
+  const idx = flatList.findIndex(t => t.id === currentTrack.value!.id)
+  if (idx < flatList.length - 1) {
+    // Not the last track — always play next
+    playTrackForced(flatList[idx + 1])
+  } else if (repeatMode.value === 'all') {
+    // Last track + repeat-all — wrap to first
+    playTrackForced(flatList[0])
+  } else {
+    // Last track + repeat off — stop
+    isPlaying.value = false
+  }
+}
+
+function cycleRepeat() {
+  if (repeatMode.value === 'off') repeatMode.value = 'all'
+  else if (repeatMode.value === 'all') repeatMode.value = 'one'
+  else repeatMode.value = 'off'
 }
 
 function setFlatList(list: Track[]) {
@@ -124,6 +155,7 @@ export function useMusicPlayer() {
     currentTime,
     duration,
     volume,
+    repeatMode,
     progressPercent,
     playTrack,
     togglePlay,
@@ -133,5 +165,6 @@ export function useMusicPlayer() {
     setVolume,
     setFlatList,
     formatDuration,
+    cycleRepeat,
   }
 }

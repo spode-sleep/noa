@@ -9,7 +9,6 @@
             class="nav-link"
             :class="{ active: isActive(link.to) }"
             :style="isActive(link.to) ? { color: link.color, background: link.color + '14', boxShadow: '0 0 16px ' + link.color + '14' } : {}"
-            :data-label="link.label"
           >
             {{ link.label }}
           </router-link>
@@ -87,16 +86,6 @@ function isActive(to: string): boolean {
   min-width: max-content;
 }
 
-/* Invisible bold pseudo-element reserves the bolder width so layout doesn't shift */
-.nav-link::after {
-  content: attr(data-label);
-  font-weight: 600;
-  visibility: hidden;
-  height: 0;
-  display: block;
-  overflow: hidden;
-}
-
 .nav-link:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.06);
@@ -104,6 +93,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-link.active {
-  font-weight: 600;
+  /* Use text-shadow to simulate bold instead of font-weight to avoid layout shift */
+  text-shadow: 0 0 0.5px currentColor, 0 0 0.5px currentColor;
 }
 </style>

@@ -358,6 +358,17 @@ const groupedTracks = computed(() => {
     if (!map[artist][album]) map[artist][album] = []
     map[artist][album].push(t)
   }
+  // Sort tracks within each album by track number then title
+  for (const artist of Object.keys(map)) {
+    for (const album of Object.keys(map[artist])) {
+      map[artist][album].sort((a, b) => {
+        const na = a.trackNumber ?? Infinity
+        const nb = b.trackNumber ?? Infinity
+        if (na !== nb) return na - nb
+        return a.title.localeCompare(b.title)
+      })
+    }
+  }
   return map
 })
 
