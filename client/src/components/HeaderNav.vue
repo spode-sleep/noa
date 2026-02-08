@@ -74,8 +74,8 @@ function isActive(to: string): boolean {
 
 .nav-logo-icon {
   font-size: 1.4rem;
-  -webkit-text-fill-color: var(--accent-teal);
-  filter: drop-shadow(0 0 6px rgba(0, 232, 184, 0.5));
+  color: var(--accent-purple);
+  filter: drop-shadow(0 0 6px rgba(139, 108, 238, 0.5));
 }
 
 .nav-links {
