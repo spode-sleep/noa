@@ -1,5 +1,5 @@
 <template>
-  <div class="page" :class="{ 'has-player': currentTrack }">
+  <div class="page">
     <h1>Music</h1>
 
     <!-- Tab Switcher -->
@@ -60,7 +60,7 @@
               class="album-section"
             >
               <div class="album-header">
-                <span class="album-icon">💿</span>
+                <Icon icon="mdi:album" class="album-icon" />
                 <span class="album-name">{{ album }}</span>
               </div>
               <div class="track-list">
@@ -70,13 +70,15 @@
                   class="track-row"
                   :class="{ active: currentTrack?.id === track.id }"
                 >
-                  <button class="play-btn" @click="playTrack(track)">
-                    {{ currentTrack?.id === track.id && isPlaying ? '⏸' : '▶' }}
+                  <button class="play-btn" @click="handlePlay(track)">
+                    <Icon :icon="currentTrack?.id === track.id && isPlaying ? 'mdi:pause' : 'mdi:play'" />
                   </button>
                   <span class="track-title">{{ track.title }}</span>
                   <span class="track-duration">{{ formatDuration(track.duration) }}</span>
                   <div class="track-actions">
-                    <button class="add-to-playlist-btn" @click.stop="openPlaylistPicker(track)" title="Add to playlist">+</button>
+                    <button class="add-to-playlist-btn" @click.stop="openPlaylistPicker(track)" title="Add to playlist">
+                      <Icon icon="mdi:playlist-plus" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -136,8 +138,8 @@
             class="track-row"
             :class="{ active: currentTrack?.id === track.id }"
           >
-            <button class="play-btn" @click="playTrack(track)">
-              {{ currentTrack?.id === track.id && isPlaying ? '⏸' : '▶' }}
+            <button class="play-btn" @click="handlePlay(track)">
+              <Icon :icon="currentTrack?.id === track.id && isPlaying ? 'mdi:pause' : 'mdi:play'" />
             </button>
             <span class="track-title">{{ track.title }} <span class="track-artist">— {{ track.artist }}</span></span>
             <span class="track-duration">{{ formatDuration(track.duration) }}</span>
@@ -145,44 +147,6 @@
               Remove
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Audio Player (sticky bottom bar) -->
-    <div v-if="currentTrack" class="player glass">
-      <div class="player-info">
-        <span class="player-title">{{ currentTrack.title }}</span>
-        <span class="player-artist">{{ currentTrack.artist }}</span>
-      </div>
-      <div class="player-controls">
-        <button class="ctrl-btn" @click="prevTrack">⏮</button>
-        <button class="ctrl-btn ctrl-play" @click="togglePlay">
-          {{ isPlaying ? '⏸' : '▶' }}
-        </button>
-        <button class="ctrl-btn" @click="nextTrack">⏭</button>
-        <button class="ctrl-btn" @click="openPlaylistPicker(currentTrack!)" title="Add to playlist">+🎵</button>
-      </div>
-      <div class="player-progress">
-        <span class="time">{{ formatDuration(currentTime) }}</span>
-        <div class="progress-bar" @click="seek($event)">
-          <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
-        </div>
-        <span class="time">{{ formatDuration(duration) }}</span>
-      </div>
-      <div class="player-volume">
-        <span class="volume-icon">🔊</span>
-        <div class="volume-bar-wrapper">
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            :value="volume"
-            class="volume-slider"
-            :style="{ '--volume-pct': (volume * 100) + '%' }"
-            @input="setVolume($event)"
-          />
         </div>
       </div>
     </div>
@@ -229,22 +193,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { Icon } from '@iconify/vue'
+import { useMusicPlayer, type Track, type Playlist } from '../composables/useMusicPlayer'
 
-interface Track {
-  id: string
-  title: string
-  artist: string
-  album: string
-  duration: number
-}
-
-interface Playlist {
-  id: string
-  name: string
-  trackIds: string[]
-  tracks?: Track[]
-}
+const {
+  currentTrack,
+  isPlaying,
+  playTrack,
+  setFlatList,
+  formatDuration,
+} = useMusicPlayer()
 
 const activeTab = ref<'tracks' | 'playlists'>('tracks')
 const search = ref('')
@@ -262,22 +221,6 @@ const selectedPlaylist = ref<Playlist | null>(null)
 const showPlaylistPicker = ref(false)
 const pickerTrack = ref<Track | null>(null)
 const pickerNewName = ref('')
-
-const currentTrack = ref<Track | null>(null)
-const isPlaying = ref(false)
-const currentTime = ref(0)
-const duration = ref(0)
-const volume = ref(1)
-
-let audio: HTMLAudioElement | null = null
-let flatList: Track[] = []
-
-function formatDuration(seconds: number): string {
-  if (!seconds || !isFinite(seconds)) return '0:00'
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
 
 const filteredTracks = computed(() => {
   if (!search.value) return tracks.value
@@ -320,91 +263,15 @@ function toggleArtist(artist: string) {
   expandedArtists.value = next
 }
 
-// Audio playback
-function initAudio() {
-  if (audio) return
-  audio = new Audio()
-  audio.volume = volume.value
-  audio.addEventListener('timeupdate', () => {
-    currentTime.value = audio!.currentTime
-  })
-  audio.addEventListener('loadedmetadata', () => {
-    duration.value = audio!.duration
-  })
-  audio.addEventListener('ended', () => {
-    nextTrack()
-  })
-  audio.addEventListener('play', () => {
-    isPlaying.value = true
-  })
-  audio.addEventListener('pause', () => {
-    isPlaying.value = false
-  })
-}
-
-function buildFlatList() {
+function handlePlay(track: Track) {
+  // Update flat list for prev/next navigation
   if (activeTab.value === 'playlists' && selectedPlaylist.value?.tracks?.length) {
-    flatList = selectedPlaylist.value.tracks
+    setFlatList(selectedPlaylist.value.tracks)
   } else {
-    flatList = filteredTracks.value
+    setFlatList(filteredTracks.value)
   }
+  playTrack(track)
 }
-
-function playTrack(track: Track) {
-  if (currentTrack.value?.id === track.id) {
-    togglePlay()
-    return
-  }
-  initAudio()
-  currentTrack.value = track
-  audio!.src = `/api/music/stream/${track.id}`
-  audio!.play()
-  buildFlatList()
-}
-
-function togglePlay() {
-  if (!audio) return
-  if (audio.paused) {
-    audio.play()
-  } else {
-    audio.pause()
-  }
-}
-
-function prevTrack() {
-  if (!currentTrack.value || flatList.length === 0) return
-  const idx = flatList.findIndex(t => t.id === currentTrack.value!.id)
-  const prev = idx > 0 ? flatList[idx - 1] : flatList[flatList.length - 1]
-  currentTrack.value = null
-  playTrack(prev)
-}
-
-function nextTrack() {
-  if (!currentTrack.value || flatList.length === 0) return
-  const idx = flatList.findIndex(t => t.id === currentTrack.value!.id)
-  const next = idx < flatList.length - 1 ? flatList[idx + 1] : flatList[0]
-  currentTrack.value = null
-  playTrack(next)
-}
-
-function seek(e: MouseEvent) {
-  if (!audio) return
-  const bar = e.currentTarget as HTMLElement
-  const rect = bar.getBoundingClientRect()
-  const ratio = (e.clientX - rect.left) / rect.width
-  audio.currentTime = ratio * audio.duration
-}
-
-function setVolume(e: Event) {
-  const val = parseFloat((e.target as HTMLInputElement).value)
-  volume.value = val
-  if (audio) audio.volume = val
-}
-
-const progressPercent = computed(() => {
-  if (!duration.value) return 0
-  return (currentTime.value / duration.value) * 100
-})
 
 // API calls
 async function fetchTracks() {
@@ -416,7 +283,6 @@ async function fetchTracks() {
     if (data.last_scan) {
       lastScanDate.value = new Date(data.last_scan).toLocaleString()
     }
-    // Resolve durations for tracks where backend returned 0
     resolveZeroDurations()
   } catch (e) {
     console.error('Failed to fetch tracks:', e)
@@ -552,7 +418,6 @@ async function addTrackToPlaylist(playlistId: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trackId: pickerTrack.value.id }),
     })
-    // Update local playlist data
     const pl = playlists.value.find(p => p.id === playlistId)
     if (pl && !pl.trackIds.includes(pickerTrack.value.id)) {
       pl.trackIds.push(pickerTrack.value.id)
@@ -589,23 +454,11 @@ watch(activeTab, tab => {
 onMounted(() => {
   fetchTracks()
 })
-
-onUnmounted(() => {
-  if (audio) {
-    audio.pause()
-    audio.src = ''
-    audio = null
-  }
-})
 </script>
 
 <style scoped>
 .page {
   padding: 24px 0;
-}
-
-.page.has-player {
-  padding-bottom: 120px;
 }
 
 h1 {
@@ -811,7 +664,8 @@ h1 {
 }
 
 .album-icon {
-  font-size: 0.85rem;
+  font-size: 1rem;
+  color: var(--accent-teal);
 }
 
 .album-name {
@@ -937,204 +791,8 @@ h1 {
   margin: 0;
 }
 
-/* Audio Player */
-.player {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 12px 24px;
-  background: rgba(10, 10, 26, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
-  z-index: 1000;
-}
-
-.player-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 150px;
-  max-width: 200px;
-}
-
-.player-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.player-artist {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.player-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ctrl-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  transition: color var(--transition-fast);
-}
-
-.ctrl-btn:hover {
-  color: var(--text-primary);
-}
-
-.ctrl-play {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.ctrl-play:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
-}
-
-.player-progress {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.time {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  min-width: 36px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  cursor: pointer;
-  position: relative;
-}
-
-.progress-bar:hover {
-  height: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 3px;
-  transition: width 0.1s linear;
-}
-
-.player-volume {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 120px;
-}
-
-.volume-icon {
-  font-size: 0.85rem;
-}
-
-.volume-bar-wrapper {
-  position: relative;
-  width: 80px;
-}
-
-.volume-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 80px;
-  height: 6px;
-  border-radius: 3px;
-  background: linear-gradient(
-    to right,
-    var(--accent-teal) 0%,
-    var(--accent-teal) var(--volume-pct, 100%),
-    rgba(255, 255, 255, 0.1) var(--volume-pct, 100%),
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  outline: none;
-}
-
-.volume-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent-teal);
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
-}
-
-.volume-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent-teal);
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
-}
-
-.volume-slider::-moz-range-progress {
-  background: var(--accent-teal);
-  border-radius: 3px;
-  height: 6px;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-  .player {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px 16px;
-  }
-
-  .player-info {
-    min-width: unset;
-    max-width: unset;
-    flex: 1;
-  }
-
-  .player-progress {
-    order: 3;
-    flex-basis: 100%;
-  }
-
-  .player-volume {
-    min-width: unset;
-  }
-
-  .page.has-player {
-    padding-bottom: 160px;
-  }
-
   .track-row {
     padding-left: 8px;
   }
@@ -1146,24 +804,23 @@ h1 {
 }
 
 .add-to-playlist-btn {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-  border: none;
-  color: #fff;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
   width: 28px;
   height: 28px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity var(--transition-fast);
-  line-height: 1;
+  transition: all var(--transition-fast);
 }
 
 .add-to-playlist-btn:hover {
-  opacity: 0.85;
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
 }
 
 /* Playlist picker modal */
