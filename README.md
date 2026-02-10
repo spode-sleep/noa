@@ -92,8 +92,11 @@ curl http://localhost:11434/api/tags
 ChromaDB stores vector embeddings for RAG search. It is **auto-launched** by BOX server.
 
 ```bash
+# Install pip3 if not already installed
+sudo apt install python3-pip
+
 # Install ChromaDB
-pip install chromadb
+pip3 install chromadb
 
 # Verify installation
 chroma --version
@@ -290,7 +293,8 @@ Check model name at https://ollama.com/library. Common models:
 
 ### ChromaDB won't start
 ```bash
-pip install --upgrade chromadb
+sudo apt install python3-pip
+pip3 install --upgrade chromadb
 chroma run --port 8000 --path ./chroma_data
 ```
 
