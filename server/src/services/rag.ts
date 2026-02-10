@@ -16,9 +16,8 @@ import * as cheerio from 'cheerio';
 
 const OLLAMA_DEFAULT_PORT = '11434';
 const SIMILARITY_THRESHOLD = 0.3;
-const CHUNK_SIZE = 500;
+const CHUNK_SIZE = 2000; // Larger chunks = fewer embeddings, still within nomic-embed-text context
 const DEFAULT_TOP_K = 5;
-const MAX_ZIM_ARTICLES = 5000; // Limit articles per ZIM to keep index manageable
 
 const llmApiUrl = process.env.LLM_API_URL || 'http://localhost:11434';
 const embeddingModel = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
@@ -177,12 +176,11 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
           const libzim = await (new Function('return import("@openzim/libzim")'))();
           const archive = new libzim.Archive(zimPath);
           const entryCount = archive.entryCount;
-          const articleLimit = Math.min(entryCount, MAX_ZIM_ARTICLES);
 
           let articlesProcessed = 0;
 
-          // Iterate over entries by path
-          for (let idx = 0; idx < entryCount && articlesProcessed < articleLimit; idx++) {
+          // Iterate over ALL entries — no article limit
+          for (let idx = 0; idx < entryCount; idx++) {
             try {
               const entry = archive.getEntryByPath(idx);
               // Skip non-article entries (redirects, metadata, images, etc.)
@@ -232,8 +230,8 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
               }
 
               articlesProcessed++;
-              if (articlesProcessed % 500 === 0) {
-                console.log(`[RAG] Processed ${articlesProcessed}/${articleLimit} articles from ${file}`);
+              if (articlesProcessed % 1000 === 0) {
+                console.log(`[RAG] Processed ${articlesProcessed} articles from ${file} (${chunks.length} chunks so far)`);
               }
             } catch {
               // Skip entries that can't be read
@@ -383,7 +381,7 @@ async function buildIndex(): Promise<{ indexed: number; errors: number; message:
         const embedding = await getEmbedding(chunk.text);
         newIndex.push({ ...chunk, embedding });
 
-        if ((i + 1) % 10 === 0) {
+        if ((i + 1) % 500 === 0) {
           console.log(`[RAG] Embedded ${i + 1}/${allChunks.length} chunks`);
         }
       } catch (err) {
