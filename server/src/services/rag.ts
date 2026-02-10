@@ -67,11 +67,14 @@ function cosineSimilarity(a: number[], b: number[]): number {
 // ── Ollama Embedding ────────────────────────────────────────────────────────
 
 async function getEmbedding(text: string): Promise<number[]> {
+  // Hard truncate to stay within nomic-embed-text context window (8192 tokens ≈ 6000 chars)
+  const truncated = text.length > 4000 ? text.substring(0, 4000) : text;
+
   return new Promise((resolve, reject) => {
     const urlObj = new URL(llmApiUrl);
     const payload = JSON.stringify({
       model: embeddingModel,
-      prompt: text,
+      prompt: truncated,
     });
 
     const options = {
@@ -196,9 +199,17 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
               let plainText: string;
               if (mimeType.startsWith('text/html')) {
                 const $ = cheerio.load(content);
-                // Remove scripts, styles, nav elements
-                $('script, style, nav, header, footer, .mw-editsection, .reflist, .references').remove();
-                plainText = $('body').text().replace(/\s+/g, ' ').trim();
+                // Aggressively remove non-content elements (wiki boilerplate)
+                $('script, style, nav, header, footer, noscript, svg, img, figure, figcaption').remove();
+                $('.mw-editsection, .reflist, .references, .sidebar, .navbox, .infobox').remove();
+                $('[role="navigation"], .toc, .catlinks, .noprint, .metadata, .mw-jump-link').remove();
+                // Remove table markup but keep text
+                $('table.wikitable, table.infobox').remove();
+                plainText = $('body').text()
+                  .replace(/\[edit\]/gi, '')
+                  .replace(/\[\d+\]/g, '')           // Remove citation markers [1], [2]
+                  .replace(/\s+/g, ' ')
+                  .trim();
               } else {
                 plainText = content.replace(/\s+/g, ' ').trim();
               }
@@ -281,21 +292,58 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
 }
 
 function splitIntoChunks(text: string, maxLength: number): string[] {
+  if (text.length <= maxLength) return [text];
+  
   const chunks: string[] = [];
+  const overlap = 50;
+  
+  // Try splitting by paragraphs first
   const paragraphs = text.split(/\n\n+/);
-  let current = '';
-
-  for (const para of paragraphs) {
-    if (current.length + para.length + 2 > maxLength && current.length > 0) {
-      chunks.push(current.trim());
-      current = '';
+  if (paragraphs.length > 1) {
+    let current = '';
+    for (const para of paragraphs) {
+      if (current.length + para.length + 2 > maxLength && current.length > 0) {
+        chunks.push(current.trim());
+        current = '';
+      }
+      current += (current ? '\n\n' : '') + para;
     }
-    current += (current ? '\n\n' : '') + para;
+    if (current.trim()) chunks.push(current.trim());
   }
-  if (current.trim()) {
-    chunks.push(current.trim());
+  
+  // If no paragraph breaks found (common for wiki text), split by sentences
+  if (chunks.length <= 1) {
+    chunks.length = 0;
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    let current = '';
+    for (const sentence of sentences) {
+      if (current.length + sentence.length + 1 > maxLength && current.length > 0) {
+        chunks.push(current.trim());
+        // Small overlap for context continuity
+        const words = current.split(/\s+/);
+        current = words.slice(-Math.min(10, words.length)).join(' ');
+      }
+      current += (current ? ' ' : '') + sentence;
+    }
+    if (current.trim()) chunks.push(current.trim());
   }
-  return chunks;
+  
+  // Final fallback: hard split by character if single sentences are too long
+  if (chunks.some(c => c.length > maxLength * 2)) {
+    const refined: string[] = [];
+    for (const chunk of chunks) {
+      if (chunk.length <= maxLength * 2) {
+        refined.push(chunk);
+      } else {
+        for (let i = 0; i < chunk.length; i += maxLength - overlap) {
+          refined.push(chunk.substring(i, i + maxLength));
+        }
+      }
+    }
+    return refined.filter(c => c.trim().length >= 30);
+  }
+  
+  return chunks.filter(c => c.trim().length >= 30);
 }
 
 // ── Indexing ────────────────────────────────────────────────────────────────
