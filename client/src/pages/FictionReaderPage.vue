@@ -90,7 +90,7 @@
         <!-- ZIM Reader (via kiwix-serve) -->
         <div v-else-if="book.format === 'zim'" class="pdf-reader">
           <iframe
-            :src="'http://localhost:' + kiwixPort + '/'"
+            :src="'http://localhost:' + kiwixPort + '/' + encodeURIComponent(book.title.replace(/\.zim$/i, ''))"
             class="pdf-frame"
             title="ZIM Reader"
           ></iframe>

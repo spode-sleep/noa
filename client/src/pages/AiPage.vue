@@ -49,7 +49,6 @@
             AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
             <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.backend === 'chromadb' ? 'ChromaDB' : ragStatus.chunksIndexed + ' chunks' }}</template>
           </span>
-          <button class="new-dialog-btn" @click="clearChat">New Dialog</button>
         </div>
       </div>
 

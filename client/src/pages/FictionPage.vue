@@ -14,6 +14,7 @@
         <option value="pdf">PDF</option>
         <option value="epub">EPUB</option>
         <option value="fb2">FB2</option>
+        <option value="zim">ZIM</option>
       </select>
       <select v-model="languageFilter" class="filter-select">
         <option value="">All Languages</option>
@@ -357,6 +358,12 @@ h1 {
   background: rgba(123, 104, 238, 0.2);
   color: var(--accent-purple);
   border: 1px solid rgba(123, 104, 238, 0.3);
+}
+
+.format-zim {
+  background: rgba(76, 201, 240, 0.2);
+  color: #4cc9f0;
+  border: 1px solid rgba(76, 201, 240, 0.3);
 }
 
 .progress-badge {
