@@ -9,6 +9,16 @@ const referencePaths = (process.env.REFERENCE_LIBRARY_PATH || '')
   .map(p => p.trim())
   .filter(Boolean);
 
+const excludePatterns = (process.env.REFERENCE_EXCLUDE_ZIM || '')
+  .split(',')
+  .map(p => p.trim().toLowerCase())
+  .filter(Boolean);
+
+function isExcluded(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return excludePatterns.some(pattern => lower.includes(pattern));
+}
+
 const KIWIX_PORT = parseInt(process.env.KIWIX_PORT || '9454', 10);
 
 // GET /api/reference/archives - List ZIM archives
@@ -28,7 +38,7 @@ router.get('/archives', (_req: Request, res: Response) => {
       }
       const entries = fs.readdirSync(refPath, { withFileTypes: true });
       for (const e of entries) {
-        if (!e.isDirectory() && e.name.toLowerCase().endsWith('.zim')) {
+        if (!e.isDirectory() && e.name.toLowerCase().endsWith('.zim') && !isExcluded(e.name)) {
           const fullPath = path.join(refPath, e.name);
           const stat = fs.statSync(fullPath);
           archives.push({ name: e.name, path: fullPath, size: stat.size });
@@ -48,7 +58,7 @@ router.get('/status', (_req: Request, res: Response) => {
   for (const refPath of referencePaths) {
     if (fs.existsSync(refPath)) {
       const entries = fs.readdirSync(refPath);
-      if (entries.some(e => e.toLowerCase().endsWith('.zim'))) {
+      if (entries.some(e => e.toLowerCase().endsWith('.zim') && !isExcluded(e))) {
         hasZim = true;
         break;
       }
