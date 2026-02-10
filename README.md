@@ -47,7 +47,6 @@ Open http://localhost:5173
 
 - **Node.js 18+** (recommended: 20 LTS)
 - **npm 9+**
-- **Python 3.8+** (for ChromaDB)
 - **Linux** (tested on Linux Mint 22 / Ubuntu 24.04)
 
 ### 1. Clone & Install
@@ -92,20 +91,14 @@ curl http://localhost:11434/api/tags
 ChromaDB stores vector embeddings for RAG search. It is **auto-launched** by BOX server.
 
 ```bash
-# Install pip3 if not already installed
-sudo apt install python3-pip
-
-# Install ChromaDB
-pip3 install chromadb
+# Install ChromaDB CLI (standalone Rust binary, no Python needed)
+curl -sSL https://raw.githubusercontent.com/chroma-core/chroma/main/rust/cli/install/install.sh | bash
 
 # Verify installation
 chroma --version
-
-# (Optional) Manual start for testing
-chroma run --port 8000 --path ./chroma_data
 ```
 
-> BOX auto-starts chroma run on startup. Data is persisted in chroma_data/ directory.
+> BOX auto-starts `chroma run` on startup. Data is persisted in `chroma_data/` directory.
 
 If you prefer to run ChromaDB manually or on a different host, set in .env:
 
@@ -293,8 +286,9 @@ Check model name at https://ollama.com/library. Common models:
 
 ### ChromaDB won't start
 ```bash
-sudo apt install python3-pip
-pip3 install --upgrade chromadb
+# Install standalone CLI (no Python needed):
+curl -sSL https://raw.githubusercontent.com/chroma-core/chroma/main/rust/cli/install/install.sh | bash
+# Test:
 chroma run --port 8000 --path ./chroma_data
 ```
 

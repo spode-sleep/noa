@@ -46,7 +46,7 @@ export async function startChroma(): Promise<void> {
 
   const binary = findChromaBinary();
   if (!binary) {
-    console.log('[chromadb] ChromaDB binary not found. Install with: pip install chromadb');
+    console.log('[chromadb] ChromaDB binary not found. Install with: curl -sSL https://raw.githubusercontent.com/chroma-core/chroma/main/rust/cli/install/install.sh | bash');
     console.log('[chromadb] RAG will use fallback in-memory vector store');
     return;
   }
