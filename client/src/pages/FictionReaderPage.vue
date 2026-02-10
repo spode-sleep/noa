@@ -168,7 +168,7 @@ const zimUrl = computed(() => {
   if (!book.value || book.value.format !== 'zim') return ''
   const port = (book.value as any).kiwixPort || kiwixPort
   const name = (book.value as any).zimName || book.value.title.replace(/\.zim$/i, '').replace(/ /g, '_')
-  return `http://localhost:${port}/viewer#/content/${name}`
+  return `http://localhost:${port}/viewer#/${name}`
 })
 
 // EPUB state
