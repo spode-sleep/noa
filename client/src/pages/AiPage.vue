@@ -226,7 +226,9 @@ function deleteConversation(id: string) {
     if (conversations.value.length > 0) {
       switchConversation(conversations.value[0].id)
     } else {
-      createNewConversation()
+      activeConversationId.value = ''
+      messages.value = []
+      chatStarted.value = false
     }
   }
 }
@@ -286,6 +288,11 @@ watch(messages, () => {
 async function sendMessage() {
   const text = input.value.trim()
   if (!text || loading.value) return
+
+  // Create conversation lazily on first message
+  if (!activeConversationId.value) {
+    createNewConversation()
+  }
 
   messages.value.push({ role: 'user', content: text })
   chatStarted.value = true
@@ -360,10 +367,8 @@ async function buildIndex() {
 }
 
 onMounted(async () => {
-  // Initialize conversations
-  if (conversations.value.length === 0) {
-    createNewConversation()
-  } else {
+  // Load existing conversations, but don't create new one (lazy creation on first message)
+  if (conversations.value.length > 0) {
     switchConversation(conversations.value[0].id)
   }
 
@@ -383,6 +388,7 @@ onMounted(async () => {
 <style scoped>
 .chat-layout {
   display: flex;
+  gap: 16px;
   height: calc(100vh - 80px - 24px - 48px);
   overflow: hidden;
 }
@@ -393,8 +399,10 @@ onMounted(async () => {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: rgba(13, 13, 26, 0.85);
-  border-right: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
