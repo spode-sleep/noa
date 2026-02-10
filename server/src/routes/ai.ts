@@ -8,7 +8,7 @@ const router = Router();
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
 const metadataDir = path.join(dataPath, 'metadata');
 const llmApiUrl = process.env.LLM_API_URL || 'http://localhost:11434';
-const llmModel = process.env.LLM_MODEL || 'qwen2.5:8b';
+const llmModel = process.env.LLM_MODEL || 'qwen2.5:7b';
 const llmApiType = process.env.LLM_API_TYPE || 'auto'; // 'ollama', 'openai', or 'auto'
 const MAX_HISTORY_MESSAGES = 20;
 

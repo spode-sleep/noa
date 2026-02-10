@@ -57,7 +57,7 @@ REFERENCE_LIBRARY_PATH=/home/user/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-medium
 LLM_API_URL=http://localhost:11434
-LLM_MODEL=qwen2.5:8b
+LLM_MODEL=qwen2.5:7b
 LLM_API_TYPE=auto
 DATA_PATH=../data
 ```
@@ -103,7 +103,7 @@ NOA использует **локальную LLM модель** для ИИ п�
 curl -fsSL https://ollama.com/install.sh | sh
 
 # 2. Скачать модель (Qwen2.5 8B рекомендуется для RU/EN)
-ollama pull qwen2.5:8b
+ollama pull qwen2.5:7b
 
 # 3. Проверить что Ollama работает
 curl http://localhost:11434/api/tags
@@ -114,7 +114,7 @@ Ollama запускается автоматически как сервис н�
 **Настройка в `.env`:**
 ```env
 LLM_API_URL=http://localhost:11434
-LLM_MODEL=qwen2.5:8b
+LLM_MODEL=qwen2.5:7b
 LLM_API_TYPE=auto
 ```
 

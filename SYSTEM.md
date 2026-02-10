@@ -343,7 +343,7 @@ The AI Assistant requires a local LLM server. Two options are recommended:
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Download a model
-ollama pull qwen2.5:8b
+ollama pull qwen2.5:7b
 
 # Ollama runs automatically on port 11434
 # Verify
