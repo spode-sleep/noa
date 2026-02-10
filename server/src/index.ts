@@ -40,11 +40,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`BOX server running on port ${PORT}`);
   startKiwixServe();
-  startOllama();
-  startChroma();
+  await startOllama();
+  await startChroma();
+  // Initialize RAG after ChromaDB and Ollama are ready
+  const { initRag } = await import('./services/rag');
+  initRag().catch(err => console.error('[RAG] Init error:', err));
 });
 
 function shutdown() {

@@ -6,8 +6,7 @@ import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from
 
 const router = Router();
 
-// Initialize RAG on module load
-initRag().catch(err => console.error('[AI] RAG init error:', err));
+// RAG is initialized from index.ts after ChromaDB is ready
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
 const metadataDir = path.join(dataPath, 'metadata');
