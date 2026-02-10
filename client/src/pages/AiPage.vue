@@ -6,6 +6,7 @@
       <div class="header-right">
         <span class="ai-status" :class="{ online: aiStatus.available }">
           AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
+          <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.chunksIndexed }} chunks</template>
         </span>
         <button class="new-dialog-btn" @click="clearChat">New Dialog</button>
       </div>
@@ -29,6 +30,9 @@
         <span class="toggle-slider"></span>
         <span class="toggle-text">Fiction Library</span>
       </label>
+      <button class="index-btn" @click="buildIndex" :disabled="ragStatus.indexing">
+        {{ ragStatus.indexing ? 'Indexing...' : ragStatus.ready ? 'Rebuild RAG Index' : 'Build RAG Index' }}
+      </button>
     </div>
 
     <!-- Chat area -->
@@ -48,6 +52,10 @@
           >
             Read Aloud 🔊
           </button>
+          <div v-if="msg.sources?.length" class="sources-list">
+            <span class="sources-label">Sources:</span>
+            <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
+          </div>
         </div>
       </div>
       <div v-if="loading" class="message-row assistant">
@@ -77,13 +85,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 
-const messages = ref<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+const messages = ref<Array<{ role: 'user' | 'assistant'; content: string; sources?: string[] }>>([])
 const input = ref('')
 const loading = ref(false)
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
 const aiStatus = ref<{ available: boolean; message: string }>({ available: false, message: '' })
+const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean }>({ ready: false, chunksIndexed: 0, indexing: false })
 
 const chatAreaRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -150,7 +159,11 @@ async function sendMessage() {
       }),
     })
     const data = await res.json()
-    messages.value.push({ role: 'assistant', content: data.content ?? data.response ?? 'No response.' })
+    messages.value.push({
+      role: 'assistant',
+      content: data.content ?? data.response ?? 'No response.',
+      sources: data.sources?.length ? data.sources : undefined,
+    })
   } catch {
     messages.value.push({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
   } finally {
@@ -186,11 +199,25 @@ function clearChat() {
   fictionLibraryEnabled.value = false
 }
 
+async function buildIndex() {
+  ragStatus.value.indexing = true
+  try {
+    const res = await fetch('/api/ai/index', { method: 'POST' })
+    const data = await res.json()
+    ragStatus.value = { ready: true, chunksIndexed: data.indexed ?? 0, indexing: false }
+  } catch {
+    ragStatus.value.indexing = false
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('/api/ai/status')
     const data = await res.json()
     aiStatus.value = { available: data.available ?? false, message: data.message ?? '' }
+    if (data.rag) {
+      ragStatus.value = { ready: data.rag.ready ?? false, chunksIndexed: data.rag.chunksIndexed ?? 0, indexing: data.rag.indexing ?? false }
+    }
   } catch {
     aiStatus.value = { available: false, message: 'Unable to reach AI service' }
   }
@@ -397,6 +424,52 @@ onMounted(async () => {
 .tts-btn:hover {
   color: var(--accent-teal);
   border-color: var(--accent-teal);
+}
+
+.sources-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sources-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.source-tag {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.index-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.index-btn:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: #c084fc;
+}
+
+.index-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .loading-bubble {

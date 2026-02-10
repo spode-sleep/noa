@@ -2,8 +2,12 @@ import { Router, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
+import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from '../services/rag';
 
 const router = Router();
+
+// Initialize RAG on module load
+initRag().catch(err => console.error('[AI] RAG init error:', err));
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
 const metadataDir = path.join(dataPath, 'metadata');
@@ -197,8 +201,22 @@ router.post('/chat', async (req: Request, res: Response) => {
     contextLoaded.fictionLibrary = data !== null;
   }
 
+  // RAG: search for relevant context
+  let ragSources: string[] = [];
+  let ragContextText = '';
+  try {
+    const ragResults = await ragSearch(message, 5);
+    if (ragResults.length > 0) {
+      const ragCtx = buildRagContext(ragResults);
+      ragContextText = ragCtx.contextText;
+      ragSources = ragCtx.sources;
+    }
+  } catch (err) {
+    console.error('[AI] RAG search error:', err);
+  }
+
   // Build messages array for LLM
-  const systemPrompt = buildSystemPrompt(context || {});
+  const systemPrompt = buildSystemPrompt(context || {}) + ragContextText;
   const messages: ChatMessage[] = [{ role: 'system', content: systemPrompt }];
 
   // Add conversation history (last messages to save context)
@@ -234,7 +252,7 @@ router.post('/chat', async (req: Request, res: Response) => {
     res.json({
       role: 'assistant',
       content: response,
-      sources: [],
+      sources: ragSources,
       contextLoaded,
     });
   } catch (err) {
@@ -247,10 +265,26 @@ router.post('/chat', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/ai/index - Rebuild RAG index
+router.post('/index', async (_req: Request, res: Response) => {
+  try {
+    const result = await rebuildIndex();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: `Indexing failed: ${String(err)}` });
+  }
+});
+
+// GET /api/ai/index/status - Get RAG index status
+router.get('/index/status', (_req: Request, res: Response) => {
+  res.json(getIndexStats());
+});
+
 // GET /api/ai/status - Check AI availability
 router.get('/status', async (_req: Request, res: Response) => {
   const status = await checkLlmAvailability();
-  res.json(status);
+  const ragStats = getIndexStats();
+  res.json({ ...status, rag: ragStats });
 });
 
 export default router;
