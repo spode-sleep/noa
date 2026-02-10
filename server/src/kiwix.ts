@@ -28,15 +28,22 @@ function findZimFiles(): string[] {
     .split(',')
     .map(p => p.trim())
     .filter(Boolean);
+  const fictionPaths = (process.env.FICTION_LIBRARY_PATH || '')
+    .split(',')
+    .map(p => p.trim())
+    .filter(Boolean);
 
+  const allPaths = [...referencePaths, ...fictionPaths];
   const zimFiles: string[] = [];
-  for (const refPath of referencePaths) {
-    if (!fs.existsSync(refPath)) continue;
+  const seen = new Set<string>();
+  for (const dirPath of allPaths) {
+    if (!fs.existsSync(dirPath)) continue;
     try {
-      const entries = fs.readdirSync(refPath, { withFileTypes: true });
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
       for (const e of entries) {
-        if (!e.isDirectory() && e.name.toLowerCase().endsWith('.zim')) {
-          zimFiles.push(path.join(refPath, e.name));
+        if (!e.isDirectory() && e.name.toLowerCase().endsWith('.zim') && !seen.has(e.name)) {
+          seen.add(e.name);
+          zimFiles.push(path.join(dirPath, e.name));
         }
       }
     } catch {
