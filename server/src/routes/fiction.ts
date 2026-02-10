@@ -21,6 +21,8 @@ interface BookMeta {
   isbn: string;
   page_count: number;
   file_size: number;
+  zimName?: string;
+  kiwixPort?: number;
 }
 
 interface FictionLibrary {
@@ -230,7 +232,12 @@ router.get('/scan', async (_req, res) => {
         } else if (ext === 'fb2') {
           meta = await extractFb2Metadata(filepath);
         } else if (ext === 'zim') {
-          meta = { title: path.basename(filepath, '.zim').replace(/_/g, ' ') };
+          const zimName = path.basename(filepath, '.zim');
+          meta = {
+            title: zimName.replace(/_/g, ' '),
+            zimName,
+            kiwixPort: parseInt(process.env.KIWIX_PORT || '9454', 10),
+          };
         }
 
         books.push({
@@ -244,6 +251,7 @@ router.get('/scan', async (_req, res) => {
           isbn: meta.isbn || '',
           page_count: meta.page_count || 0,
           file_size: stat.size,
+          ...(ext === 'zim' ? { zimName: (meta as any).zimName, kiwixPort: (meta as any).kiwixPort } : {}),
         });
       } catch (_e) {
         // Skip bad files

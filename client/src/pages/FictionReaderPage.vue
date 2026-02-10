@@ -8,7 +8,7 @@
       </div>
       <div class="header-controls">
         <button class="ctrl-btn" @click="readAloud" title="Read Aloud">🔊</button>
-        <template v-if="book?.format !== 'pdf' && book?.format !== 'zim'">
+        <template v-if="book?.format !== 'pdf'">
           <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
             ⭐
           </button>
@@ -38,7 +38,8 @@
         <div v-else class="bookmark-list">
           <div v-for="bm in manualBookmarks" :key="bm.id" class="bookmark-item" role="button" tabindex="0" @click="navigateToBookmark(bm)" @keydown.enter="navigateToBookmark(bm)" @keydown.space.prevent="navigateToBookmark(bm)">
             <div class="bookmark-info">
-              <span v-if="bm.page && book?.format !== 'epub' && book?.format !== 'fb2'" class="bookmark-page">Page {{ bm.page }}</span>
+              <span v-if="book?.format === 'zim' && bm.page" class="bookmark-page">📖 ZIM page</span>
+              <span v-else-if="bm.page && book?.format !== 'epub' && book?.format !== 'fb2'" class="bookmark-page">Page {{ bm.page }}</span>
               <span v-else-if="bm.page != null && (book?.format === 'epub' || book?.format === 'fb2')" class="bookmark-page">📖 {{ getBookmarkPercent(bm.page) }}%</span>
               <span class="bookmark-note">{{ bm.note || 'No note' }}</span>
               <span class="bookmark-date">{{ formatDate(bm.created) }}</span>
@@ -90,7 +91,8 @@
         <!-- ZIM Reader (via kiwix-serve) -->
         <div v-else-if="book.format === 'zim'" class="pdf-reader">
           <iframe
-            :src="'http://localhost:' + kiwixPort + '/' + encodeURIComponent(book.title.replace(/\.zim$/i, ''))"
+            ref="zimIframeRef"
+            :src="zimUrl"
             class="pdf-frame"
             title="ZIM Reader"
           ></iframe>
@@ -157,6 +159,18 @@ const showTtsMessage = ref(false)
 const ttsMessage = ref('')
 const kiwixPort = 9454
 
+// ZIM state
+const zimIframeRef = ref<HTMLIFrameElement | null>(null)
+const zimCurrentUrl = ref<string>('')
+let zimUrlTimer: ReturnType<typeof setInterval> | null = null
+
+const zimUrl = computed(() => {
+  if (!book.value || book.value.format !== 'zim') return ''
+  const port = (book.value as any).kiwixPort || kiwixPort
+  const name = (book.value as any).zimName || book.value.title.replace(/\.zim$/i, '').replace(/ /g, '_')
+  return `http://localhost:${port}/viewer#/content/${name}`
+})
+
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
 const readerRef = ref<any>(null) // template ref to VueReader component
@@ -179,6 +193,7 @@ const savedPositionLabel = computed(() => {
     const parsed = JSON.parse(String(savedPosition.value))
     if (typeof parsed.fraction === 'number') return `${Math.round(parsed.fraction * 100)}%`
     if (typeof parsed.ratio === 'number') return `${Math.round(parsed.ratio * 100)}%`
+    if (parsed.zimUrl) return 'ZIM page'
   } catch { /* plain number */ }
   return 'saved position'
 })
@@ -220,6 +235,7 @@ function getBookmarkPercent(page: any): number {
     const parsed = JSON.parse(String(page))
     if (typeof parsed.fraction === 'number') return Math.round(parsed.fraction * 100)
     if (typeof parsed.ratio === 'number') return Math.round(parsed.ratio * 100)
+    if (parsed.zimUrl) return -1 // Signal to display URL instead of percent
   } catch { /* legacy format */ }
   return Math.round(Number(page) * 100)
 }
@@ -248,6 +264,11 @@ function addBookmark() {
     const h = document.documentElement.scrollHeight - window.innerHeight
     const ratio = h > 0 ? window.scrollY / h : 0
     position = JSON.stringify({ ratio })
+  } else if (book.value?.format === 'zim') {
+    const iframe = zimIframeRef.value
+    let url = zimUrl.value
+    try { if (iframe?.contentWindow?.location?.href) url = iframe.contentWindow.location.href } catch { /* cross-origin */ }
+    position = JSON.stringify({ zimUrl: url })
   }
   const bm: ManualBookmark = {
     id: Date.now().toString(),
@@ -292,6 +313,13 @@ function restorePosition() {
         const h = document.documentElement.scrollHeight - window.innerHeight
         if (h > 0) window.scrollTo({ top: ratio * h, behavior: 'smooth' })
       }, 200)
+    } else if (book.value?.format === 'zim') {
+      try {
+        const parsed = JSON.parse(String(savedPosition.value))
+        if (parsed.zimUrl && zimIframeRef.value) {
+          zimIframeRef.value.src = parsed.zimUrl
+        }
+      } catch { /* ignore */ }
     } else {
       window.scrollTo({ top: Number(savedPosition.value), behavior: 'smooth' })
     }
@@ -331,6 +359,13 @@ function navigateToBookmark(bm: ManualBookmark) {
       if (iframe) {
         iframe.src = `/api/fiction/read/${book.value.id}#page=${bm.page}`
       }
+    } else if (book.value?.format === 'zim') {
+      try {
+        const parsed = JSON.parse(String(bm.page))
+        if (parsed.zimUrl && zimIframeRef.value) {
+          zimIframeRef.value.src = parsed.zimUrl
+        }
+      } catch { /* ignore */ }
     } else {
       window.scrollTo({ top: Number(bm.page), behavior: 'smooth' })
     }
@@ -343,6 +378,11 @@ function savePosition() {
     positionData = JSON.stringify({ cfi: epubCfi.value, fraction: epubFraction.value })
   } else if (book.value?.format === 'fb2') {
     positionData = JSON.stringify({ ratio: fb2ScrollRatio.value })
+  } else if (book.value?.format === 'zim') {
+    const iframe = zimIframeRef.value
+    let url = zimUrl.value
+    try { if (iframe?.contentWindow?.location?.href) url = iframe.contentWindow.location.href } catch { /* cross-origin */ }
+    positionData = JSON.stringify({ zimUrl: url })
   }
   localStorage.setItem(`noa-position-${bookId}`, String(positionData))
 }
@@ -395,6 +435,10 @@ onMounted(async () => {
       window.addEventListener('scroll', onFb2Scroll)
       fb2ScrollTimer = setInterval(savePosition, 10000) // save every 10s
     }
+    // Set up ZIM URL tracking
+    if (book.value?.format === 'zim') {
+      zimUrlTimer = setInterval(savePosition, 5000) // save every 5s
+    }
   } finally {
     loading.value = false
   }
@@ -403,6 +447,7 @@ onMounted(async () => {
 onUnmounted(() => {
   savePosition()
   if (fb2ScrollTimer) clearInterval(fb2ScrollTimer)
+  if (zimUrlTimer) clearInterval(zimUrlTimer)
   window.removeEventListener('scroll', onFb2Scroll)
 })
 </script>
