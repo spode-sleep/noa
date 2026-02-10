@@ -1,91 +1,173 @@
 <template>
-  <div class="chat-page">
-    <!-- Header -->
-    <div class="chat-header glass">
-      <h1>AI Assistant</h1>
-      <div class="header-right">
-        <span class="ai-status" :class="{ online: aiStatus.available }">
-          AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
-          <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.backend === 'chromadb' ? 'ChromaDB' : ragStatus.chunksIndexed + ' chunks' }}</template>
-        </span>
-        <button class="new-dialog-btn" @click="clearChat">New Dialog</button>
-      </div>
-    </div>
-
-    <!-- Context indicator -->
-    <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
-      Connected: {{ activeContextLabel }}
-    </div>
-
-    <!-- Library switches (visible only before first message) -->
-    <div v-if="!chatStarted" class="library-switches glass">
-      <p class="switches-label">Enable to include library metadata in AI context</p>
-      <label class="toggle-switch">
-        <input type="checkbox" v-model="musicLibraryEnabled" />
-        <span class="toggle-slider"></span>
-        <span class="toggle-text">Music Library</span>
-      </label>
-      <label class="toggle-switch">
-        <input type="checkbox" v-model="fictionLibraryEnabled" />
-        <span class="toggle-slider"></span>
-        <span class="toggle-text">Fiction Library</span>
-      </label>
-      <button class="index-btn" @click="buildIndex" :disabled="ragStatus.indexing">
-        {{ ragStatus.indexing ? 'Indexing...' : ragStatus.ready ? 'Rebuild RAG Index' : 'Build RAG Index' }}
+  <div class="chat-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar glass">
+      <button class="new-chat-btn" @click="createNewConversation">
+        <Icon icon="mdi:plus" />
+        New Chat
       </button>
-    </div>
-
-    <!-- Chat area -->
-    <div class="chat-area" ref="chatAreaRef">
-      <div
-        v-for="(msg, i) in messages"
-        :key="i"
-        class="message-row"
-        :class="msg.role"
-      >
-        <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'glass'">
-          <div class="message-content" v-html="formatContent(msg.content)"></div>
-          <button
-            v-if="msg.role === 'assistant'"
-            class="tts-btn"
-            @click="readAloud(msg.content)"
-          >
-            Read Aloud 🔊
-          </button>
-          <div v-if="msg.sources?.length" class="sources-list">
-            <span class="sources-label">Sources:</span>
-            <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
+      <div class="conversation-list">
+        <div
+          v-for="conv in conversations"
+          :key="conv.id"
+          class="conversation-item"
+          :class="{ active: conv.id === activeConversationId }"
+          @click="switchConversation(conv.id)"
+        >
+          <div class="conversation-title-row">
+            <template v-if="renamingId === conv.id">
+              <input
+                class="rename-input"
+                v-model="renameValue"
+                @keydown.enter="finishRename(conv.id)"
+                @blur="finishRename(conv.id)"
+                @click.stop
+                ref="renameInputRef"
+              />
+            </template>
+            <span v-else class="conversation-title">{{ conv.title }}</span>
+          </div>
+          <div class="conversation-actions" @click.stop>
+            <button class="icon-btn" @click="startRename(conv)" title="Rename">
+              <Icon icon="mdi:pencil" />
+            </button>
+            <button class="icon-btn delete-btn" @click="deleteConversation(conv.id)" title="Delete">
+              <Icon icon="mdi:delete" />
+            </button>
           </div>
         </div>
       </div>
-      <div v-if="loading" class="message-row assistant">
-        <div class="message-bubble glass loading-bubble">
-          <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+    </aside>
+
+    <!-- Main chat panel -->
+    <div class="chat-page">
+      <!-- Header -->
+      <div class="chat-header glass">
+        <h1>AI Librarian</h1>
+        <div class="header-right">
+          <span class="ai-status" :class="{ online: aiStatus.available }">
+            AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
+            <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.backend === 'chromadb' ? 'ChromaDB' : ragStatus.chunksIndexed + ' chunks' }}</template>
+          </span>
+          <button class="new-dialog-btn" @click="clearChat">New Dialog</button>
         </div>
       </div>
-    </div>
 
-    <!-- Input area -->
-    <div class="input-area glass">
-      <textarea
-        ref="textareaRef"
-        v-model="input"
-        placeholder="Type a message..."
-        rows="1"
-        @input="autoResize"
-        @keydown.enter.exact.prevent="sendMessage"
-      ></textarea>
-      <button class="send-btn" @click="sendMessage" :disabled="!input.trim() || loading">
-        Send
-      </button>
+      <!-- Context indicator -->
+      <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
+        Connected: {{ activeContextLabel }}
+      </div>
+
+      <!-- Library switches (visible only before first message) -->
+      <div v-if="!chatStarted" class="library-switches glass">
+        <p class="switches-label">Enable to include library metadata in AI context</p>
+        <label class="toggle-switch">
+          <input type="checkbox" v-model="musicLibraryEnabled" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">Music Library</span>
+        </label>
+        <label class="toggle-switch">
+          <input type="checkbox" v-model="fictionLibraryEnabled" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">Fiction Library</span>
+        </label>
+        <button class="index-btn" @click="buildIndex" :disabled="ragStatus.indexing">
+          {{ ragStatus.indexing ? 'Indexing...' : ragStatus.ready ? 'Rebuild RAG Index' : 'Build RAG Index' }}
+        </button>
+      </div>
+
+      <!-- Chat area -->
+      <div class="chat-area" ref="chatAreaRef">
+        <div
+          v-for="(msg, i) in messages"
+          :key="i"
+          class="message-row"
+          :class="msg.role"
+        >
+          <div class="message-bubble" :class="msg.role === 'user' ? 'user-bubble' : 'glass'">
+            <div class="message-content" v-html="formatContent(msg.content)"></div>
+            <button
+              v-if="msg.role === 'assistant'"
+              class="tts-btn"
+              @click="readAloud(msg.content)"
+            >
+              Read Aloud 🔊
+            </button>
+            <div v-if="msg.sources?.length" class="sources-list">
+              <span class="sources-label">Sources:</span>
+              <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-if="loading" class="message-row assistant">
+          <div class="message-bubble glass loading-bubble">
+            <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area glass">
+        <textarea
+          ref="textareaRef"
+          v-model="input"
+          placeholder="Type a message..."
+          rows="1"
+          @input="autoResize"
+          @keydown.enter.exact.prevent="sendMessage"
+        ></textarea>
+        <button class="send-btn" @click="sendMessage" :disabled="!input.trim() || loading">
+          Send
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { Icon } from '@iconify/vue'
 
-const messages = ref<Array<{ role: 'user' | 'assistant'; content: string; sources?: string[] }>>([])
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  sources?: string[]
+}
+
+interface Conversation {
+  id: string
+  title: string
+  messages: Message[]
+  createdAt: string
+}
+
+const STORAGE_KEY = 'box-ai-conversations'
+
+function loadConversations(): Conversation[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveConversations() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations.value))
+}
+
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
+
+const conversations = ref<Conversation[]>(loadConversations())
+const activeConversationId = ref<string>('')
+const renamingId = ref<string | null>(null)
+const renameValue = ref('')
+const renameInputRef = ref<HTMLInputElement[] | null>(null)
+
+const messages = ref<Message[]>([])
 const input = ref('')
 const loading = ref(false)
 const musicLibraryEnabled = ref(false)
@@ -103,6 +185,72 @@ const activeContextLabel = computed(() => {
   if (fictionLibraryEnabled.value) parts.push('Fiction')
   return parts.join(', ')
 })
+
+// --- Conversation management ---
+
+function createNewConversation() {
+  const conv: Conversation = {
+    id: generateId(),
+    title: new Date().toLocaleString(),
+    messages: [],
+    createdAt: new Date().toISOString(),
+  }
+  conversations.value.unshift(conv)
+  switchConversation(conv.id)
+  saveConversations()
+}
+
+function switchConversation(id: string) {
+  syncCurrentConversation()
+  activeConversationId.value = id
+  const conv = conversations.value.find(c => c.id === id)
+  if (conv) {
+    messages.value = conv.messages
+    chatStarted.value = conv.messages.length > 0
+  }
+}
+
+function syncCurrentConversation() {
+  const conv = conversations.value.find(c => c.id === activeConversationId.value)
+  if (conv) {
+    conv.messages = messages.value
+    saveConversations()
+  }
+}
+
+function deleteConversation(id: string) {
+  if (!confirm('Delete this conversation?')) return
+  conversations.value = conversations.value.filter(c => c.id !== id)
+  saveConversations()
+  if (activeConversationId.value === id) {
+    if (conversations.value.length > 0) {
+      switchConversation(conversations.value[0].id)
+    } else {
+      createNewConversation()
+    }
+  }
+}
+
+function startRename(conv: Conversation) {
+  renamingId.value = conv.id
+  renameValue.value = conv.title
+  nextTick(() => {
+    if (renameInputRef.value && renameInputRef.value.length > 0) {
+      renameInputRef.value[0].focus()
+    }
+  })
+}
+
+function finishRename(id: string) {
+  const conv = conversations.value.find(c => c.id === id)
+  if (conv && renameValue.value.trim()) {
+    conv.title = renameValue.value.trim()
+    saveConversations()
+  }
+  renamingId.value = null
+}
+
+// --- Existing chat logic ---
 
 function formatContent(text: string): string {
   let html = text
@@ -130,7 +278,10 @@ function scrollToBottom() {
   })
 }
 
-watch(messages, scrollToBottom, { deep: true })
+watch(messages, () => {
+  scrollToBottom()
+  syncCurrentConversation()
+}, { deep: true })
 
 async function sendMessage() {
   const text = input.value.trim()
@@ -192,9 +343,7 @@ async function readAloud(text: string) {
 }
 
 function clearChat() {
-  messages.value = []
-  input.value = ''
-  chatStarted.value = false
+  createNewConversation()
   musicLibraryEnabled.value = false
   fictionLibraryEnabled.value = false
 }
@@ -211,6 +360,13 @@ async function buildIndex() {
 }
 
 onMounted(async () => {
+  // Initialize conversations
+  if (conversations.value.length === 0) {
+    createNewConversation()
+  } else {
+    switchConversation(conversations.value[0].id)
+  }
+
   try {
     const res = await fetch('/api/ai/status')
     const data = await res.json()
@@ -225,11 +381,143 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.chat-page {
+.chat-layout {
+  display: flex;
+  height: calc(100vh - 80px - 24px - 48px);
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px - 24px - 48px);
-  padding: 0;
+  background: rgba(13, 13, 26, 0.85);
+  border-right: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+.new-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 24px);
+  margin: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.new-chat-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-teal);
+}
+
+.conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+}
+
+.conversation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.conversation-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.conversation-item.active {
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.conversation-title-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.conversation-title {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-item.active .conversation-title {
+  color: var(--text-primary);
+}
+
+.rename-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--accent-teal);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  padding: 2px 6px;
+  outline: none;
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.conversation-item:hover .conversation-actions,
+.conversation-item.active .conversation-actions {
+  opacity: 1;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.icon-btn.delete-btn:hover {
+  color: #ff6b6b;
+  background: rgba(255, 60, 60, 0.12);
+}
+
+/* Main chat panel */
+.chat-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   overflow: hidden;
 }
 
