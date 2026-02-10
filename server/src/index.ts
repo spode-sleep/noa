@@ -14,6 +14,7 @@ import aiRouter from './routes/ai';
 import ttsRouter from './routes/tts';
 import bookmarksRouter from './routes/bookmarks';
 import { startKiwixServe, stopKiwixServe } from './kiwix';
+import { startOllama, stopOllama } from './ollama';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,13 +40,15 @@ app.get('/api/health', (_req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`Noa server running on port ${PORT}`);
+  console.log(`BOX server running on port ${PORT}`);
   startKiwixServe();
+  startOllama();
 });
 
 function shutdown() {
   console.log('Shutting down server...');
   stopKiwixServe();
+  stopOllama();
   server.close(() => {
     process.exit(0);
   });
