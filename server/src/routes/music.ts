@@ -11,7 +11,8 @@ let mmModule: typeof import('music-metadata') | null = null;
 async function getMM() {
   if (!mmModule) {
     try {
-      mmModule = await import('music-metadata');
+      // Use Function() wrapper to prevent ts-node from transpiling dynamic import() to require()
+      mmModule = await (new Function('return import("music-metadata")'))();
     } catch {
       console.warn('[music] music-metadata ESM import failed, will use jsmediatags fallback');
     }

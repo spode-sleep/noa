@@ -170,7 +170,8 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
         console.log(`[RAG] Extracting articles from ZIM: ${file}`);
 
         try {
-          const libzim = await import('@openzim/libzim');
+          // Use Function() wrapper to prevent ts-node from transpiling dynamic import() to require()
+          const libzim = await (new Function('return import("@openzim/libzim")'))();
           const archive = new libzim.Archive(zimPath);
           const entryCount = archive.entryCount;
           const articleLimit = Math.min(entryCount, MAX_ZIM_ARTICLES);
