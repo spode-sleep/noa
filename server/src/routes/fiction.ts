@@ -210,7 +210,7 @@ router.get('/scan', async (_req, res) => {
     for (const lp of libraryPaths) {
       if (fs.existsSync(lp)) {
         scannedPaths.push(lp);
-        files.push(...await walkDir(lp, ['.pdf', '.epub', '.fb2']));
+        files.push(...await walkDir(lp, ['.pdf', '.epub', '.fb2', '.zim']));
       } else {
         unavailablePaths.push(lp);
       }
@@ -229,6 +229,8 @@ router.get('/scan', async (_req, res) => {
           meta = await extractEpubMetadata(filepath);
         } else if (ext === 'fb2') {
           meta = await extractFb2Metadata(filepath);
+        } else if (ext === 'zim') {
+          meta = { title: path.basename(filepath, '.zim').replace(/_/g, ' ') };
         }
 
         books.push({

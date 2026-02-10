@@ -8,7 +8,7 @@
       </div>
       <div class="header-controls">
         <button class="ctrl-btn" @click="readAloud" title="Read Aloud">🔊</button>
-        <template v-if="book?.format !== 'pdf'">
+        <template v-if="book?.format !== 'pdf' && book?.format !== 'zim'">
           <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
             ⭐
           </button>
@@ -87,6 +87,15 @@
           </div>
         </div>
 
+        <!-- ZIM Reader (via kiwix-serve) -->
+        <div v-else-if="book.format === 'zim'" class="pdf-reader">
+          <iframe
+            :src="'http://localhost:' + kiwixPort + '/'"
+            class="pdf-frame"
+            title="ZIM Reader"
+          ></iframe>
+        </div>
+
         <!-- Unknown Format -->
         <div v-else class="epub-notice glass">
           <p>Unsupported format: {{ book.format }}</p>
@@ -146,6 +155,7 @@ const fb2Chapters = ref<Fb2Chapter[]>([])
 const fb2Loading = ref(false)
 const showTtsMessage = ref(false)
 const ttsMessage = ref('')
+const kiwixPort = 9454
 
 // EPUB state
 const epubUrl = computed(() => `/api/fiction/read/${bookId}`)
