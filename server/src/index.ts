@@ -15,6 +15,7 @@ import ttsRouter from './routes/tts';
 import bookmarksRouter from './routes/bookmarks';
 import { startKiwixServe, stopKiwixServe } from './kiwix';
 import { startOllama, stopOllama } from './ollama';
+import { startChroma, stopChroma } from './chromadb';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,12 +44,14 @@ const server = app.listen(PORT, () => {
   console.log(`BOX server running on port ${PORT}`);
   startKiwixServe();
   startOllama();
+  startChroma();
 });
 
 function shutdown() {
   console.log('Shutting down server...');
   stopKiwixServe();
   stopOllama();
+  stopChroma();
   server.close(() => {
     process.exit(0);
   });

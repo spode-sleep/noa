@@ -6,7 +6,7 @@
       <div class="header-right">
         <span class="ai-status" :class="{ online: aiStatus.available }">
           AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
-          <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.chunksIndexed }} chunks</template>
+          <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.backend === 'chromadb' ? 'ChromaDB' : ragStatus.chunksIndexed + ' chunks' }}</template>
         </span>
         <button class="new-dialog-btn" @click="clearChat">New Dialog</button>
       </div>
@@ -92,7 +92,7 @@ const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
 const aiStatus = ref<{ available: boolean; message: string }>({ available: false, message: '' })
-const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean }>({ ready: false, chunksIndexed: 0, indexing: false })
+const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean; backend: string }>({ ready: false, chunksIndexed: 0, indexing: false, backend: 'none' })
 
 const chatAreaRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -204,7 +204,7 @@ async function buildIndex() {
   try {
     const res = await fetch('/api/ai/index', { method: 'POST' })
     const data = await res.json()
-    ragStatus.value = { ready: true, chunksIndexed: data.indexed ?? 0, indexing: false }
+    ragStatus.value = { ready: true, chunksIndexed: data.indexed ?? 0, indexing: false, backend: 'unknown' }
   } catch {
     ragStatus.value.indexing = false
   }
@@ -216,7 +216,7 @@ onMounted(async () => {
     const data = await res.json()
     aiStatus.value = { available: data.available ?? false, message: data.message ?? '' }
     if (data.rag) {
-      ragStatus.value = { ready: data.rag.ready ?? false, chunksIndexed: data.rag.chunksIndexed ?? 0, indexing: data.rag.indexing ?? false }
+      ragStatus.value = { ready: data.rag.ready ?? false, chunksIndexed: data.rag.chunksIndexed ?? 0, indexing: data.rag.indexing ?? false, backend: data.rag.backend ?? 'unknown' }
     }
   } catch {
     aiStatus.value = { available: false, message: 'Unable to reach AI service' }

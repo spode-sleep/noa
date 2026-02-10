@@ -1,10 +1,15 @@
 /**
  * RAG (Retrieval-Augmented Generation) Pipeline
  * 
- * - Uses Ollama embedding API for vectorization
- * - Simple in-memory cosine similarity vector store
- * - Indexes reference library metadata and game data
- * - Fiction/music metadata NOT indexed (per spec)
+ * Best practices implemented:
+ * - Section-aware chunking: splits on HTML headings (h1-h6) to keep related content together
+ * - Chunk metadata: stores title, section heading, content type for better retrieval
+ * - Optimal chunk size (800 chars ≈ 200 tokens): balances precision vs context
+ * - 15% overlap between chunks for context continuity at boundaries
+ * - Aggressive wiki boilerplate removal (nav, TOC, sidebars, citations)
+ * - Deduplication: skips near-duplicate chunks
+ * - Filters ZIM entries: skips talk pages, user pages, special pages, metadata
+ * - Fiction/music NOT indexed (per spec)
  */
 
 import * as fs from 'fs';
@@ -16,8 +21,11 @@ import * as cheerio from 'cheerio';
 
 const OLLAMA_DEFAULT_PORT = '11434';
 const SIMILARITY_THRESHOLD = 0.3;
-const CHUNK_SIZE = 2000; // Larger chunks = fewer embeddings, still within nomic-embed-text context
+const CHUNK_SIZE = 800;    // ~200 tokens, good balance for wiki Q&A retrieval
+const CHUNK_OVERLAP = 120; // ~15% overlap for context continuity
 const DEFAULT_TOP_K = 5;
+const MAX_CHUNKS = parseInt(process.env.MAX_RAG_CHUNKS || '100000', 10);
+const MIN_CHUNK_LENGTH = 50; // Skip very short chunks (noise)
 
 const llmApiUrl = process.env.LLM_API_URL || 'http://localhost:11434';
 const embeddingModel = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
@@ -43,12 +51,49 @@ interface RagSearchResult {
   score: number;
 }
 
-// ── Vector Store ────────────────────────────────────────────────────────────
+// ── Vector Store (ChromaDB with fallback) ───────────────────────────────────
 
-let indexedChunks: IndexedChunk[] = [];
 let indexReady = false;
 let indexing = false;
+let chromaCollection: any = null; // ChromaDB collection
+let useChromaDb = false;
 
+// Fallback in-memory store (used when ChromaDB is unavailable)
+let fallbackChunks: IndexedChunk[] = [];
+
+async function initChromaClient(): Promise<boolean> {
+  try {
+    const chromaPort = parseInt(process.env.CHROMA_PORT || '8000', 10);
+    // Use dynamic import to avoid ESM issues with ts-node
+    const { ChromaClient } = await (new Function('return import("chromadb")'))();
+    const { OllamaEmbeddingFunction } = await (new Function('return import("@chroma-core/ollama")'))();
+
+    const embedder = new OllamaEmbeddingFunction({
+      url: llmApiUrl,
+      model: embeddingModel,
+    });
+
+    const client = new ChromaClient({ path: `http://localhost:${chromaPort}` });
+    // Test connection
+    await client.heartbeat();
+
+    chromaCollection = await client.getOrCreateCollection({
+      name: 'box_rag',
+      embeddingFunction: embedder,
+      metadata: { 'hnsw:space': 'cosine' },
+    });
+
+    console.log('[RAG] Connected to ChromaDB');
+    useChromaDb = true;
+    return true;
+  } catch (err) {
+    console.log('[RAG] ChromaDB not available, using in-memory fallback:', (err as Error).message);
+    useChromaDb = false;
+    return false;
+  }
+}
+
+// Fallback: cosine similarity for in-memory store
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
   let dotProduct = 0;
@@ -63,10 +108,9 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dotProduct / denom;
 }
 
-// ── Ollama Embedding ────────────────────────────────────────────────────────
+// ── Ollama Embedding (for fallback mode) ────────────────────────────────────
 
 async function getEmbedding(text: string): Promise<number[]> {
-  // Hard truncate to stay within nomic-embed-text context window (8192 tokens ≈ 6000 chars)
   const truncated = text.length > 4000 ? text.substring(0, 4000) : text;
 
   return new Promise((resolve, reject) => {
@@ -85,7 +129,7 @@ async function getEmbedding(text: string): Promise<number[]> {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
-      timeout: 30000,
+      timeout: 60000,
     };
 
     const req = http.request(options, (res) => {
@@ -151,101 +195,216 @@ function collectGameChunks(): DocumentChunk[] {
   return chunks;
 }
 
+// Skip non-article ZIM entries: talk pages, user pages, special pages, metadata
+function isArticlePath(entryPath: string): boolean {
+  const skip = [
+    'User:', 'User_talk:', 'Talk:', 'Wikipedia:', 'Wikipedia_talk:',
+    'Template:', 'Template_talk:', 'Category:', 'Category_talk:',
+    'Help:', 'Help_talk:', 'Portal:', 'Portal_talk:', 'Module:',
+    'MediaWiki:', 'Special:', 'File:', 'Draft:', 'TimedText:',
+    '-/', 'I/', 'M/',  // ZIM internal namespaces (images, metadata)
+  ];
+  return !skip.some(prefix => entryPath.startsWith(prefix));
+}
+
+// Extract section-aware chunks from HTML content
+function extractSectionChunks(
+  html: string,
+  title: string,
+  zimBasename: string,
+  entryIdx: number,
+  entryPath: string,
+  file: string,
+): DocumentChunk[] {
+  const chunks: DocumentChunk[] = [];
+  const $ = cheerio.load(html);
+
+  // Remove non-content elements aggressively
+  $('script, style, nav, header, footer, noscript, svg, img, figure, figcaption, video, audio, iframe').remove();
+  $('.mw-editsection, .reflist, .references, .sidebar, .navbox, .infobox, .ambox').remove();
+  $('[role="navigation"], .toc, .catlinks, .noprint, .metadata, .mw-jump-link, .hatnote').remove();
+  $('table.wikitable, table.infobox, table.navbox, .printfooter, .mw-authority-control').remove();
+
+  // Extract sections by headings (h1–h6)
+  const body = $('body');
+  let currentSection = title; // First section is the article intro
+  let currentText = '';
+
+  // Walk through top-level children of the main content
+  const contentEl = body.find('#mw-content-text, .mw-parser-output, article').first();
+  const root = contentEl.length > 0 ? contentEl : body;
+
+  root.children().each((_: number, el: cheerio.Element) => {
+    const tagName = (el as any).tagName?.toLowerCase();
+    if (!tagName) return;
+
+    // If it's a heading, finalize the previous section
+    if (/^h[1-6]$/.test(tagName)) {
+      if (currentText.trim().length >= MIN_CHUNK_LENGTH) {
+        const sectionChunks = splitIntoChunks(currentText.trim(), CHUNK_SIZE, CHUNK_OVERLAP);
+        for (let ci = 0; ci < sectionChunks.length; ci++) {
+          chunks.push({
+            id: `zim-${zimBasename}-${entryIdx}-${chunks.length}`,
+            text: `${title} > ${currentSection}\n\n${sectionChunks[ci]}`,
+            source: `${zimBasename}: ${title}`,
+            sourceType: 'reference',
+            metadata: { filename: file, title, section: currentSection, path: entryPath, chunkIndex: ci },
+          });
+        }
+      }
+      currentSection = $(el).text()
+        .replace(/\[edit\]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim() || title;
+      currentText = '';
+    } else {
+      // Accumulate text content
+      const text = $(el).text()
+        .replace(/\[\d+\]/g, '')     // Remove citation markers
+        .replace(/\[edit\]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (text) currentText += text + '\n';
+    }
+  });
+
+  // Finalize last section
+  if (currentText.trim().length >= MIN_CHUNK_LENGTH) {
+    const sectionChunks = splitIntoChunks(currentText.trim(), CHUNK_SIZE, CHUNK_OVERLAP);
+    for (let ci = 0; ci < sectionChunks.length; ci++) {
+      chunks.push({
+        id: `zim-${zimBasename}-${entryIdx}-${chunks.length}`,
+        text: `${title} > ${currentSection}\n\n${sectionChunks[ci]}`,
+        source: `${zimBasename}: ${title}`,
+        sourceType: 'reference',
+        metadata: { filename: file, title, section: currentSection, path: entryPath, chunkIndex: ci },
+      });
+    }
+  }
+
+  // Fallback: if no sections extracted, chunk the whole body text
+  if (chunks.length === 0) {
+    const fullText = root.text()
+      .replace(/\[edit\]/gi, '')
+      .replace(/\[\d+\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (fullText.length >= MIN_CHUNK_LENGTH) {
+      const textChunks = splitIntoChunks(fullText, CHUNK_SIZE, CHUNK_OVERLAP);
+      for (let ci = 0; ci < textChunks.length; ci++) {
+        chunks.push({
+          id: `zim-${zimBasename}-${entryIdx}-${ci}`,
+          text: `${title}\n\n${textChunks[ci]}`,
+          source: `${zimBasename}: ${title}`,
+          sourceType: 'reference',
+          metadata: { filename: file, title, path: entryPath, chunkIndex: ci },
+        });
+      }
+    }
+  }
+
+  return chunks;
+}
+
 async function collectReferenceChunks(): Promise<DocumentChunk[]> {
   const chunks: DocumentChunk[] = [];
+  const seenTexts = new Set<string>(); // Deduplication
 
   const refPaths = (process.env.REFERENCE_LIBRARY_PATH || '')
     .split(',')
     .map(p => p.trim())
     .filter(Boolean);
 
-  // Extract content from ZIM archives using @openzim/libzim
   for (const refPath of refPaths) {
     try {
       if (!fs.existsSync(refPath)) continue;
       const files = fs.readdirSync(refPath);
       for (const file of files) {
         if (!file.endsWith('.zim')) continue;
+        if (chunks.length >= MAX_CHUNKS) {
+          console.log(`[RAG] Chunk limit (${MAX_CHUNKS}) reached, stopping extraction`);
+          break;
+        }
 
         const zimPath = path.join(refPath, file);
         const zimBasename = file.replace('.zim', '');
         console.log(`[RAG] Extracting articles from ZIM: ${file}`);
 
         try {
-          // Use Function() wrapper to prevent ts-node from transpiling dynamic import() to require()
           const libzim = await (new Function('return import("@openzim/libzim")'))();
           const archive = new libzim.Archive(zimPath);
           const entryCount = archive.entryCount;
-
           let articlesProcessed = 0;
+          let skippedNonArticle = 0;
+          let skippedShort = 0;
+          let skippedDuplicate = 0;
 
-          // Iterate over ALL entries — no article limit
           for (let idx = 0; idx < entryCount; idx++) {
+            if (chunks.length >= MAX_CHUNKS) break;
+
             try {
               const entry = archive.getEntryByPath(idx);
-              // Skip non-article entries (redirects, metadata, images, etc.)
               if (entry.isRedirect) continue;
 
               const item = entry.item;
               const mimeType = item.mimetype;
               if (!mimeType.startsWith('text/html') && !mimeType.startsWith('text/plain')) continue;
 
-              const blob = item.data;
-              const content = Buffer.from(blob.data).toString('utf-8');
-
-              // Strip HTML to get plain text
-              let plainText: string;
-              if (mimeType.startsWith('text/html')) {
-                const $ = cheerio.load(content);
-                // Aggressively remove non-content elements (wiki boilerplate)
-                $('script, style, nav, header, footer, noscript, svg, img, figure, figcaption').remove();
-                $('.mw-editsection, .reflist, .references, .sidebar, .navbox, .infobox').remove();
-                $('[role="navigation"], .toc, .catlinks, .noprint, .metadata, .mw-jump-link').remove();
-                // Remove table markup but keep text
-                $('table.wikitable, table.infobox').remove();
-                plainText = $('body').text()
-                  .replace(/\[edit\]/gi, '')
-                  .replace(/\[\d+\]/g, '')           // Remove citation markers [1], [2]
-                  .replace(/\s+/g, ' ')
-                  .trim();
-              } else {
-                plainText = content.replace(/\s+/g, ' ').trim();
+              // Filter non-article paths (talk pages, user pages, etc.)
+              const entryPath = entry.path || '';
+              if (!isArticlePath(entryPath)) {
+                skippedNonArticle++;
+                continue;
               }
 
-              // Skip very short articles (likely stubs or metadata)
-              if (plainText.length < 100) continue;
+              const blob = item.data;
+              const content = Buffer.from(blob.data).toString('utf-8');
+              const title = entry.title || entryPath;
 
-              const title = entry.title || entry.path;
-
-              // Split long articles into chunks
-              const textChunks = splitIntoChunks(plainText, CHUNK_SIZE);
-              for (let ci = 0; ci < textChunks.length; ci++) {
-                chunks.push({
-                  id: `zim-${zimBasename}-${idx}-${ci}`,
-                  text: `${title}\n\n${textChunks[ci]}`,
-                  source: `${zimBasename}: ${title}`,
-                  sourceType: 'reference',
-                  metadata: { filename: file, title, path: entry.path, chunkIndex: ci },
-                });
+              if (mimeType.startsWith('text/html')) {
+                // Section-aware chunking for HTML
+                const sectionChunks = extractSectionChunks(content, title, zimBasename, idx, entryPath, file);
+                for (const chunk of sectionChunks) {
+                  // Deduplication: hash first 100 chars
+                  const dedupKey = chunk.text.substring(0, 100);
+                  if (seenTexts.has(dedupKey)) {
+                    skippedDuplicate++;
+                    continue;
+                  }
+                  seenTexts.add(dedupKey);
+                  chunks.push(chunk);
+                }
+              } else {
+                // Plain text: simple chunking
+                const plainText = content.replace(/\s+/g, ' ').trim();
+                if (plainText.length < 100) { skippedShort++; continue; }
+                const textChunks = splitIntoChunks(plainText, CHUNK_SIZE, CHUNK_OVERLAP);
+                for (let ci = 0; ci < textChunks.length; ci++) {
+                  chunks.push({
+                    id: `zim-${zimBasename}-${idx}-${ci}`,
+                    text: `${title}\n\n${textChunks[ci]}`,
+                    source: `${zimBasename}: ${title}`,
+                    sourceType: 'reference',
+                    metadata: { filename: file, title, path: entryPath, chunkIndex: ci },
+                  });
+                }
               }
 
               articlesProcessed++;
               if (articlesProcessed % 1000 === 0) {
-                console.log(`[RAG] Processed ${articlesProcessed} articles from ${file} (${chunks.length} chunks so far)`);
+                console.log(`[RAG] Processed ${articlesProcessed} articles from ${file} (${chunks.length} chunks)`);
               }
             } catch {
-              // Skip entries that can't be read
               continue;
             }
           }
 
-          console.log(`[RAG] Extracted ${articlesProcessed} articles (${chunks.length} chunks) from ${file}`);
+          console.log(`[RAG] ${file}: ${articlesProcessed} articles → ${chunks.length} chunks | skipped: ${skippedNonArticle} non-article, ${skippedShort} short, ${skippedDuplicate} duplicate`);
         } catch (err) {
           console.error(`[RAG] Error reading ZIM file ${file}:`, err);
-          // Fallback: add filename metadata
           chunks.push({
             id: `zim-${zimBasename}`,
-            text: `Reference archive: ${zimBasename}. This is a ZIM archive in the reference library. Filename: ${file}.`,
+            text: `Reference archive: ${zimBasename}. ZIM archive in the reference library. Filename: ${file}.`,
             source: `ZIM: ${file}`,
             sourceType: 'reference',
             metadata: { filename: file, path: refPath },
@@ -257,7 +416,7 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
     }
   }
 
-  // Also read any .txt or .md files in reference paths
+  // Also read .txt or .md files
   for (const refPath of refPaths) {
     try {
       if (!fs.existsSync(refPath)) continue;
@@ -266,10 +425,9 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
         if (file.endsWith('.txt') || file.endsWith('.md')) {
           const filePath = path.join(refPath, file);
           const stat = fs.statSync(filePath);
-          if (stat.size > 1024 * 1024) continue; // Skip files > 1MB
-
+          if (stat.size > 1024 * 1024) continue;
           const content = fs.readFileSync(filePath, 'utf-8');
-          const textChunks = splitIntoChunks(content, CHUNK_SIZE);
+          const textChunks = splitIntoChunks(content, CHUNK_SIZE, CHUNK_OVERLAP);
           for (let i = 0; i < textChunks.length; i++) {
             chunks.push({
               id: `ref-${file}-${i}`,
@@ -289,66 +447,52 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
   return chunks;
 }
 
-function splitIntoChunks(text: string, maxLength: number): string[] {
+function splitIntoChunks(text: string, maxLength: number, overlap: number = CHUNK_OVERLAP): string[] {
   if (text.length <= maxLength) return [text];
   
   const chunks: string[] = [];
-  const overlap = 50;
   
-  // Try splitting by paragraphs first
-  const paragraphs = text.split(/\n\n+/);
-  if (paragraphs.length > 1) {
-    let current = '';
-    for (const para of paragraphs) {
-      if (current.length + para.length + 2 > maxLength && current.length > 0) {
-        chunks.push(current.trim());
+  // Sentence-based splitting for better semantic boundaries
+  const sentences = text.split(/(?<=[.!?。])\s+/);
+  let current = '';
+  
+  for (const sentence of sentences) {
+    if (current.length + sentence.length + 1 > maxLength && current.length > 0) {
+      chunks.push(current.trim());
+      // Overlap: keep last N characters of previous chunk
+      if (overlap > 0 && current.length > overlap) {
+        current = current.substring(current.length - overlap);
+      } else {
         current = '';
       }
-      current += (current ? '\n\n' : '') + para;
     }
-    if (current.trim()) chunks.push(current.trim());
+    current += (current ? ' ' : '') + sentence;
   }
+  if (current.trim().length >= MIN_CHUNK_LENGTH) chunks.push(current.trim());
   
-  // If no paragraph breaks found (common for wiki text), split by sentences
-  if (chunks.length <= 1) {
-    chunks.length = 0;
-    const sentences = text.split(/(?<=[.!?])\s+/);
-    let current = '';
-    for (const sentence of sentences) {
-      if (current.length + sentence.length + 1 > maxLength && current.length > 0) {
-        chunks.push(current.trim());
-        // Small overlap for context continuity
-        const words = current.split(/\s+/);
-        current = words.slice(-Math.min(10, words.length)).join(' ');
-      }
-      current += (current ? ' ' : '') + sentence;
-    }
-    if (current.trim()) chunks.push(current.trim());
-  }
-  
-  // Final fallback: hard split by character if single sentences are too long
-  if (chunks.some(c => c.length > maxLength * 2)) {
-    const refined: string[] = [];
-    for (const chunk of chunks) {
-      if (chunk.length <= maxLength * 2) {
-        refined.push(chunk);
-      } else {
-        for (let i = 0; i < chunk.length; i += maxLength - overlap) {
-          refined.push(chunk.substring(i, i + maxLength));
-        }
+  // Hard-split any chunks that are still too long (single long sentences)
+  const refined: string[] = [];
+  for (const chunk of chunks) {
+    if (chunk.length <= maxLength * 1.5) {
+      refined.push(chunk);
+    } else {
+      for (let i = 0; i < chunk.length; i += maxLength - overlap) {
+        const piece = chunk.substring(i, i + maxLength);
+        if (piece.trim().length >= MIN_CHUNK_LENGTH) refined.push(piece.trim());
       }
     }
-    return refined.filter(c => c.trim().length >= 30);
   }
   
-  return chunks.filter(c => c.trim().length >= 30);
+  return refined;
 }
 
 // ── Indexing ────────────────────────────────────────────────────────────────
 
+const BATCH_SIZE = 100; // ChromaDB batch size for upsert
+
 async function buildIndex(): Promise<{ indexed: number; errors: number; message: string }> {
   if (indexing) {
-    return { indexed: indexedChunks.length, errors: 0, message: 'Indexing already in progress' };
+    return { indexed: 0, errors: 0, message: 'Indexing already in progress' };
   }
 
   indexing = true;
@@ -365,57 +509,103 @@ async function buildIndex(): Promise<{ indexed: number; errors: number; message:
     if (allChunks.length === 0) {
       indexing = false;
       indexReady = true;
-      indexedChunks = [];
       return { indexed: 0, errors: 0, message: 'No documents to index' };
     }
 
-    console.log(`[RAG] Collected ${allChunks.length} chunks. Generating embeddings...`);
+    console.log(`[RAG] Collected ${allChunks.length} chunks. Indexing...`);
 
-    const newIndex: IndexedChunk[] = [];
+    let indexed = 0;
     let errors = 0;
 
-    // Process in batches to avoid overwhelming Ollama
-    for (let i = 0; i < allChunks.length; i++) {
-      const chunk = allChunks[i];
+    if (useChromaDb && chromaCollection) {
+      // ── ChromaDB indexing ──
+      // Clear existing collection
       try {
-        const embedding = await getEmbedding(chunk.text);
-        newIndex.push({ ...chunk, embedding });
-
-        if ((i + 1) % 500 === 0) {
-          console.log(`[RAG] Embedded ${i + 1}/${allChunks.length} chunks`);
-        }
+        const chromaPort = parseInt(process.env.CHROMA_PORT || '8000', 10);
+        const { ChromaClient } = await (new Function('return import("chromadb")'))();
+        const { OllamaEmbeddingFunction } = await (new Function('return import("@chroma-core/ollama")'))();
+        const embedder = new OllamaEmbeddingFunction({ url: llmApiUrl, model: embeddingModel });
+        const client = new ChromaClient({ path: `http://localhost:${chromaPort}` });
+        await client.deleteCollection({ name: 'box_rag' });
+        chromaCollection = await client.createCollection({
+          name: 'box_rag',
+          embeddingFunction: embedder,
+          metadata: { 'hnsw:space': 'cosine' },
+        });
       } catch (err) {
-        errors++;
-        console.error(`[RAG] Error embedding chunk ${chunk.id}:`, err);
+        console.error('[RAG] Error resetting ChromaDB collection:', err);
+      }
+
+      // Batch upsert chunks (ChromaDB handles embedding via OllamaEmbeddingFunction)
+      for (let i = 0; i < allChunks.length; i += BATCH_SIZE) {
+        const batch = allChunks.slice(i, i + BATCH_SIZE);
+        try {
+          // Truncate documents to avoid embedding context length errors
+          await chromaCollection.add({
+            ids: batch.map((c: DocumentChunk) => c.id),
+            documents: batch.map((c: DocumentChunk) => c.text.length > 4000 ? c.text.substring(0, 4000) : c.text),
+            metadatas: batch.map((c: DocumentChunk) => ({
+              source: c.source,
+              sourceType: c.sourceType,
+              ...(c.metadata || {}),
+            })),
+          });
+          indexed += batch.length;
+        } catch (err) {
+          errors += batch.length;
+          console.error(`[RAG] Error indexing batch at ${i}:`, (err as Error).message);
+        }
+
+        if ((i + BATCH_SIZE) % 500 < BATCH_SIZE) {
+          console.log(`[RAG] Indexed ${Math.min(i + BATCH_SIZE, allChunks.length)}/${allChunks.length} chunks`);
+        }
+      }
+    } else {
+      // ── Fallback in-memory indexing ──
+      const newIndex: IndexedChunk[] = [];
+      for (let i = 0; i < allChunks.length; i++) {
+        const chunk = allChunks[i];
+        try {
+          const embedding = await getEmbedding(chunk.text);
+          newIndex.push({ ...chunk, embedding });
+          indexed++;
+
+          if ((i + 1) % 500 === 0) {
+            console.log(`[RAG] Embedded ${i + 1}/${allChunks.length} chunks`);
+          }
+        } catch (err) {
+          errors++;
+          if (errors <= 10) console.error(`[RAG] Error embedding chunk ${chunk.id}:`, (err as Error).message);
+        }
+      }
+      fallbackChunks = newIndex;
+
+      // Persist fallback index to disk
+      try {
+        const dir = path.dirname(ragIndexPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(ragIndexPath, JSON.stringify({
+          version: 1,
+          model: embeddingModel,
+          chunks: fallbackChunks,
+          updatedAt: new Date().toISOString(),
+        }));
+        console.log(`[RAG] Fallback index saved to ${ragIndexPath}`);
+      } catch (err) {
+        console.error('[RAG] Error saving fallback index:', err);
       }
     }
 
-    indexedChunks = newIndex;
     indexReady = true;
-
-    // Persist index to disk
-    try {
-      const dir = path.dirname(ragIndexPath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(ragIndexPath, JSON.stringify({
-        version: 1,
-        model: embeddingModel,
-        chunks: indexedChunks,
-        updatedAt: new Date().toISOString(),
-      }));
-      console.log(`[RAG] Index saved to ${ragIndexPath}`);
-    } catch (err) {
-      console.error('[RAG] Error saving index:', err);
-    }
-
-    console.log(`[RAG] Index built: ${newIndex.length} chunks indexed, ${errors} errors`);
-    return { indexed: newIndex.length, errors, message: `Indexed ${newIndex.length} chunks` };
+    const mode = useChromaDb ? 'ChromaDB' : 'in-memory';
+    console.log(`[RAG] Index built (${mode}): ${indexed} chunks indexed, ${errors} errors`);
+    return { indexed, errors, message: `Indexed ${indexed} chunks via ${mode}` };
   } finally {
     indexing = false;
   }
 }
 
-function loadIndexFromDisk(): boolean {
+function loadFallbackIndexFromDisk(): boolean {
   try {
     if (!fs.existsSync(ragIndexPath)) return false;
 
@@ -426,9 +616,9 @@ function loadIndexFromDisk(): boolean {
     }
 
     if (Array.isArray(data.chunks) && data.chunks.length > 0) {
-      indexedChunks = data.chunks;
+      fallbackChunks = data.chunks;
       indexReady = true;
-      console.log(`[RAG] Loaded ${indexedChunks.length} chunks from disk (${data.updatedAt})`);
+      console.log(`[RAG] Loaded ${fallbackChunks.length} chunks from disk (${data.updatedAt})`);
       return true;
     }
   } catch (err) {
@@ -439,30 +629,48 @@ function loadIndexFromDisk(): boolean {
 
 // ── Search ──────────────────────────────────────────────────────────────────
 
-async function search(query: string, topK: number = 5): Promise<RagSearchResult[]> {
-  if (!indexReady || indexedChunks.length === 0) {
-    return [];
-  }
+async function search(query: string, topK: number = DEFAULT_TOP_K): Promise<RagSearchResult[]> {
+  if (!indexReady) return [];
 
   try {
-    const queryEmbedding = await getEmbedding(query);
+    if (useChromaDb && chromaCollection) {
+      // ── ChromaDB search ──
+      const results = await chromaCollection.query({
+        queryTexts: [query],
+        nResults: topK,
+      });
 
-    const scored = indexedChunks.map(chunk => ({
-      chunk: {
-        id: chunk.id,
-        text: chunk.text,
-        source: chunk.source,
-        sourceType: chunk.sourceType,
-        metadata: chunk.metadata,
-      } as DocumentChunk,
-      score: cosineSimilarity(queryEmbedding, chunk.embedding),
-    }));
+      if (!results.documents?.[0]) return [];
 
-    scored.sort((a, b) => b.score - a.score);
+      return results.documents[0].map((doc: string, i: number) => ({
+        chunk: {
+          id: results.ids[0][i],
+          text: doc,
+          source: results.metadatas[0][i]?.source || 'Unknown',
+          sourceType: (results.metadatas[0][i]?.sourceType as 'reference' | 'games') || 'reference',
+          metadata: results.metadatas[0][i],
+        },
+        score: results.distances?.[0]?.[i] != null ? 1 - results.distances[0][i] : 0.5,
+      })).filter((r: RagSearchResult) => r.score >= SIMILARITY_THRESHOLD);
+    } else {
+      // ── Fallback in-memory search ──
+      if (fallbackChunks.length === 0) return [];
 
-    // Return top-K results with score above threshold
-    const threshold = SIMILARITY_THRESHOLD;
-    return scored.filter(r => r.score >= threshold).slice(0, topK);
+      const queryEmbedding = await getEmbedding(query);
+      const scored = fallbackChunks.map(chunk => ({
+        chunk: {
+          id: chunk.id,
+          text: chunk.text,
+          source: chunk.source,
+          sourceType: chunk.sourceType,
+          metadata: chunk.metadata,
+        } as DocumentChunk,
+        score: cosineSimilarity(queryEmbedding, chunk.embedding),
+      }));
+
+      scored.sort((a, b) => b.score - a.score);
+      return scored.filter(r => r.score >= SIMILARITY_THRESHOLD).slice(0, topK);
+    }
   } catch (err) {
     console.error('[RAG] Search error:', err);
     return [];
@@ -479,21 +687,39 @@ export function isIndexing(): boolean {
   return indexing;
 }
 
-export function getIndexStats(): { ready: boolean; chunksIndexed: number; indexing: boolean } {
+export function getIndexStats(): { ready: boolean; chunksIndexed: number; indexing: boolean; backend: string } {
   return {
     ready: indexReady,
-    chunksIndexed: indexedChunks.length,
+    chunksIndexed: useChromaDb ? -1 : fallbackChunks.length, // ChromaDB manages count internally
     indexing,
+    backend: useChromaDb ? 'chromadb' : 'in-memory',
   };
 }
 
 export async function initRag(): Promise<void> {
-  // Try to load from disk first
-  if (loadIndexFromDisk()) {
-    console.log('[RAG] Using cached index');
+  // Try to connect to ChromaDB first
+  const chromaOk = await initChromaClient();
+
+  if (chromaOk) {
+    // Check if collection already has data
+    try {
+      const count = await chromaCollection.count();
+      if (count > 0) {
+        indexReady = true;
+        console.log(`[RAG] ChromaDB collection has ${count} chunks`);
+        return;
+      }
+    } catch { /* proceed */ }
+    console.log('[RAG] ChromaDB connected but collection is empty. Use POST /api/ai/index to build.');
     return;
   }
-  console.log('[RAG] No cached index found. Use POST /api/ai/index to build.');
+
+  // Fallback: try to load from disk
+  if (loadFallbackIndexFromDisk()) {
+    console.log('[RAG] Using cached in-memory index');
+    return;
+  }
+  console.log('[RAG] No index found. Use POST /api/ai/index to build.');
 }
 
 export async function rebuildIndex(): Promise<{ indexed: number; errors: number; message: string }> {
