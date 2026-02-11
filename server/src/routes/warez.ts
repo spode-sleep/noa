@@ -85,20 +85,31 @@ router.get('/repos', (_req: Request, res: Response) => {
 // GET /api/warez/repos/:name - Get repo details + README
 router.get('/repos/:name', (req: Request, res: Response) => {
   try {
+    // Validate name to prevent path traversal
+    const name = req.params.name;
+    if (!name || name.includes('/') || name.includes('\\') || name === '..' || name === '.') {
+      res.status(400).json({ error: 'Invalid repository name' });
+      return;
+    }
+
     const repos = findRepos();
-    const repo = repos.find(r => r.name === req.params.name);
+    const repo = repos.find(r => r.name === name);
     if (!repo) {
       res.status(404).json({ error: 'Repository not found' });
       return;
     }
 
-    // Find and read README
+    // Find and read README (limit to 1MB)
     let readme = '';
     const readmeNames = ['README.md', 'README.MD', 'readme.md', 'README', 'README.txt', 'README.rst'];
-    for (const name of readmeNames) {
-      const readmePath = path.join(repo.path, name);
+    const MAX_README_SIZE = 1024 * 1024;
+    for (const rname of readmeNames) {
+      const readmePath = path.join(repo.path, rname);
       if (fs.existsSync(readmePath)) {
-        readme = fs.readFileSync(readmePath, 'utf-8');
+        const stat = fs.statSync(readmePath);
+        if (stat.size <= MAX_README_SIZE) {
+          readme = fs.readFileSync(readmePath, 'utf-8');
+        }
         break;
       }
     }

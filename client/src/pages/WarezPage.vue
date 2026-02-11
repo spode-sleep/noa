@@ -12,7 +12,7 @@
     </div>
 
     <template v-else>
-      <div v-if="search !== undefined" class="toolbar glass">
+      <div v-if="repos.length > 0" class="toolbar glass">
         <input
           v-model="search"
           type="text"

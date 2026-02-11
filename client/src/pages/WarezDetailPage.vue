@@ -74,6 +74,12 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+function sanitizeUrl(url: string): string {
+  const decoded = url.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+  if (/^javascript:/i.test(decoded.trim()) || /^data:/i.test(decoded.trim())) return ''
+  return url
+}
+
 function renderMarkdown(md: string): string {
   let html = escapeHtml(md)
 
@@ -98,11 +104,17 @@ function renderMarkdown(md: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
 
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+  // Links (with URL sanitization)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, text, url) => {
+    const safe = sanitizeUrl(url)
+    return safe ? `<a href="${safe}" target="_blank" rel="noopener noreferrer">${text}</a>` : text
+  })
 
-  // Images
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%"/>')
+  // Images (with URL sanitization)
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, url) => {
+    const safe = sanitizeUrl(url)
+    return safe ? `<img alt="${alt}" src="${safe}" style="max-width:100%"/>` : ''
+  })
 
   // Horizontal rules
   html = html.replace(/^---+$/gm, '<hr/>')
