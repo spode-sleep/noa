@@ -258,7 +258,7 @@ interface ProtonReport {
 interface InfoTable {
   type: string
   headers?: string[]
-  rows: any[]
+  rows: (string | string[])[]
 }
 
 interface InfoEntry {
@@ -312,8 +312,14 @@ const descOverflows = ref(false)
 const copied = ref(false)
 const showTipsModal = ref(false)
 
-function formatFixboxRow(row: string): string {
-  return row.replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>')
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function formatFixboxRow(row: string | string[]): string {
+  const text = typeof row === 'string' ? row : row.join(' ')
+  const escaped = escapeHtml(text)
+  return escaped.replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>')
 }
 
 function copyAppId() {
