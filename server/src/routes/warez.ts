@@ -18,6 +18,7 @@ interface RepoInfo {
   lastCommitMessage: string;
   branch: string;
   commitCount: number;
+  isGitRepo: boolean;
 }
 
 function getGitInfo(repoPath: string): Partial<RepoInfo> {
@@ -54,17 +55,18 @@ function findRepos(): RepoInfo[] {
       if (!entry.isDirectory()) continue;
       const fullPath = path.join(warezPath, entry.name);
       const gitDir = path.join(fullPath, '.git');
-      if (!fs.existsSync(gitDir)) continue;
+      const isGitRepo = fs.existsSync(gitDir);
 
-      const info = getGitInfo(fullPath);
+      const info = isGitRepo ? getGitInfo(fullPath) : {};
       repos.push({
         name: entry.name,
         path: fullPath,
         description: info.description || '',
         lastCommitDate: info.lastCommitDate || '',
         lastCommitMessage: info.lastCommitMessage || '',
-        branch: info.branch || 'main',
+        branch: info.branch || '',
         commitCount: info.commitCount || 0,
+        isGitRepo,
       });
     }
   }

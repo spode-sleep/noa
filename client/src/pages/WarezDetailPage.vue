@@ -10,7 +10,8 @@
         <h1>{{ repo.name }}</h1>
         <div v-if="repo.description" class="repo-desc">{{ repo.description }}</div>
         <div class="repo-meta">
-          <span class="branch-badge">{{ repo.branch }}</span>
+          <span v-if="repo.isGitRepo && repo.branch" class="branch-badge">{{ repo.branch }}</span>
+          <span v-if="!repo.isGitRepo" class="folder-badge">folder</span>
           <span v-if="repo.commitCount" class="meta-item">{{ repo.commitCount }} commits</span>
           <span v-if="repo.lastCommitDate" class="meta-item">{{ formatDate(repo.lastCommitDate) }}</span>
         </div>
@@ -56,6 +57,7 @@ interface RepoDetail {
   lastCommitMessage: string
   branch: string
   commitCount: number
+  isGitRepo: boolean
   readme: string
   files: RepoFile[]
 }
@@ -233,6 +235,16 @@ h1 {
   background: rgba(245, 158, 11, 0.2);
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.folder-badge {
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .last-commit {
