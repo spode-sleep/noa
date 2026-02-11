@@ -6,14 +6,14 @@
         <Icon icon="mdi:arrow-left" /> Games
       </router-link>
       <div class="sidebar-divider"></div>
-      <a href="#top" class="sidebar-link" @click.prevent="scrollTo('top')">Top</a>
-      <a v-if="game.game_data?.length" href="#game-data" class="sidebar-link" @click.prevent="scrollTo('game-data')">Game Data</a>
-      <a v-if="game.essential_improvements?.length" href="#essential-improvements" class="sidebar-link" @click.prevent="scrollTo('essential-improvements')">Essential Improvements</a>
-      <a v-if="game.issues_fixed?.length" href="#issues-fixed" class="sidebar-link" @click.prevent="scrollTo('issues-fixed')">Issues Fixed</a>
-      <a v-if="game.issues_unresolved?.length" href="#issues-unsolved" class="sidebar-link" @click.prevent="scrollTo('issues-unsolved')">Issues Unsolved</a>
-      <a v-if="game.modifications?.length" href="#modifications" class="sidebar-link" @click.prevent="scrollTo('modifications')">Modifications</a>
-      <a v-if="game.other_information?.length" href="#other-information" class="sidebar-link" @click.prevent="scrollTo('other-information')">Other Information</a>
-      <a v-if="game.protondb_reports?.length" href="#protondb-reports" class="sidebar-link" @click.prevent="scrollTo('protondb-reports')">ProtonDB Reports</a>
+      <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">Top</a>
+      <a v-if="game.game_data?.length" href="#game-data" class="sidebar-link" @click.prevent="scrollToSection('game-data')">Game Data</a>
+      <a v-if="game.essential_improvements?.length" href="#essential-improvements" class="sidebar-link" @click.prevent="scrollToSection('essential-improvements')">Essential Improvements</a>
+      <a v-if="game.issues_fixed?.length" href="#issues-fixed" class="sidebar-link" @click.prevent="scrollToSection('issues-fixed')">Issues Fixed</a>
+      <a v-if="game.issues_unresolved?.length" href="#issues-unsolved" class="sidebar-link" @click.prevent="scrollToSection('issues-unsolved')">Issues Unsolved</a>
+      <a v-if="game.modifications?.length" href="#modifications" class="sidebar-link" @click.prevent="scrollToSection('modifications')">Modifications</a>
+      <a v-if="game.other_information?.length" href="#other-information" class="sidebar-link" @click.prevent="scrollToSection('other-information')">Other Information</a>
+      <a v-if="game.protondb_reports?.length" href="#protondb-reports" class="sidebar-link" @click.prevent="scrollToSection('protondb-reports')">ProtonDB Reports</a>
     </nav>
 
     <div class="page">
@@ -336,7 +336,8 @@ function escapeHtml(str: string): string {
 
 function formatContent(text: string | string[]): string {
   const str = typeof text === 'string' ? text : text.join(' ')
-  return str.replace(/§([^§]+)§/g, '<code>$1</code>')
+  const escaped = escapeHtml(str)
+  return escaped.replace(/§([^§]+)§/g, '<code>$1</code>')
 }
 
 function formatFixboxRow(row: string | string[]): string {
@@ -345,7 +346,7 @@ function formatFixboxRow(row: string | string[]): string {
   return escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>').replace(/`([^`]+)`/g, '<code>$1</code>')
 }
 
-function scrollTo(id: string) {
+function scrollToSection(id: string) {
   const el = document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
