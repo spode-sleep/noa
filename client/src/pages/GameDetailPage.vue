@@ -261,7 +261,21 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Icon } from '@iconify/vue'
+import { Icon, addIcon, getIcon, buildIcon } from '@iconify/vue'
+
+const emojiIcons: Record<string, { body: string; width?: number; height?: number }> = {
+  'mdi:folder': { body: '<path fill="currentColor" d="M10 4H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/>' },
+  'mdi:thumb-down': { body: '<path fill="currentColor" d="M19 15V3h4v12zM15 3a2 2 0 0 1 2 2v8.17l-5.17 5.83c-.35.39-.84.58-1.33.47l-5.25-1.16A2 2 0 0 1 4 16.33V5a2 2 0 0 1 2-2z"/>' },
+  'mdi:thumb-up': { body: '<path fill="currentColor" d="M23 10a2 2 0 0 0-2-2h-6.32l.96-4.57c.02-.1.03-.21.03-.32c0-.41-.17-.79-.44-1.06L14.17 1L7.59 7.58C7.22 7.95 7 8.45 7 9v10a2 2 0 0 0 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73zM1 21h4V9H1z"/>' },
+  'mdi:information': { body: '<path fill="currentColor" d="M13 9h-2V7h2m0 10h-2v-6h2M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"/>' },
+  'mdi:wrench': { body: '<path fill="currentColor" d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9c-2-2-5-2.4-7.4-1.3L9 6L6 9L1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4"/>' },
+  'mdi:file-document-outline': { body: '<path fill="currentColor" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2h7v5h5v11H6zm2 8v2h8v-2zm0 4v2h5v-2z"/>' },
+  'mdi:checkbox-blank': { body: '<path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2"/>' },
+}
+
+for (const [name, data] of Object.entries(emojiIcons)) {
+  addIcon(name, { ...data, width: 24, height: 24 })
+}
 
 interface ProtonReport {
   timestamp: number
@@ -334,19 +348,49 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+function iconSvg(name: string, cls: string): string {
+  const data = getIcon(name)
+  if (!data) return ''
+  const built = buildIcon(data, {})
+  const attrs = built.attributes
+  return `<svg class="emoji-icon ${cls}" viewBox="${attrs.viewBox}" xmlns="http://www.w3.org/2000/svg">${built.body}</svg>`
+}
+
+const emojiMap: [RegExp, string][] = [
+  [/📁/g, iconSvg('mdi:folder', 'emoji-folder')],
+  [/👎/g, iconSvg('mdi:thumb-down', 'emoji-dislike')],
+  [/👍/g, iconSvg('mdi:thumb-up', 'emoji-like')],
+  [/ℹ️/g, iconSvg('mdi:information', 'emoji-info')],
+  [/🔧/g, iconSvg('mdi:wrench', 'emoji-wrench')],
+  [/📄/g, iconSvg('mdi:file-document-outline', 'emoji-file')],
+  [/🟦/g, iconSvg('mdi:checkbox-blank', 'emoji-blue')],
+]
+
+function replaceEmojis(str: string): string {
+  let result = str
+  for (const [re, replacement] of emojiMap) {
+    result = result.replace(re, replacement)
+  }
+  return result
+}
+
 function formatContent(text: string | string[]): string {
   const str = typeof text === 'string' ? text : text.join(' ')
   const escaped = escapeHtml(str)
-  return escaped.replace(/§([^§]+)§/g, '<code>$1</code>')
+  return replaceEmojis(escaped.replace(/§([^§]+)§/g, '<code>$1</code>'))
 }
 
 function formatFixboxRow(row: string | string[]): string {
   const text = typeof row === 'string' ? row : row.join(' ')
   const escaped = escapeHtml(text)
-  return escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>').replace(/`([^`]+)`/g, '<code>$1</code>')
+  return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>').replace(/`([^`]+)`/g, '<code>$1</code>'))
 }
 
 function scrollToSection(id: string) {
+  if (id === 'top') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
   const el = document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
@@ -910,6 +954,43 @@ h2 {
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 0.82rem;
+}
+
+/* Emoji icon replacements */
+:deep(.emoji-icon) {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  margin: 0 1px;
+}
+
+:deep(.emoji-folder) {
+  color: #f0c040;
+}
+
+:deep(.emoji-like) {
+  color: #34d399;
+}
+
+:deep(.emoji-dislike) {
+  color: #f44336;
+}
+
+:deep(.emoji-info) {
+  color: var(--accent-blue);
+}
+
+:deep(.emoji-wrench) {
+  color: #f0a030;
+}
+
+:deep(.emoji-file) {
+  color: var(--text-secondary);
+}
+
+:deep(.emoji-blue) {
+  color: var(--accent-blue);
 }
 
 /* Data tables */
