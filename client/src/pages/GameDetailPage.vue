@@ -587,6 +587,7 @@ onMounted(async () => {
 
 .game-top {
   margin-bottom: 12px;
+  scroll-margin-top: 70px;
 }
 
 h1 {
@@ -678,6 +679,7 @@ h1 {
 
 .reviews-section {
   margin-top: 16px;
+  scroll-margin-top: 70px;
 }
 
 h2 {
@@ -868,6 +870,7 @@ h2 {
 /* Info sections (Game Data, Essential Improvements, etc.) */
 .info-section {
   margin-bottom: 28px;
+  scroll-margin-top: 70px;
 }
 
 .info-section h2 {
