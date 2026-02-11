@@ -29,6 +29,7 @@ const links = [
   { to: '/music', label: 'Music', color: '#8b6cee' },
   { to: '/fiction', label: 'Fiction', color: '#7ec8e3' },
   { to: '/reference', label: 'Reference', color: '#34d399' },
+  { to: '/warez', label: 'Warez', color: '#f59e0b' },
   { to: '/ai', label: 'AI Librarian', color: '#a855f7' },
 ]
 
