@@ -1,242 +1,260 @@
 <template>
-  <div class="page">
-    <router-link to="/games" class="btn btn-back">← Games</router-link>
+  <div class="page-wrapper">
+    <!-- Sticky left sidebar -->
+    <nav class="sidebar" v-if="game">
+      <router-link to="/games" class="sidebar-link">
+        <Icon icon="mdi:arrow-left" /> Games
+      </router-link>
+      <div class="sidebar-divider"></div>
+      <a href="#top" class="sidebar-link" @click.prevent="scrollTo('top')">Top</a>
+      <a v-if="game.game_data?.length" href="#game-data" class="sidebar-link" @click.prevent="scrollTo('game-data')">Game Data</a>
+      <a v-if="game.essential_improvements?.length" href="#essential-improvements" class="sidebar-link" @click.prevent="scrollTo('essential-improvements')">Essential Improvements</a>
+      <a v-if="game.issues_fixed?.length" href="#issues-fixed" class="sidebar-link" @click.prevent="scrollTo('issues-fixed')">Issues Fixed</a>
+      <a v-if="game.issues_unresolved?.length" href="#issues-unsolved" class="sidebar-link" @click.prevent="scrollTo('issues-unsolved')">Issues Unsolved</a>
+      <a v-if="game.modifications?.length" href="#modifications" class="sidebar-link" @click.prevent="scrollTo('modifications')">Modifications</a>
+      <a v-if="game.other_information?.length" href="#other-information" class="sidebar-link" @click.prevent="scrollTo('other-information')">Other Information</a>
+      <a v-if="game.protondb_reports?.length" href="#protondb-reports" class="sidebar-link" @click.prevent="scrollTo('protondb-reports')">ProtonDB Reports</a>
+    </nav>
 
-    <div v-if="loading" class="loading">Loading game...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
+    <div class="page">
+      <router-link v-if="!game" to="/games" class="btn btn-back">← Games</router-link>
 
-    <template v-else-if="game">
-      <div class="game-top">
-        <div class="game-header">
-          <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
-          <h1>{{ game.name }}</h1>
-        </div>
-        <span class="app-id">
-          {{ game.appId || game.id }}
-          <button class="copy-btn" @click="copyAppId" :title="copied ? 'Copied!' : 'Copy App ID'">
-            <Icon :icon="copied ? 'mdi:check' : 'mdi:content-copy'" />
-          </button>
-        </span>
-      </div>
+      <div v-if="loading" class="loading">Loading game...</div>
+      <div v-else-if="error" class="error">{{ error }}</div>
 
-      <div class="game-layout">
-        <div class="game-left">
-          <img
-            :src="game.imageUrl"
-            :alt="game.name"
-            class="hero-image glass"
-          />
-        </div>
-        <div class="game-right">
-          <div v-if="game.description" class="description-wrapper" :class="{ expanded: descExpanded }">
-            <div ref="descRef" class="description-content" v-html="game.description"></div>
-            <button v-if="descOverflows || descExpanded" class="expand-btn" @click="descExpanded = !descExpanded" :title="descExpanded ? 'Show less' : 'Show more'">
-              <Icon :icon="descExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+      <template v-else-if="game">
+        <div id="top" class="game-top">
+          <div class="game-header">
+            <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
+            <h1>{{ game.name }}</h1>
+          </div>
+          <span class="app-id">
+            {{ game.appId || game.id }}
+            <button class="copy-btn" @click="copyAppId" :title="copied ? 'Copied!' : 'Copy App ID'">
+              <Icon :icon="copied ? 'mdi:check' : 'mdi:content-copy'" />
             </button>
-          </div>
-          <div v-if="game.tags?.length" class="tags-section">
-            <div class="tags-list">
-              <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
-            </div>
-          </div>
+          </span>
         </div>
-      </div>
 
-      <!-- Gameplay Tips Button -->
-      <div v-if="game.gameplay_tips?.length" class="tips-button-wrapper">
-        <button class="btn-tips glass" @click="showTipsModal = true">
-          <Icon icon="mdi:lightbulb-on-outline" />
-          Gameplay Tips
-        </button>
-      </div>
-
-      <!-- Gameplay Tips Modal -->
-      <Teleport to="body">
-        <div v-if="showTipsModal" class="modal-overlay" @click.self="showTipsModal = false">
-          <div class="modal-content glass">
-            <div class="modal-header">
-              <h2>Gameplay Tips</h2>
-              <button class="modal-close" @click="showTipsModal = false">
-                <Icon icon="mdi:close" />
+        <div class="game-layout">
+          <div class="game-left">
+            <img
+              :src="game.imageUrl"
+              :alt="game.name"
+              class="hero-image glass"
+            />
+          </div>
+          <div class="game-right">
+            <div v-if="game.description" class="description-wrapper" :class="{ expanded: descExpanded }">
+              <div ref="descRef" class="description-content" v-html="game.description"></div>
+              <button v-if="descOverflows || descExpanded" class="expand-btn" @click="descExpanded = !descExpanded" :title="descExpanded ? 'Show less' : 'Show more'">
+                <Icon :icon="descExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
               </button>
             </div>
-            <div class="modal-body">
-              <div v-for="(group, gi) in game.gameplay_tips" :key="gi" class="tips-group">
-                <h3 v-if="group.title" class="tips-group-title">{{ group.title }}</h3>
-                <ul class="tips-list">
-                  <li v-for="(tip, ti) in group.tips" :key="ti" class="tip-item">{{ tip }}</li>
-                </ul>
+            <div v-if="game.tags?.length" class="tags-section">
+              <div class="tags-list">
+                <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
               </div>
             </div>
           </div>
         </div>
-      </Teleport>
 
-      <!-- Game Data -->
-      <div v-if="game.game_data?.length" class="info-section">
-        <h2>Game Data</h2>
-        <div v-for="(item, i) in game.game_data" :key="'gd'+i" class="info-card glass">
-          <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
-          <p v-if="item.description" class="info-card-desc" v-html="item.description"></p>
-          <template v-if="item.tables?.length">
-            <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
-              <div v-if="table.type === 'fixbox'" class="fixbox">
-                <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
-              </div>
-              <table v-else-if="table.type === 'table'" class="info-table">
-                <thead v-if="table.headers?.length">
-                  <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(row, ri) in table.rows" :key="ri">
-                    <td v-for="(cell, ci) in row" :key="ci" v-html="cell"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
+        <!-- Gameplay Tips Button -->
+        <div v-if="game.gameplay_tips?.length" class="tips-button-wrapper">
+          <button class="btn-tips glass" @click="showTipsModal = true">
+            <Icon icon="mdi:lightbulb-on-outline" />
+            Gameplay Tips
+          </button>
         </div>
-      </div>
 
-      <!-- Essential Improvements -->
-      <div v-if="game.essential_improvements?.length" class="info-section">
-        <h2>Essential Improvements</h2>
-        <div v-for="(item, i) in game.essential_improvements" :key="'ei'+i" class="info-card glass">
-          <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
-          <p v-if="item.description" class="info-card-desc" v-html="item.description"></p>
-          <template v-if="item.tables?.length">
-            <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
-              <div v-if="table.type === 'fixbox'" class="fixbox">
-                <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+        <!-- Gameplay Tips Modal -->
+        <Teleport to="body">
+          <div v-if="showTipsModal" class="modal-overlay" @click.self="showTipsModal = false">
+            <div class="modal-content glass">
+              <div class="modal-header">
+                <h2>Gameplay Tips</h2>
+                <button class="modal-close" @click="showTipsModal = false">
+                  <Icon icon="mdi:close" />
+                </button>
               </div>
-              <table v-else-if="table.type === 'table'" class="info-table">
-                <thead v-if="table.headers?.length">
-                  <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(row, ri) in table.rows" :key="ri">
-                    <td v-for="(cell, ci) in row" :key="ci" v-html="cell"></td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="modal-body">
+                <div v-for="(group, gi) in game.gameplay_tips" :key="gi" class="tips-group">
+                  <h3 v-if="group.title" class="tips-group-title">{{ group.title }}</h3>
+                  <ul class="tips-list">
+                    <li v-for="(tip, ti) in group.tips" :key="ti" class="tip-item">{{ tip }}</li>
+                  </ul>
+                </div>
+              </div>
             </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Issues Fixed -->
-      <div v-if="game.issues_fixed?.length" class="info-section">
-        <h2>Issues Fixed</h2>
-        <div v-for="(item, i) in game.issues_fixed" :key="'if'+i" class="info-card glass">
-          <h3 v-if="item.issue" class="info-card-title">{{ item.issue }}</h3>
-          <div v-if="item.solutions?.length" class="solutions">
-            <div v-for="(sol, si) in item.solutions" :key="si" class="solution-note" v-html="sol.content"></div>
           </div>
-          <template v-if="item.tables?.length">
-            <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
-              <div v-if="table.type === 'fixbox'" class="fixbox">
-                <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+        </Teleport>
+
+        <!-- Game Data -->
+        <div v-if="game.game_data?.length" id="game-data" class="info-section">
+          <h2>Game Data</h2>
+          <div v-for="(item, i) in game.game_data" :key="'gd'+i" class="info-card glass">
+            <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
+            <p v-if="item.description" class="info-card-desc" v-html="formatContent(item.description)"></p>
+            <template v-if="item.tables?.length">
+              <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
+                <div v-if="table.type === 'fixbox'" class="fixbox">
+                  <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+                </div>
+                <table v-else-if="table.type === 'table'" class="info-table">
+                  <thead v-if="table.headers?.length">
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in table.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <table v-else-if="table.type === 'table'" class="info-table">
-                <thead v-if="table.headers?.length">
-                  <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(row, ri) in table.rows" :key="ri">
-                    <td v-for="(cell, ci) in row" :key="ci" v-html="cell"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Issues Unsolved -->
-      <div v-if="game.issues_unresolved?.length" class="info-section">
-        <h2>Issues Unsolved</h2>
-        <div v-for="(item, i) in game.issues_unresolved" :key="'iu'+i" class="info-card glass">
-          <h3 v-if="item.issue" class="info-card-title">{{ item.issue }}</h3>
-          <p v-if="item.description" class="info-card-desc" v-html="item.description"></p>
-          <p v-if="item.notes" class="info-card-notes">{{ item.notes }}</p>
-        </div>
-      </div>
-
-      <!-- Modifications -->
-      <div v-if="game.modifications?.length" class="info-section">
-        <h2>Modifications</h2>
-        <div v-for="(item, i) in game.modifications" :key="'mod'+i" class="info-card glass">
-          <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
-          <p v-if="item.description" class="info-card-desc" v-html="item.description"></p>
-          <template v-if="item.tables?.length">
-            <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
-              <div v-if="table.type === 'fixbox'" class="fixbox">
-                <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
-              </div>
-              <table v-else-if="table.type === 'table'" class="info-table">
-                <thead v-if="table.headers?.length">
-                  <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(row, ri) in table.rows" :key="ri">
-                    <td v-for="(cell, ci) in row" :key="ci" v-html="cell"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Other Information -->
-      <div v-if="game.other_information?.length" class="info-section">
-        <h2>Other Information</h2>
-        <div v-for="(item, i) in game.other_information" :key="'oi'+i" class="info-card glass">
-          <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
-          <p v-if="item.description" class="info-card-desc" v-html="item.description"></p>
-          <template v-if="item.tables?.length">
-            <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
-              <div v-if="table.type === 'fixbox'" class="fixbox">
-                <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
-              </div>
-              <table v-else-if="table.type === 'table'" class="info-table">
-                <thead v-if="table.headers?.length">
-                  <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(row, ri) in table.rows" :key="ri">
-                    <td v-for="(cell, ci) in row" :key="ci" v-html="cell"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- ProtonDB Reports (last) -->
-      <div v-if="game.protondb_reports?.length" class="reviews-section">
-        <h2>ProtonDB Reports</h2>
-        <div
-          v-for="(report, i) in game.protondb_reports"
-          :key="i"
-          class="review-card glass"
-        >
-          <div class="review-header">
-            <span class="rating-badge" :class="ratingClass(report.rating)">
-              {{ report.rating }}
-            </span>
-            <span class="review-date">{{ formatDate(report.timestamp) }}</span>
+            </template>
           </div>
-          <div class="review-meta">
-            <span v-if="report.os"><strong>OS:</strong> {{ report.os }}</span>
-            <span v-if="report.gpuDriver"><strong>GPU:</strong> {{ report.gpuDriver }}</span>
-            <span v-if="report.protonVersion"><strong>Proton:</strong> {{ report.protonVersion }}</span>
-          </div>
-          <p v-if="report.notes" class="review-notes">{{ report.notes }}</p>
         </div>
-      </div>
-    </template>
+
+        <!-- Essential Improvements -->
+        <div v-if="game.essential_improvements?.length" id="essential-improvements" class="info-section">
+          <h2>Essential Improvements</h2>
+          <div v-for="(item, i) in game.essential_improvements" :key="'ei'+i" class="info-card glass">
+            <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
+            <p v-if="item.description" class="info-card-desc" v-html="formatContent(item.description)"></p>
+            <template v-if="item.tables?.length">
+              <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
+                <div v-if="table.type === 'fixbox'" class="fixbox">
+                  <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+                </div>
+                <table v-else-if="table.type === 'table'" class="info-table">
+                  <thead v-if="table.headers?.length">
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in table.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Issues Fixed -->
+        <div v-if="game.issues_fixed?.length" id="issues-fixed" class="info-section">
+          <h2>Issues Fixed</h2>
+          <div v-for="(item, i) in game.issues_fixed" :key="'if'+i" class="info-card glass">
+            <h3 v-if="item.issue" class="info-card-title">{{ item.issue }}</h3>
+            <div v-if="item.solutions?.length" class="solutions">
+              <div v-for="(sol, si) in item.solutions" :key="si" class="solution-note" v-html="formatContent(sol.content)"></div>
+            </div>
+            <template v-if="item.tables?.length">
+              <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
+                <div v-if="table.type === 'fixbox'" class="fixbox">
+                  <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+                </div>
+                <table v-else-if="table.type === 'table'" class="info-table">
+                  <thead v-if="table.headers?.length">
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in table.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Issues Unsolved -->
+        <div v-if="game.issues_unresolved?.length" id="issues-unsolved" class="info-section">
+          <h2>Issues Unsolved</h2>
+          <div v-for="(item, i) in game.issues_unresolved" :key="'iu'+i" class="info-card glass">
+            <h3 v-if="item.issue" class="info-card-title">{{ item.issue }}</h3>
+            <p v-if="item.description" class="info-card-desc" v-html="formatContent(item.description)"></p>
+            <p v-if="item.notes" class="info-card-notes">{{ item.notes }}</p>
+          </div>
+        </div>
+
+        <!-- Modifications -->
+        <div v-if="game.modifications?.length" id="modifications" class="info-section">
+          <h2>Modifications</h2>
+          <div v-for="(item, i) in game.modifications" :key="'mod'+i" class="info-card glass">
+            <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
+            <p v-if="item.description" class="info-card-desc" v-html="formatContent(item.description)"></p>
+            <template v-if="item.tables?.length">
+              <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
+                <div v-if="table.type === 'fixbox'" class="fixbox">
+                  <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+                </div>
+                <table v-else-if="table.type === 'table'" class="info-table">
+                  <thead v-if="table.headers?.length">
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in table.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Other Information -->
+        <div v-if="game.other_information?.length" id="other-information" class="info-section">
+          <h2>Other Information</h2>
+          <div v-for="(item, i) in game.other_information" :key="'oi'+i" class="info-card glass">
+            <h3 v-if="item.title" class="info-card-title">{{ item.title }}</h3>
+            <p v-if="item.description" class="info-card-desc" v-html="formatContent(item.description)"></p>
+            <template v-if="item.tables?.length">
+              <div v-for="(table, ti) in item.tables" :key="ti" class="info-table-wrap">
+                <div v-if="table.type === 'fixbox'" class="fixbox">
+                  <div v-for="(row, ri) in table.rows" :key="ri" class="fixbox-row" v-html="formatFixboxRow(row)"></div>
+                </div>
+                <table v-else-if="table.type === 'table'" class="info-table">
+                  <thead v-if="table.headers?.length">
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in table.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- ProtonDB Reports (last) -->
+        <div v-if="game.protondb_reports?.length" id="protondb-reports" class="reviews-section">
+          <h2>ProtonDB Reports</h2>
+          <div
+            v-for="(report, i) in game.protondb_reports"
+            :key="i"
+            class="review-card glass"
+          >
+            <div class="review-header">
+              <span class="rating-badge" :class="ratingClass(report.rating)">
+                {{ report.rating }}
+              </span>
+              <span class="review-date">{{ formatDate(report.timestamp) }}</span>
+            </div>
+            <div class="review-meta">
+              <span v-if="report.os"><strong>OS:</strong> {{ report.os }}</span>
+              <span v-if="report.gpuDriver"><strong>GPU:</strong> {{ report.gpuDriver }}</span>
+              <span v-if="report.protonVersion"><strong>Proton:</strong> {{ report.protonVersion }}</span>
+            </div>
+            <p v-if="report.notes" class="review-notes">{{ report.notes }}</p>
+          </div>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -316,10 +334,20 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+function formatContent(text: string | string[]): string {
+  const str = typeof text === 'string' ? text : text.join(' ')
+  return str.replace(/§([^§]+)§/g, '<code>$1</code>')
+}
+
 function formatFixboxRow(row: string | string[]): string {
   const text = typeof row === 'string' ? row : row.join(' ')
   const escaped = escapeHtml(text)
-  return escaped.replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>')
+  return escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>').replace(/`([^`]+)`/g, '<code>$1</code>')
+}
+
+function scrollTo(id: string) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function copyAppId() {
@@ -368,8 +396,61 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.page-wrapper {
+  display: flex;
+  gap: 0;
+}
+
+/* Sticky sidebar */
+.sidebar {
+  position: sticky;
+  top: 80px;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  min-width: 180px;
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.sidebar-link:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  text-shadow: none;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 6px 12px;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    display: none;
+  }
+}
+
 .page {
   padding: 24px 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .btn-back {
@@ -811,7 +892,18 @@ h2 {
   border-bottom: none;
 }
 
-.fixbox-row code {
+.fixbox-row :deep(code) {
+  background: rgba(0, 232, 184, 0.1);
+  color: var(--accent-teal);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+
+/* Global code styling for all content areas */
+.info-card-desc :deep(code),
+.solution-note :deep(code),
+.info-table td :deep(code) {
   background: rgba(0, 232, 184, 0.1);
   color: var(--accent-teal);
   padding: 1px 6px;
