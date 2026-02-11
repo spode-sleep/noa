@@ -75,8 +75,8 @@ function escapeHtml(str: string): string {
 }
 
 function sanitizeUrl(url: string): string {
-  const decoded = url.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-  if (/^javascript:/i.test(decoded.trim()) || /^data:/i.test(decoded.trim())) return ''
+  const lower = url.toLowerCase().replace(/[\s\u00A0]+/g, '')
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return ''
   return url
 }
 
