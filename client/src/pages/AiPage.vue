@@ -53,8 +53,9 @@
       </div>
 
       <!-- Context indicator -->
-      <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
-        Connected: {{ activeContextLabel }}
+      <div v-if="chatStarted && (activeContextLabel || selectedModel)" class="context-indicator glass">
+        <span v-if="activeContextLabel">Connected: {{ activeContextLabel }}</span>
+        <span v-if="selectedModel" class="model-badge">{{ selectedModel }}</span>
       </div>
 
       <!-- Library switches (visible only before first message) -->
@@ -70,6 +71,12 @@
           <span class="toggle-slider"></span>
           <span class="toggle-text">Fiction Library</span>
         </label>
+        <div v-if="availableModels.length > 1" class="model-selector">
+          <label class="model-label">Model</label>
+          <select v-model="selectedModel" class="model-dropdown">
+            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+          </select>
+        </div>
         <button class="index-btn" @click="buildIndex" :disabled="ragStatus.indexing">
           {{ ragStatus.indexing ? 'Indexing...' : ragStatus.ready ? 'Rebuild RAG Index' : 'Build RAG Index' }}
         </button>
@@ -138,6 +145,7 @@ interface Conversation {
   title: string
   messages: Message[]
   createdAt: string
+  model?: string
 }
 
 const STORAGE_KEY = 'box-ai-conversations'
@@ -172,6 +180,9 @@ const loading = ref(false)
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
+const selectedModel = ref('')
+const availableModels = ref<string[]>([])
+const defaultModel = ref('')
 const aiStatus = ref<{ available: boolean; message: string }>({ available: false, message: '' })
 const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean; backend: string }>({ ready: false, chunksIndexed: 0, indexing: false, backend: 'none' })
 
@@ -206,6 +217,7 @@ function switchConversation(id: string) {
   if (conv) {
     messages.value = conv.messages
     chatStarted.value = conv.messages.length > 0
+    selectedModel.value = conv.model || defaultModel.value
   }
 }
 
@@ -213,6 +225,7 @@ function syncCurrentConversation() {
   const conv = conversations.value.find(c => c.id === activeConversationId.value)
   if (conv) {
     conv.messages = messages.value
+    conv.model = selectedModel.value
     saveConversations()
   }
 }
@@ -309,6 +322,7 @@ async function sendMessage() {
       body: JSON.stringify({
         message: text,
         history: messages.value,
+        model: selectedModel.value || undefined,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,
@@ -375,6 +389,15 @@ onMounted(async () => {
     const res = await fetch('/api/ai/status')
     const data = await res.json()
     aiStatus.value = { available: data.available ?? false, message: data.message ?? '' }
+    if (data.models) {
+      availableModels.value = data.models
+    }
+    if (data.defaultModel) {
+      defaultModel.value = data.defaultModel
+      if (!selectedModel.value) {
+        selectedModel.value = data.defaultModel
+      }
+    }
     if (data.rag) {
       ragStatus.value = { ready: data.rag.ready ?? false, chunksIndexed: data.rag.chunksIndexed ?? 0, indexing: data.rag.indexing ?? false, backend: data.rag.backend ?? 'unknown' }
     }
@@ -587,6 +610,18 @@ onMounted(async () => {
   font-size: 0.85rem;
   color: var(--accent-teal);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-badge {
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.2);
 }
 
 .library-switches {
@@ -652,6 +687,40 @@ onMounted(async () => {
 .toggle-text {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+/* Model selector */
+.model-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.model-dropdown {
+  padding: 6px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.model-dropdown:hover,
+.model-dropdown:focus {
+  border-color: var(--accent-teal);
+}
+
+.model-dropdown option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Chat area */

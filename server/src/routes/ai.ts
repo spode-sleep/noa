@@ -15,6 +15,19 @@ const llmModel = process.env.LLM_MODEL || 'qwen2.5:7b';
 const llmApiType = process.env.LLM_API_TYPE || 'auto'; // 'ollama', 'openai', or 'auto'
 const MAX_HISTORY_MESSAGES = 20;
 
+function getConfiguredModels(): string[] {
+  const envModels = process.env.LLM_MODELS;
+  if (envModels) {
+    return envModels.split(',').map(m => m.trim()).filter(Boolean);
+  }
+  return [llmModel];
+}
+
+function isModelAllowed(model: string): boolean {
+  const allowed = getConfiguredModels();
+  return allowed.includes(model);
+}
+
 function readJSON(filepath: string): unknown {
   try {
     if (fs.existsSync(filepath)) {
@@ -182,12 +195,17 @@ async function sendToLlamaCpp(messages: ChatMessage[]): Promise<string> {
 
 // POST /api/ai/chat - Send message to AI
 router.post('/chat', async (req: Request, res: Response) => {
-  const { message, history, context } = req.body;
+  const { message, history, context, model: requestedModel } = req.body;
 
   if (typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'message is required' });
     return;
   }
+
+  // Determine which model to use
+  const selectedModel = (typeof requestedModel === 'string' && requestedModel.trim() && isModelAllowed(requestedModel.trim()))
+    ? requestedModel.trim()
+    : llmModel;
 
   const contextLoaded = { musicLibrary: false, fictionLibrary: false };
 
@@ -243,7 +261,7 @@ router.post('/chat', async (req: Request, res: Response) => {
   try {
     let response: string;
     if (detectApiType() === 'ollama') {
-      response = await sendToOllama(llmModel, messages);
+      response = await sendToOllama(selectedModel, messages);
     } else {
       response = await sendToLlamaCpp(messages);
     }
@@ -283,7 +301,12 @@ router.get('/index/status', (_req: Request, res: Response) => {
 router.get('/status', async (_req: Request, res: Response) => {
   const status = await checkLlmAvailability();
   const ragStats = getIndexStats();
-  res.json({ ...status, rag: ragStats });
+  res.json({ ...status, models: getConfiguredModels(), defaultModel: llmModel, rag: ragStats });
+});
+
+// GET /api/ai/models - List configured models
+router.get('/models', (_req: Request, res: Response) => {
+  res.json({ models: getConfiguredModels(), defaultModel: llmModel });
 });
 
 export default router;

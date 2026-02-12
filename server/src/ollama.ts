@@ -169,8 +169,13 @@ export async function startOllama(): Promise<void> {
   // Auto-pull models
   const llmModel = process.env.LLM_MODEL || 'qwen2.5:7b';
   const embModel = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
+  const extraModels = process.env.LLM_MODELS
+    ? process.env.LLM_MODELS.split(',').map(m => m.trim()).filter(Boolean)
+    : [];
 
-  for (const model of [llmModel, embModel]) {
+  const allModels = new Set([llmModel, embModel, ...extraModels]);
+
+  for (const model of allModels) {
     const available = await isModelAvailable(model);
     if (!available) {
       console.log(`[ollama] Pulling model ${model}...`);
