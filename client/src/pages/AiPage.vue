@@ -684,8 +684,8 @@ onBeforeUnmount(() => {
 }
 
 .model-badge {
-  font-size: 0.75rem;
-  padding: 2px 10px;
+  font-size: 0.8rem;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
@@ -982,21 +982,21 @@ onBeforeUnmount(() => {
   margin: 12px 0;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
 }
 
 .code-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 14px;
+  background: rgba(0, 232, 184, 0.06);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .code-lang {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  color: var(--accent-teal);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1006,14 +1006,14 @@ onBeforeUnmount(() => {
   border: none;
   color: rgba(255, 255, 255, 0.4);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px 6px;
   border-radius: 4px;
   transition: color 0.2s, background 0.2s;
 }
 
 .code-copy-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent-teal);
+  background: rgba(0, 232, 184, 0.1);
 }
 
 .code-copy-btn.copied {
@@ -1022,24 +1022,23 @@ onBeforeUnmount(() => {
 
 .code-block pre {
   margin: 0;
-  padding: 12px 16px;
+  padding: 14px 16px;
   overflow-x: auto;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .code-block code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   font-size: 0.85rem;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 :deep(.inline-code) {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.85em;
-  padding: 2px 6px;
+  font-size: 0.82rem;
+  padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: rgba(0, 232, 184, 0.1);
+  color: var(--accent-teal);
 }
 </style>
