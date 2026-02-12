@@ -977,15 +977,15 @@ onBeforeUnmount(() => {
   opacity: 0.85;
 }
 
-/* Code blocks */
-.code-block {
+/* Code blocks (v-html content needs :deep) */
+:deep(.code-block) {
   margin: 12px 0;
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--glass-border);
 }
 
-.code-header {
+:deep(.code-header) {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -994,14 +994,14 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--glass-border);
 }
 
-.code-lang {
+:deep(.code-lang) {
   font-size: 0.8rem;
   color: var(--accent-teal);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.code-copy-btn {
+:deep(.code-copy-btn) {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.4);
@@ -1011,23 +1011,23 @@ onBeforeUnmount(() => {
   transition: color 0.2s, background 0.2s;
 }
 
-.code-copy-btn:hover {
+:deep(.code-copy-btn:hover) {
   color: var(--accent-teal);
   background: rgba(0, 232, 184, 0.1);
 }
 
-.code-copy-btn.copied {
+:deep(.code-copy-btn.copied) {
   color: #4ade80;
 }
 
-.code-block pre {
+:deep(.code-block pre) {
   margin: 0;
   padding: 14px 16px;
   overflow-x: auto;
   background: rgba(0, 0, 0, 0.35);
 }
 
-.code-block code {
+:deep(.code-block code) {
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   font-size: 0.85rem;
   line-height: 1.6;

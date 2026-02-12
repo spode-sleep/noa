@@ -126,7 +126,7 @@ async function sendToOllama(model: string, messages: ChatMessage[]): Promise<str
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
-      timeout: 120000,
+      timeout: 600000,
     };
 
     const req = http.request(options, (res) => {
@@ -172,7 +172,7 @@ async function sendToLlamaCpp(model: string, messages: ChatMessage[]): Promise<s
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
-      timeout: 120000,
+      timeout: 600000,
     };
 
     const req = http.request(options, (res) => {
