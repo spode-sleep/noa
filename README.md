@@ -125,8 +125,8 @@ sudo mv piper /opt/piper-tts
 # Set in your .env:
 # PIPER_PATH=/opt/piper-tts/piper
 
-# Test:
-/opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw
+# Test (LD_LIBRARY_PATH is needed for shared libraries):
+LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw
 
 # Create models directory
 mkdir -p ~/models/piper
@@ -146,10 +146,10 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/mediu
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
 
 # Verify
-/opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw options
+LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw options
 
 # Test a voice
-echo "Привет, мир!" | /opt/piper-tts/piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
+echo "Привет, мир!" | LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
 aplay test.wav
 ```
 

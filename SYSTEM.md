@@ -395,8 +395,8 @@ wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_6
 tar -xzf piper_linux_x86_64.tar.gz
 sudo mv piper /opt/piper-tts
 
-# Verify
-/opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw options
+# Verify (LD_LIBRARY_PATH needed for shared libraries)
+LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw options
 ```
 
 ### Download Voice Models
@@ -426,7 +426,7 @@ TTS_DEFAULT_VOICE=ru_RU-irina-medium
 ### Test TTS
 
 ```bash
-echo "Привет, мир!" | /opt/piper-tts/piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
+echo "Привет, мир!" | LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
 aplay test.wav
 ```
 
