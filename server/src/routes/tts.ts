@@ -15,14 +15,24 @@ function detectPiperPath(): string | null {
     try {
       const dir = path.dirname(path.resolve(candidate));
       const env = { ...process.env, LD_LIBRARY_PATH: [path.join(dir, 'lib'), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') };
-      const output = execSync(`"${candidate}" --help`, { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000, env });
-      if (output.toString().includes('--model')) {
+      // Use shell redirect to capture both stdout and stderr (piper may output help to stderr)
+      let output = '';
+      try {
+        output = execSync(`"${candidate}" --help 2>&1`, { timeout: 5000, env, encoding: 'utf-8' });
+      } catch (e: any) {
+        // --help may return non-zero exit code; check stdout/stderr from the error
+        output = (e.stdout || '') + (e.stderr || '');
+      }
+      if (output.includes('--model')) {
         console.log(`[TTS] Piper TTS detected at: ${candidate}`);
         return candidate;
       }
-    } catch { /* skip */ }
+      console.log(`[TTS] Checked ${candidate}: not Piper TTS (no --model flag in help)`);
+    } catch (e) {
+      console.log(`[TTS] Checked ${candidate}: not found or error`);
+    }
   }
-  console.log('[TTS] Piper TTS not found');
+  console.log('[TTS] Piper TTS not found. Set PIPER_PATH in .env or install to /opt/piper-tts/');
   return null;
 }
 
