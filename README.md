@@ -314,6 +314,20 @@ Ensure REFERENCE_LIBRARY_PATH points to the directory containing .zim files and 
 ### Music metadata not extracted
 After adding files, click **Rescan Library**. If artist/title still show as filename, the files may lack ID3 tags.
 
+### Piper TTS: "Unknown option --model"
+You likely have the wrong `piper` package installed. On some Linux distros, `apt install piper` installs a **GTK gaming device tool**, not Piper TTS.
+
+```bash
+# Check which piper you have:
+which piper
+piper --help  # Should show --model, --output_file, --output_raw options
+
+# If wrong, remove it and install Piper TTS:
+sudo apt remove piper
+# Download the correct Piper TTS from:
+# https://github.com/rhasspy/piper/releases
+```
+
 ---
 
 ## License
