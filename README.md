@@ -125,8 +125,8 @@ mkdir -p ~/models/piper
 cd ~/models/piper
 
 # Download Russian voice
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx.json
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
 
 # Download English voice (optional)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
@@ -174,7 +174,7 @@ KIWIX_SERVE_PATH=
 
 # TTS (optional)
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-medium
+TTS_DEFAULT_VOICE=ru_RU-irina-medium
 
 # AI / LLM (auto-launched)
 LLM_API_URL=http://localhost:11434
