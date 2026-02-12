@@ -20,7 +20,7 @@ function getConfiguredModels(): string[] {
   const envModels = process.env.LLM_MODELS;
   if (envModels) {
     const models = envModels.split(',').map(m => m.trim()).filter(Boolean);
-    if (models.length > 0) return models;
+    return models.length > 0 ? models : [DEFAULT_MODEL];
   }
   return [DEFAULT_MODEL];
 }
