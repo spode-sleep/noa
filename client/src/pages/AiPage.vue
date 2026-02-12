@@ -176,7 +176,8 @@ const renameInputRef = ref<HTMLInputElement[] | null>(null)
 
 const messages = ref<Message[]>([])
 const input = ref('')
-const loading = ref(false)
+const loadingConversationId = ref('')
+const loading = computed(() => loadingConversationId.value === activeConversationId.value && loadingConversationId.value !== '')
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
@@ -306,6 +307,7 @@ async function sendMessage() {
     createNewConversation()
   }
 
+  const currentConvId = activeConversationId.value
   messages.value.push({ role: 'user', content: text })
   chatStarted.value = true
   input.value = ''
@@ -314,7 +316,7 @@ async function sendMessage() {
     textareaRef.value.style.height = 'auto'
   }
 
-  loading.value = true
+  loadingConversationId.value = currentConvId
   try {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
@@ -330,15 +332,29 @@ async function sendMessage() {
       }),
     })
     const data = await res.json()
-    messages.value.push({
-      role: 'assistant',
-      content: data.content ?? data.response ?? 'No response.',
-      sources: data.sources?.length ? data.sources : undefined,
-    })
+    const conv = conversations.value.find(c => c.id === currentConvId)
+    if (conv) {
+      conv.messages.push({
+        role: 'assistant',
+        content: data.content ?? data.response ?? 'No response.',
+        sources: data.sources?.length ? data.sources : undefined,
+      })
+      if (activeConversationId.value === currentConvId) {
+        messages.value = conv.messages
+      }
+      saveConversations()
+    }
   } catch {
-    messages.value.push({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+    const conv = conversations.value.find(c => c.id === currentConvId)
+    if (conv) {
+      conv.messages.push({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+      if (activeConversationId.value === currentConvId) {
+        messages.value = conv.messages
+      }
+      saveConversations()
+    }
   } finally {
-    loading.value = false
+    loadingConversationId.value = ''
   }
 }
 
