@@ -7,11 +7,14 @@ const router = Router();
 
 const ttsModelPath = process.env.TTS_MODEL_PATH || '';
 const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-irina-medium';
+const piperPath = process.env.PIPER_PATH || 'piper';
 
 function isPiperInstalled(): boolean {
   try {
-    execSync('piper --help', { stdio: 'ignore', timeout: 5000 });
-    return true;
+    const output = execSync(`"${piperPath}" --help`, { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000 });
+    const helpText = output.toString();
+    // Verify it's actually Piper TTS, not the GTK gaming tool
+    return helpText.includes('--model') || helpText.includes('piper');
   } catch {
     return false;
   }
@@ -76,7 +79,7 @@ router.post('/synthesize', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'audio/wav');
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  const piper = spawn('piper', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+  const piper = spawn(piperPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
   // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono 22050Hz)
   const sampleRate = 22050;

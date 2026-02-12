@@ -114,11 +114,16 @@ CHROMA_DATA_PATH=./chroma_data
 
 ### 4. Install Piper TTS (Text-to-Speech) — Optional
 
+> ⚠️ **Do NOT use `apt install piper`** — that installs a GTK gaming device tool, not Piper TTS!
+
 ```bash
-# Download Piper binary
+# Download Piper TTS binary from GitHub releases
 wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
 tar -xzf piper_linux_x86_64.tar.gz
-sudo mv piper /usr/local/bin/
+sudo mv piper/piper /usr/local/bin/piper-tts
+
+# Set in your .env:
+# PIPER_PATH=/usr/local/bin/piper-tts
 
 # Create models directory
 mkdir -p ~/models/piper
@@ -137,8 +142,8 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/med
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
 
-# Verify
-piper --help
+# Verify (use the same name you set in PIPER_PATH)
+piper-tts --help  # Should show --model, --output_file, --output_raw options
 ```
 
 Voice samples: https://rhasspy.github.io/piper-samples/
@@ -180,6 +185,7 @@ KIWIX_PORT=9454
 KIWIX_SERVE_PATH=
 
 # TTS (optional)
+PIPER_PATH=/usr/local/bin/piper-tts
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-irina-medium
 
@@ -326,6 +332,9 @@ piper --help  # Should show --model, --output_file, --output_raw options
 sudo apt remove piper
 # Download the correct Piper TTS from:
 # https://github.com/rhasspy/piper/releases
+# Install as piper-tts to avoid conflicts:
+sudo mv piper/piper /usr/local/bin/piper-tts
+# Then set PIPER_PATH=/usr/local/bin/piper-tts in .env
 ```
 
 ---

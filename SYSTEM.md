@@ -122,6 +122,7 @@ cp server/.env.example server/.env
 | `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference,/media/user/USB/ZIM`|
 | `TTS_MODEL_PATH`       | Path to Piper TTS model files                   | `/home/user/models/piper`        |
 | `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-irina-medium`             |
+| `PIPER_PATH`           | Path to Piper TTS binary (avoids GTK piper conflict) | `/usr/local/bin/piper-tts`  |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
 
 ### Example `.env`
@@ -133,6 +134,7 @@ FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Books/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-irina-medium
+PIPER_PATH=/usr/local/bin/piper-tts
 DATA_PATH=../data
 ```
 
@@ -391,10 +393,10 @@ Piper TTS enables offline text-to-speech for reading articles and AI responses a
 # Download Piper binary
 wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
 tar -xzf piper_linux_x86_64.tar.gz
-sudo mv piper /usr/local/bin/
+sudo mv piper/piper /usr/local/bin/piper-tts
 
 # Verify
-piper --help
+piper-tts --help  # Should show --model, --output_file, --output_raw options
 ```
 
 ### Download Voice Models
@@ -416,6 +418,7 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/mediu
 ### Configure in .env
 
 ```env
+PIPER_PATH=/usr/local/bin/piper-tts
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-irina-medium
 ```
@@ -423,7 +426,7 @@ TTS_DEFAULT_VOICE=ru_RU-irina-medium
 ### Test TTS
 
 ```bash
-echo "Привет, мир!" | piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
+echo "Привет, мир!" | piper-tts --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
 aplay test.wav
 ```
 
