@@ -45,6 +45,7 @@
       <div class="chat-header glass">
         <h1>AI Librarian</h1>
         <div class="header-right">
+          <span v-if="selectedModel" class="model-badge">{{ selectedModel }}</span>
           <span class="ai-status" :class="{ online: aiStatus.available }">
             AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
             <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.backend === 'chromadb' ? 'ChromaDB' : ragStatus.chunksIndexed + ' chunks' }}</template>
@@ -53,9 +54,8 @@
       </div>
 
       <!-- Context indicator -->
-      <div v-if="chatStarted && (activeContextLabel || selectedModel)" class="context-indicator glass">
-        <span v-if="activeContextLabel">Connected: {{ activeContextLabel }}</span>
-        <span v-if="selectedModel" class="model-badge">{{ selectedModel }}</span>
+      <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
+        <span>Connected: {{ activeContextLabel }}</span>
       </div>
 
       <!-- Library switches (visible only before first message) -->
@@ -131,8 +131,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Icon } from '@iconify/vue'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/atom-one-dark.css'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -268,14 +270,48 @@ function finishRename(id: string) {
 // --- Existing chat logic ---
 
 function formatContent(text: string): string {
-  let html = text
+  // Extract code blocks first to protect them from escaping
+  const codeBlocks: string[] = []
+  let processed = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_match, lang: string, code: string) => {
+    const trimmedCode = code.replace(/^\n+|\n+$/g, '')
+    let highlighted: string
+    try {
+      highlighted = lang && hljs.getLanguage(lang)
+        ? hljs.highlight(trimmedCode, { language: lang }).value
+        : hljs.highlightAuto(trimmedCode).value
+    } catch {
+      highlighted = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+    const langLabel = lang || 'code'
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+    codeBlocks.push(
+      `<div class="code-block"><div class="code-header"><span class="code-lang">${langLabel}</span><button class="code-copy-btn" data-code="${encodeURIComponent(trimmedCode)}" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg></button></div><pre><code class="hljs">${highlighted}</code></pre></div>`
+    )
+    return placeholder
+  })
+
+  // Escape HTML in remaining text
+  processed = processed
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\n{2,}/g, '</p><p>')
-  html = '<p>' + html + '</p>'
-  return html
+
+  // Inline code
+  processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+
+  // Bold
+  processed = processed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+  // Paragraphs
+  processed = processed.replace(/\n{2,}/g, '</p><p>')
+  processed = '<p>' + processed + '</p>'
+
+  // Restore code blocks
+  codeBlocks.forEach((block, i) => {
+    processed = processed.replace(`__CODE_BLOCK_${i}__`, block)
+  })
+
+  return processed
 }
 
 function autoResize() {
@@ -393,7 +429,19 @@ async function buildIndex() {
   }
 }
 
+function handleCodeCopy(e: Event) {
+  const target = (e.target as HTMLElement).closest('.code-copy-btn') as HTMLElement | null
+  if (!target) return
+  const code = decodeURIComponent(target.dataset.code || '')
+  navigator.clipboard.writeText(code).then(() => {
+    target.classList.add('copied')
+    setTimeout(() => target.classList.remove('copied'), 1500)
+  })
+}
+
 onMounted(async () => {
+  document.addEventListener('click', handleCodeCopy)
+
   // Load existing conversations, but don't create new one (lazy creation on first message)
   if (conversations.value.length > 0) {
     switchConversation(conversations.value[0].id)
@@ -418,6 +466,10 @@ onMounted(async () => {
   } catch {
     aiStatus.value = { available: false, message: 'Unable to reach AI service' }
   }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleCodeCopy)
 })
 </script>
 
@@ -921,5 +973,71 @@ onMounted(async () => {
 
 .send-btn:not(:disabled):hover {
   opacity: 0.85;
+}
+
+/* Code blocks */
+.code-block {
+  margin: 12px 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.code-lang {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.code-copy-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.code-copy-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.code-copy-btn.copied {
+  color: #4ade80;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 12px 16px;
+  overflow-x: auto;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.code-block code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+:deep(.inline-code) {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
 }
 </style>
