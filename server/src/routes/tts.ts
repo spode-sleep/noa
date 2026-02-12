@@ -5,11 +5,15 @@ import { execSync, spawn } from 'child_process';
 
 const router = Router();
 
-const ttsModelPath = process.env.TTS_MODEL_PATH || '';
+function expandHome(p: string): string {
+  return p.startsWith('~') ? p.replace('~', process.env.HOME || '') : p;
+}
+
+const ttsModelPath = expandHome(process.env.TTS_MODEL_PATH || '');
 const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-irina-medium';
 function detectPiperPath(): string | null {
   const candidates = process.env.PIPER_PATH
-    ? [process.env.PIPER_PATH]
+    ? [expandHome(process.env.PIPER_PATH)]
     : ['piper', '/opt/piper-tts/piper'];
   for (const candidate of candidates) {
     try {
