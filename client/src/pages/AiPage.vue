@@ -272,7 +272,7 @@ function finishRename(id: string) {
 function formatContent(text: string): string {
   // Extract code blocks first to protect them from escaping
   const codeBlocks: string[] = []
-  let processed = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_match, lang: string, code: string) => {
+  let processed = text.replace(/```([\w-]*)\n?([\s\S]*?)```/g, (_match, lang: string, code: string) => {
     const trimmedCode = code.replace(/^\n+|\n+$/g, '')
     let highlighted: string
     try {
@@ -282,10 +282,10 @@ function formatContent(text: string): string {
     } catch {
       highlighted = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     }
-    const langLabel = lang || 'code'
+    const safeLang = (lang || 'code').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
     codeBlocks.push(
-      `<div class="code-block"><div class="code-header"><span class="code-lang">${langLabel}</span><button class="code-copy-btn" data-code="${encodeURIComponent(trimmedCode)}" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg></button></div><pre><code class="hljs">${highlighted}</code></pre></div>`
+      `<div class="code-block"><div class="code-header"><span class="code-lang">${safeLang}</span><button class="code-copy-btn" data-code="${encodeURIComponent(trimmedCode)}" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg></button></div><pre><code class="hljs">${highlighted}</code></pre></div>`
     )
     return placeholder
   })
@@ -430,13 +430,15 @@ async function buildIndex() {
 }
 
 function handleCodeCopy(e: Event) {
-  const target = (e.target as HTMLElement).closest('.code-copy-btn') as HTMLElement | null
+  const el = e.target
+  if (!(el instanceof HTMLElement)) return
+  const target = el.closest('.code-copy-btn') as HTMLElement | null
   if (!target) return
   const code = decodeURIComponent(target.dataset.code || '')
   navigator.clipboard.writeText(code).then(() => {
     target.classList.add('copied')
     setTimeout(() => target.classList.remove('copied'), 1500)
-  })
+  }).catch(() => {})
 }
 
 onMounted(async () => {
