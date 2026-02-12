@@ -451,6 +451,7 @@ function handleCodeCopy(e: Event) {
 }
 
 onMounted(async () => {
+  document.documentElement.style.overflow = 'hidden'
   document.addEventListener('click', handleCodeCopy)
 
   // Load existing conversations, but don't create new one (lazy creation on first message)
@@ -480,6 +481,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  document.documentElement.style.overflow = ''
   document.removeEventListener('click', handleCodeCopy)
 })
 </script>
@@ -488,7 +490,7 @@ onBeforeUnmount(() => {
 .chat-layout {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 140px);
+  height: calc(100vh - 100px);
   overflow: hidden;
 }
 
