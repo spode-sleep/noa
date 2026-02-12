@@ -7,22 +7,34 @@ const router = Router();
 
 const ttsModelPath = process.env.TTS_MODEL_PATH || '';
 const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-irina-medium';
-const piperPath = process.env.PIPER_PATH || 'piper';
-const piperDir = path.dirname(piperPath);
-const piperEnv = {
+function detectPiperPath(): string | null {
+  const candidates = process.env.PIPER_PATH
+    ? [process.env.PIPER_PATH]
+    : ['piper', '/opt/piper-tts/piper'];
+  for (const candidate of candidates) {
+    try {
+      const dir = path.dirname(path.resolve(candidate));
+      const env = { ...process.env, LD_LIBRARY_PATH: [path.join(dir, 'lib'), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') };
+      const output = execSync(`"${candidate}" --help`, { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000, env });
+      if (output.toString().includes('--model')) {
+        console.log(`[TTS] Piper TTS detected at: ${candidate}`);
+        return candidate;
+      }
+    } catch { /* skip */ }
+  }
+  console.log('[TTS] Piper TTS not found');
+  return null;
+}
+
+const resolvedPiperPath = detectPiperPath();
+const piperDir = resolvedPiperPath ? path.dirname(path.resolve(resolvedPiperPath)) : '';
+const piperEnv = resolvedPiperPath ? {
   ...process.env,
   LD_LIBRARY_PATH: [path.join(piperDir, 'lib'), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':'),
-};
+} : process.env;
 
 function isPiperInstalled(): boolean {
-  try {
-    const output = execSync(`"${piperPath}" --help`, { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000, env: piperEnv });
-    const helpText = output.toString();
-    // Verify it's actually Piper TTS (has --model option), not the GTK gaming tool
-    return helpText.includes('--model');
-  } catch {
-    return false;
-  }
+  return resolvedPiperPath !== null;
 }
 
 function getModelPath(voice: string): string | null {
@@ -84,7 +96,7 @@ router.post('/synthesize', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'audio/wav');
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  const piper = spawn(piperPath, args, { stdio: ['pipe', 'pipe', 'pipe'], env: piperEnv });
+  const piper = spawn(resolvedPiperPath!, args, { stdio: ['pipe', 'pipe', 'pipe'], env: piperEnv });
 
   // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono 22050Hz)
   const sampleRate = 22050;
