@@ -436,7 +436,7 @@ const checkSvg = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="cu
 
 function handleCodeCopy(e: Event) {
   const el = e.target
-  if (!(el instanceof HTMLElement)) return
+  if (!(el instanceof Element)) return
   const target = el.closest('.code-copy-btn') as HTMLElement | null
   if (!target) return
   const code = decodeURIComponent(target.dataset.code || '')
@@ -488,7 +488,7 @@ onBeforeUnmount(() => {
 .chat-layout {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 140px);
   overflow: hidden;
 }
 
