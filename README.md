@@ -178,7 +178,6 @@ TTS_DEFAULT_VOICE=ru_RU-medium
 
 # AI / LLM (auto-launched)
 LLM_API_URL=http://localhost:11434
-LLM_MODEL=huihui_ai/qwen3-abliterated:8b-v2
 LLM_MODELS=huihui_ai/qwen3-abliterated:8b-v2,huihui_ai/qwen2.5-abliterate:14b,qwen2.5-coder:14b
 LLM_API_TYPE=auto
 EMBEDDING_MODEL=nomic-embed-text

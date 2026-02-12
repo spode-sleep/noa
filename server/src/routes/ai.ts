@@ -11,17 +11,21 @@ const router = Router();
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
 const metadataDir = path.join(dataPath, 'metadata');
 const llmApiUrl = process.env.LLM_API_URL || 'http://localhost:11434';
-const llmModel = process.env.LLM_MODEL || 'huihui_ai/qwen3-abliterated:8b-v2';
 const llmApiType = process.env.LLM_API_TYPE || 'auto'; // 'ollama', 'openai', or 'auto'
 const MAX_HISTORY_MESSAGES = 20;
+
+const DEFAULT_MODEL = 'huihui_ai/qwen3-abliterated:8b-v2';
 
 function getConfiguredModels(): string[] {
   const envModels = process.env.LLM_MODELS;
   if (envModels) {
-    return envModels.split(',').map(m => m.trim()).filter(Boolean);
+    const models = envModels.split(',').map(m => m.trim()).filter(Boolean);
+    if (models.length > 0) return models;
   }
-  return [llmModel];
+  return [DEFAULT_MODEL];
 }
+
+const llmModel = getConfiguredModels()[0];
 
 function isModelAllowed(model: string): boolean {
   const allowed = getConfiguredModels();

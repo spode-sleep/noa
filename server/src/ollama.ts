@@ -167,13 +167,13 @@ export async function startOllama(): Promise<void> {
   }
 
   // Auto-pull models
-  const llmModel = process.env.LLM_MODEL || 'huihui_ai/qwen3-abliterated:8b-v2';
+  const defaultModel = 'huihui_ai/qwen3-abliterated:8b-v2';
   const embModel = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
-  const extraModels = process.env.LLM_MODELS
+  const configuredModels = process.env.LLM_MODELS
     ? process.env.LLM_MODELS.split(',').map(m => m.trim()).filter(Boolean)
-    : [];
+    : [defaultModel];
 
-  const allModels = new Set([llmModel, embModel, ...extraModels]);
+  const allModels = new Set([...configuredModels, embModel]);
 
   for (const model of allModels) {
     const available = await isModelAvailable(model);
