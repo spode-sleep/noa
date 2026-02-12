@@ -26,6 +26,7 @@
               />
             </template>
             <span v-else class="conversation-title">{{ conv.title }}</span>
+            <span v-if="loadingConversationIds.has(conv.id)" class="conv-loading"><Icon icon="mdi:loading" class="spin" /></span>
           </div>
           <div class="conversation-actions" @click.stop>
             <button class="icon-btn" @click="startRename(conv)" title="Rename">
@@ -131,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
@@ -178,8 +179,8 @@ const renameInputRef = ref<HTMLInputElement[] | null>(null)
 
 const messages = ref<Message[]>([])
 const input = ref('')
-const loadingConversationId = ref('')
-const loading = computed(() => loadingConversationId.value === activeConversationId.value && loadingConversationId.value !== '')
+const loadingConversationIds = reactive(new Set<string>())
+const loading = computed(() => loadingConversationIds.has(activeConversationId.value))
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
@@ -336,7 +337,8 @@ watch(messages, () => {
 
 async function sendMessage() {
   const text = input.value.trim()
-  if (!text || loading.value) return
+  if (!text) return
+  if (loadingConversationIds.has(activeConversationId.value)) return
 
   // Create conversation lazily on first message
   if (!activeConversationId.value) {
@@ -364,7 +366,7 @@ async function sendMessage() {
     }
   }
 
-  loadingConversationId.value = currentConvId
+  loadingConversationIds.add(currentConvId)
   try {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
@@ -388,7 +390,7 @@ async function sendMessage() {
   } catch {
     pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
   } finally {
-    loadingConversationId.value = ''
+    loadingConversationIds.delete(currentConvId)
   }
 }
 
@@ -559,6 +561,18 @@ onBeforeUnmount(() => {
 
 .conversation-item.active .conversation-title {
   color: var(--text-primary);
+}
+
+.conv-loading {
+  color: var(--accent-teal);
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.conv-loading .spin {
+  animation: spin 1s linear infinite;
+  font-size: 0.9rem;
 }
 
 .rename-input {
@@ -927,6 +941,11 @@ onBeforeUnmount(() => {
   40% { opacity: 1; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Input area */
 .input-area {
   display: flex;
@@ -1022,7 +1041,7 @@ onBeforeUnmount(() => {
 
 :deep(.code-block pre) {
   margin: 0;
-  padding: 14px 16px;
+  padding: 0;
   overflow-x: auto;
   background: rgba(0, 0, 0, 0.35);
 }
