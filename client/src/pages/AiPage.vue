@@ -11,7 +11,7 @@
           v-for="conv in conversations"
           :key="conv.id"
           class="conversation-item"
-          :class="{ active: conv.id === activeConversationId }"
+          :class="{ active: conv.id === activeConversationId, loading: loadingConversationIds.has(conv.id) }"
           @click="switchConversation(conv.id)"
         >
           <div class="conversation-title-row">
@@ -26,9 +26,9 @@
               />
             </template>
             <span v-else class="conversation-title">{{ conv.title }}</span>
-            <span v-if="loadingConversationIds.has(conv.id)" class="conv-loading"><Icon icon="mdi:loading" class="spin" /></span>
           </div>
           <div class="conversation-actions" @click.stop>
+            <span v-if="loadingConversationIds.has(conv.id)" class="conv-loading"><Icon icon="mdi:loading" class="spin" /></span>
             <button class="icon-btn" @click="startRename(conv)" title="Rename">
               <Icon icon="mdi:pencil" />
             </button>
@@ -431,6 +431,9 @@ async function buildIndex() {
   }
 }
 
+const copySvg = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg>'
+const checkSvg = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>'
+
 function handleCodeCopy(e: Event) {
   const el = e.target
   if (!(el instanceof HTMLElement)) return
@@ -438,8 +441,12 @@ function handleCodeCopy(e: Event) {
   if (!target) return
   const code = decodeURIComponent(target.dataset.code || '')
   navigator.clipboard.writeText(code).then(() => {
+    target.innerHTML = checkSvg
     target.classList.add('copied')
-    setTimeout(() => target.classList.remove('copied'), 1500)
+    setTimeout(() => {
+      target.innerHTML = copySvg
+      target.classList.remove('copied')
+    }, 1500)
   }).catch(() => {})
 }
 
@@ -481,7 +488,7 @@ onBeforeUnmount(() => {
 .chat-layout {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 80px - 24px - 48px);
+  height: calc(100vh - 100px);
   overflow: hidden;
 }
 
@@ -565,7 +572,6 @@ onBeforeUnmount(() => {
 
 .conv-loading {
   color: var(--accent-teal);
-  margin-left: 4px;
   display: inline-flex;
   align-items: center;
 }
@@ -595,7 +601,8 @@ onBeforeUnmount(() => {
 }
 
 .conversation-item:hover .conversation-actions,
-.conversation-item.active .conversation-actions {
+.conversation-item.active .conversation-actions,
+.conversation-item.loading .conversation-actions {
   opacity: 1;
 }
 
