@@ -123,7 +123,7 @@ def clean_text_for_web(text):
 
 
 def clean_text_preserve_newlines(text):
-    """Очистка текста с сохранением переносов строк"""
+    """Очистка текста с сохранением переносов строк, но убирает избыточные"""
     if not text:
         return ""
     
@@ -138,14 +138,23 @@ def clean_text_preserve_newlines(text):
         if line:  # Добавляем только непустые строки
             cleaned_lines.append(line)
     
-    # Объединяем строки обратно
-    return '\n'.join(cleaned_lines)
+    # Объединяем строки обратно, убирая множественные переносы
+    result = '\n'.join(cleaned_lines)
+    
+    # Убираем переносы вокруг эмодзи (если эмодзи окружены \n с обеих сторон)
+    import re
+    # Убираем лишние переносы вокруг одиночных эмодзи
+    result = re.sub(r'\n+([\U0001F300-\U0001F9FF])\n+', r' \1 ', result)
+    
+    return result
 
 
 def replace_css_icons_with_emoji(element):
     """Заменяет элементы с CSS ::before иконками на эмодзи"""
     if not element:
         return
+    
+    from bs4 import NavigableString
     
     # Маппинг CSS классов на эмодзи
     css_class_emoji_map = {
@@ -162,16 +171,33 @@ def replace_css_icons_with_emoji(element):
     for tag in element.find_all(['div', 'span']):
         tag_classes = tag.get('class', [])
         
-        # Проверяем, есть ли совпадение с нашими классами
+        # Сначала проверяем, есть ли совпадение с нашими классами
+        replaced = False
         for css_class, emoji in css_class_emoji_map.items():
             if css_class in tag_classes:
-                # Заменяем элемент на эмодзи + текст внутри элемента (если есть)
-                inner_text = tag.get_text(strip=True)
+                # Получаем текст внутри элемента (если есть)
+                inner_text = tag.get_text(separator=' ', strip=True)
+                
                 if inner_text:
-                    tag.replace_with(f"{emoji} {inner_text}")
+                    # Если внутри тега есть текст: эмодзи + пробел + текст
+                    replacement_text = f"{emoji} {inner_text}"
                 else:
-                    tag.replace_with(emoji)
+                    # Если текста нет, просто эмодзи
+                    replacement_text = emoji
+                
+                # Заменяем на NavigableString вместо элемента
+                # Это предотвращает добавление переносов строк
+                tag.replace_with(NavigableString(replacement_text))
+                replaced = True
                 break
+        
+        # Если не нашли соответствие в маппинге, проверяем svg-icon
+        if not replaced and 'svg-icon' in tag_classes:
+            # Получаем title атрибут
+            title_text = tag.get('title', '').strip()
+            if title_text:
+                # Заменяем на текст из title
+                tag.replace_with(NavigableString(title_text))
 
 
 def replace_images_with_text(element):
@@ -206,27 +232,287 @@ def replace_images_with_text(element):
             if filename and filename not in ['blank', 'spacer', 'transparent']:
                 text_replacement = filename.replace('_', ' ').replace('-', ' ')
         
-        # Если есть текстовое описание, заменяем тег на текст
+        # Если есть текстовое описание, заменяем тег на текст (БЕЗ квадратных скобок)
         if text_replacement:
-            img.replace_with(f"[{text_replacement}]")
+            img.replace_with(text_replacement)
         else:
             # Если нет описания, просто удаляем изображение
             img.decompose()
 
 
-def preserve_structure_tags(element):
-    """Заменяем <br> на символ переноса строки и оборачиваем <code> в обратные кавычки"""
+def replace_abbr_tags(element):
+    """Заменяет теги abbr на их текстовое содержимое, заменяя < и > на %, без добавления пробелов"""
     if not element:
         return
     
-    # Заменяем <br> на \n
-    for br in element.find_all('br'):
-        br.replace_with('\n')
+    abbr_tags = element.find_all('abbr')
     
-    # Оборачиваем <code> в обратные кавычки
-    for code in element.find_all('code'):
+    for abbr in abbr_tags:
+        # Получаем текст внутри abbr
+        abbr_text = abbr.get_text()
+        # Заменяем < и > на %
+        abbr_text = abbr_text.replace('<', '%').replace('>', '%')
+        # Заменяем содержимое и разворачиваем тег
+        abbr.string = abbr_text
+        abbr.unwrap()
+
+
+def unwrap_inline_elements(element):
+    """Разворачивает inline элементы (a, span), чтобы убрать лишние пробелы при get_text()"""
+    if not element:
+        return
+    
+    # Разворачиваем все <a> и <span> теги
+    for tag in element.find_all(['a', 'span']):
+        tag.unwrap()
+
+
+def replace_code_tags_with_quotes(element):
+    """Заменяет <code>, <tt>, <kbd>, <samp>, <pre> теги на §символ параграфа§ """
+    if not element:
+        return
+    
+    # Ищем все code-подобные теги
+    code_tags = element.find_all(['code', 'tt', 'kbd', 'samp', 'pre'])
+    
+    for code in code_tags:
+        # Получаем текст внутри
         code_text = code.get_text()
-        code.replace_with(f'`{code_text}`')
+        # Заменяем на символ параграфа
+        code.replace_with(f'§{code_text}§')
+
+
+def add_spaces_between_words(element):
+    """Добавляет пробелы между словами, которые могут склеиться при get_text(separator='')"""
+    if not element:
+        return
+    
+    from bs4 import NavigableString
+    
+    # Добавляем пробел после определенных inline элементов
+    # которые обычно отделяются пробелами в тексте
+    inline_with_space = ['span', 'em', 'strong', 'b', 'i', 'u']
+    
+    for tag in element.find_all(inline_with_space):
+        # Добавляем пробел после тега если следующий sibling не пробел
+        next_sib = tag.next_sibling
+        if next_sib and isinstance(next_sib, NavigableString):
+            text = str(next_sib)
+            if text and not text[0].isspace():
+                tag.insert_after(NavigableString(' '))
+        elif next_sib and not isinstance(next_sib, NavigableString):
+            tag.insert_after(NavigableString(' '))
+
+
+def extract_list_with_newlines(list_element):
+    """Извлекает текст из <dl>, <ul> или <ol> элемента, сохраняя каждый элемент на отдельной строке"""
+    if not list_element:
+        return ""
+    
+    lines = []
+    
+    # Для dl обрабатываем dd элементы
+    if list_element.name == 'dl':
+        for dd in list_element.find_all('dd', recursive=False):
+            dd_text = dd.get_text(separator='', strip=True)
+            if dd_text:
+                lines.append(dd_text)
+    
+    # Для ul/ol обрабатываем li элементы
+    elif list_element.name in ['ul', 'ol']:
+        for li in list_element.find_all('li', recursive=False):
+            li_text = li.get_text(separator='', strip=True)
+            if li_text:
+                lines.append(li_text)
+    
+    return '\n'.join(lines)
+
+
+def add_newlines_after_blocks(element):
+    """Добавляет переносы строк после block-level элементов для сохранения структуры"""
+    if not element:
+        return
+    
+    from bs4 import NavigableString
+    
+    # Block-level элементы, после которых нужен перенос строки
+    block_elements = ['p', 'div', 'dd', 'dt', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr']
+    
+    for block in element.find_all(block_elements):
+        # Добавляем \n после каждого block элемента
+        # Проверяем, что после элемента есть что-то ещё
+        if block.next_sibling is not None:
+            # Если следующий sibling - это текст, и он не начинается с \n, добавляем \n
+            if isinstance(block.next_sibling, NavigableString):
+                text = str(block.next_sibling)
+                if not text.startswith('\n'):
+                    block.insert_after(NavigableString('\n'))
+            else:
+                # Если следующий sibling - элемент, добавляем \n между ними
+                block.insert_after(NavigableString('\n'))
+
+
+def add_newlines_before_section_headers(element):
+    """Добавляет переносы строк перед и после заголовков секций типа Notes, Warning и т.д."""
+    if not element:
+        return
+    
+    from bs4 import NavigableString
+    
+    # Ищем все <p> элементы, которые содержат жирные заголовки
+    for p in element.find_all('p'):
+        # Проверяем, содержит ли <p> тег <b> или <strong>
+        bold_tag = p.find(['b', 'strong'])
+        if bold_tag:
+            # Получаем текст внутри <b>/<strong>
+            header_text = bold_tag.get_text(strip=True).lower()
+            
+            # Список ключевых слов для заголовков секций
+            section_keywords = ['notes', 'note', 'warning', 'important', 'tip', 'caution', 
+                              'attention', 'info', 'информация', 'примечание', 'внимание']
+            
+            # Если это заголовок секции
+            if any(keyword in header_text for keyword in section_keywords):
+                # Добавляем перенос строки ПЕРЕД <p>
+                if p.previous_sibling is not None:
+                    # Если предыдущий sibling - текст, проверяем что он не заканчивается на \n
+                    if isinstance(p.previous_sibling, NavigableString):
+                        text = str(p.previous_sibling)
+                        if not text.endswith('\n'):
+                            p.insert_before(NavigableString('\n'))
+                    else:
+                        # Если предыдущий sibling - элемент, добавляем \n перед <p>
+                        p.insert_before(NavigableString('\n'))
+                
+                # Добавляем перенос строки ПОСЛЕ <p>
+                if p.next_sibling is not None:
+                    # Если следующий sibling - текст, проверяем что он не начинается с \n
+                    if isinstance(p.next_sibling, NavigableString):
+                        text = str(p.next_sibling)
+                        if not text.startswith('\n'):
+                            p.insert_after(NavigableString('\n'))
+                    else:
+                        # Если следующий sibling - элемент, добавляем \n после <p>
+                        p.insert_after(NavigableString('\n'))
+
+
+def add_newlines_in_lists(element):
+    """Добавляет переносы строк между элементами списков (li, dd) для fixbox"""
+    if not element:
+        return
+    
+    from bs4 import NavigableString
+    
+    # Обрабатываем все списки: ul, ol, dl
+    for list_elem in element.find_all(['ul', 'ol', 'dl']):
+        # Для ul/ol обрабатываем li элементы
+        if list_elem.name in ['ul', 'ol']:
+            list_items = list_elem.find_all('li', recursive=False)
+            for li in list_items:
+                # Добавляем \n после каждого li (кроме последнего)
+                if li.next_sibling is not None:
+                    # Проверяем, что следующий sibling не начинается с \n
+                    if isinstance(li.next_sibling, NavigableString):
+                        text = str(li.next_sibling)
+                        if not text.startswith('\n'):
+                            li.insert_after(NavigableString('\n'))
+                    else:
+                        # Если следующий элемент - другой li, добавляем \n
+                        li.insert_after(NavigableString('\n'))
+        
+        # Для dl обрабатываем dd элементы
+        elif list_elem.name == 'dl':
+            dd_items = list_elem.find_all('dd', recursive=False)
+            for dd in dd_items:
+                # Добавляем \n после каждого dd (кроме последнего)
+                if dd.next_sibling is not None:
+                    if isinstance(dd.next_sibling, NavigableString):
+                        text = str(dd.next_sibling)
+                        if not text.startswith('\n'):
+                            dd.insert_after(NavigableString('\n'))
+                    else:
+                        dd.insert_after(NavigableString('\n'))
+
+
+def preserve_structure_tags(element):
+    """Заменяем <br> на пробел (для обычного текста переносы не нужны), кроме code тегов"""
+    if not element:
+        return
+    
+    # Заменяем <br> на пробел, но пропускаем те что внутри code
+    for br in element.find_all('br'):
+        # Проверяем, находится ли br внутри code тега
+        parent = br.parent
+        inside_code = False
+        while parent:
+            if parent.name == 'code':
+                inside_code = True
+                break
+            parent = parent.parent
+        
+        # Заменяем только если не внутри code
+        if not inside_code:
+            br.replace_with(' ')
+
+
+def preserve_structure_tags_with_newlines(element):
+    """Заменяем <br> на \n (для fixbox где нужна структура), кроме code тегов"""
+    if not element:
+        return
+    
+    # Заменяем <br> на \n, но пропускаем те что внутри code
+    for br in element.find_all('br'):
+        # Проверяем, находится ли br внутри code тега
+        parent = br.parent
+        inside_code = False
+        while parent:
+            if parent.name == 'code':
+                inside_code = True
+                break
+            parent = parent.parent
+        
+        # Заменяем только если не внутри code
+        if not inside_code:
+            br.replace_with('\n')
+
+
+def remove_brackets_from_text(element):
+    """Удаляет квадратные скобки [] вместе с их содержимым и [ citation needed ]"""
+    if not element:
+        return
+    
+    import re
+    from bs4 import NavigableString
+    
+    # Удаляем ВСЕ <sup> теги (они обычно содержат ссылки и citation needed)
+    for sup in element.find_all('sup'):
+        sup.decompose()
+    
+    # Удаляем все <a> теги, которые содержат квадратные скобки (ссылки на сноски)
+    for a in element.find_all('a'):
+        a_text = a.get_text()
+        if '[' in a_text or ']' in a_text:
+            a.decompose()
+    
+    def process_text_nodes(elem):
+        """Рекурсивно обрабатываем текстовые узлы"""
+        for child in list(elem.children):
+            if isinstance(child, NavigableString):
+                text = str(child)
+                # Удаляем [ citation needed ] (с вариациями пробелов и регистра)
+                text = re.sub(r'\[\s*citation\s+needed\s*\]', '', text, flags=re.IGNORECASE)
+                # Удаляем все квадратные скобки вместе с содержимым (включая цифры ссылок)
+                text = re.sub(r'\[\s*Note\s+\d+\s*\]', '', text, flags=re.IGNORECASE)  # [Note 1], [Note 2], etc.
+                text = re.sub(r'\[\s*\d+\s*\]', '', text)  # [1], [2], etc.
+                text = re.sub(r'\[.*?\]', '', text)  # Остальные скобки
+                # Убираем лишние пробелы, которые могли остаться
+                text = re.sub(r'\s+', ' ', text)
+                if text != str(child):
+                    child.replace_with(text)
+            elif hasattr(child, 'children'):
+                process_text_nodes(child)
+    
+    process_text_nodes(element)
 
 
 def extract_content_from_element(element, include_fixbox=True):
@@ -244,10 +530,21 @@ def extract_content_from_element(element, include_fixbox=True):
         "fixboxes": []
     }
     
+    # ВАЖНО: Сначала удаляем brackets и ссылки (пока это ещё HTML)
+    remove_brackets_from_text(element)
+    # Добавляем переносы строк после block элементов
+    add_newlines_after_blocks(element)
+    # Добавляем переносы строк перед заголовками секций (Notes, Warning и т.д.)
+    add_newlines_before_section_headers(element)
+    # Заменяем code теги на кавычки
+    replace_code_tags_with_quotes(element)
     # Заменяем CSS иконки и изображения на текст
     replace_css_icons_with_emoji(element)
-    preserve_structure_tags(element)  # Сохраняем br и code
+    preserve_structure_tags(element)  # Сохраняем br
     replace_images_with_text(element)
+    replace_abbr_tags(element)  # Заменяем abbr теги
+    unwrap_inline_elements(element)  # Разворачиваем inline элементы
+    add_spaces_between_words(element)  # Добавляем пробелы между словами
     
     # Если сам элемент является таблицей, обрабатываем его
     if element.name == 'table':
@@ -291,7 +588,13 @@ def extract_content_from_element(element, include_fixbox=True):
     
     # Извлекаем оставшийся текст
     if element.name in ['p', 'dl', 'ul', 'ol', 'div', 'figure']:
-        text = clean_text_for_web(element.get_text(strip=True))
+        # Для dl/ul/ol используем специальную функцию с переносами строк
+        if element.name in ['dl', 'ul', 'ol']:
+            text = extract_list_with_newlines(element)
+            text = clean_text_preserve_newlines(text)
+        else:
+            # Для остальных используем separator='' чтобы не было лишних пробелов
+            text = clean_text_for_web(element.get_text(separator='', strip=True))
         if text:
             result["text"].append(text)
     
@@ -320,25 +623,35 @@ def extract_table_data(table_elem):
     if not table_elem:
         return None
     
-    # Заменяем CSS иконки на эмоджи, затем изображения на текст
-    replace_css_icons_with_emoji(table_elem)
-    preserve_structure_tags(table_elem)  # Сохраняем br и code
-    replace_images_with_text(table_elem)
-    
     # Обрабатываем fixbox таблицы отдельно - они содержат просто текст
     if 'fixbox' in table_elem.get('class', []):
+        # ВАЖНО: Сначала удаляем brackets и ссылки (пока это ещё HTML)
+        remove_brackets_from_text(table_elem)
+        # Добавляем переносы строк перед заголовками секций
+        add_newlines_before_section_headers(table_elem)
+        # Добавляем переносы строк между элементами списков
+        add_newlines_in_lists(table_elem)
+        # Потом остальные преобразования
+        replace_code_tags_with_quotes(table_elem)
+        # Для fixbox используем preserve с newlines
+        replace_css_icons_with_emoji(table_elem)
+        preserve_structure_tags_with_newlines(table_elem)  # Сохраняем br как \n
+        replace_images_with_text(table_elem)
+        replace_abbr_tags(table_elem)  # Заменяем abbr теги
+        unwrap_inline_elements(table_elem)  # Разворачиваем inline элементы
+        
         fix_title_elem = table_elem.find('th', class_='fixbox-title')
         fix_body_elem = table_elem.find('td', class_='fixbox-body')
         
         if fix_title_elem or fix_body_elem:
             fixbox_rows = []
             if fix_title_elem:
-                title_text = clean_text_preserve_newlines(fix_title_elem.get_text(separator='\n'))
+                title_text = clean_text_preserve_newlines(fix_title_elem.get_text(separator=' '))
                 if title_text:
                     fixbox_rows.append(title_text)
             if fix_body_elem:
-                # get_text с separator='\n' сохраняет структуру
-                body_text = fix_body_elem.get_text(separator='\n')
+                # get_text с separator=' ' - переносы только от <br>
+                body_text = fix_body_elem.get_text(separator=' ')
                 content_text = clean_text_preserve_newlines(body_text)
                 if content_text:
                     fixbox_rows.append(content_text)
@@ -348,6 +661,18 @@ def extract_table_data(table_elem):
                 "rows": fixbox_rows
             }
         return None
+    
+    # ВАЖНО: Сначала удаляем brackets и ссылки (пока это ещё HTML)
+    remove_brackets_from_text(table_elem)
+    # Заменяем code теги на кавычки для обычных таблиц
+    replace_code_tags_with_quotes(table_elem)
+    # Для обычных таблиц - заменяем br на пробелы
+    replace_css_icons_with_emoji(table_elem)
+    preserve_structure_tags(table_elem)  # br -> пробел
+    replace_images_with_text(table_elem)
+    replace_abbr_tags(table_elem)  # Заменяем abbr теги
+    unwrap_inline_elements(table_elem)  # Разворачиваем inline элементы
+    add_spaces_between_words(table_elem)  # Добавляем пробелы между словами
     
     # Обычная таблица
     table_data = {
@@ -362,7 +687,8 @@ def extract_table_data(table_elem):
         header_row = thead.find('tr')
         if header_row:
             for th in header_row.find_all(['th', 'td']):
-                table_data["headers"].append(clean_text_for_web(th.get_text(strip=True)))
+                header_text = clean_text_for_web(th.get_text(separator='', strip=True))
+                table_data["headers"].append(header_text)
     
     # Если заголовков нет в thead, ищем в первой строке tbody
     if not table_data["headers"]:
@@ -371,7 +697,8 @@ def extract_table_data(table_elem):
             headers = first_row.find_all('th')
             if headers:
                 for th in headers:
-                    table_data["headers"].append(clean_text_for_web(th.get_text(strip=True)))
+                    header_text = clean_text_for_web(th.get_text(separator='', strip=True))
+                    table_data["headers"].append(header_text)
     
     # Извлекаем строки данных
     tbody = table_elem.find('tbody') or table_elem
@@ -384,7 +711,8 @@ def extract_table_data(table_elem):
         cells = row.find_all(['td', 'th'])
         row_data = []
         for cell in cells:
-            row_data.append(clean_text_for_web(cell.get_text(strip=True)))
+            cell_text = clean_text_for_web(cell.get_text(separator='', strip=True))
+            row_data.append(cell_text)
         
         if any(row_data):  # Добавляем только непустые строки
             table_data["rows"].append(row_data)
@@ -426,7 +754,7 @@ def extract_pcgaming_data(html):
                 if current.name == 'h3':
                     improvement_title_span = current.find('span', class_='mw-headline')
                     if improvement_title_span:
-                        title = clean_text_for_web(improvement_title_span.get_text(strip=True))
+                        title = clean_text_for_web(improvement_title_span.get_text(separator=' ', strip=True))
                         
                         all_text = []
                         all_tables = []
@@ -463,7 +791,7 @@ def extract_pcgaming_data(html):
                 if current.name == 'h3':
                     issue_title_span = current.find('span', class_='mw-headline')
                     if issue_title_span:
-                        title = clean_text_for_web(issue_title_span.get_text(strip=True))
+                        title = clean_text_for_web(issue_title_span.get_text(separator=' ', strip=True))
                         
                         solutions = []
                         all_text = []
@@ -511,7 +839,7 @@ def extract_pcgaming_data(html):
                 if current.name == 'h3':
                     issue_title_span = current.find('span', class_='mw-headline')
                     if issue_title_span:
-                        title = clean_text_for_web(issue_title_span.get_text(strip=True))
+                        title = clean_text_for_web(issue_title_span.get_text(separator=' ', strip=True))
                         
                         all_text = []
                         all_tables = []
@@ -549,7 +877,7 @@ def extract_pcgaming_data(html):
                 if current.name == 'h3':
                     mod_title_span = current.find('span', class_='mw-headline')
                     if mod_title_span:
-                        title = clean_text_for_web(mod_title_span.get_text(strip=True))
+                        title = clean_text_for_web(mod_title_span.get_text(separator=' ', strip=True))
                         
                         all_text = []
                         all_tables = []
@@ -586,7 +914,7 @@ def extract_pcgaming_data(html):
                 if current.name == 'h3':
                     data_title_span = current.find('span', class_='mw-headline')
                     if data_title_span:
-                        title = clean_text_for_web(data_title_span.get_text(strip=True))
+                        title = clean_text_for_web(data_title_span.get_text(separator=' ', strip=True))
                         
                         # Пропускаем "Save game cloud syncing"
                         if title == "Save game cloud syncing":
@@ -628,7 +956,12 @@ def extract_pcgaming_data(html):
                 if current.name == 'h3':
                     info_title_span = current.find('span', class_='mw-headline')
                     if info_title_span:
-                        title = clean_text_for_web(info_title_span.get_text(strip=True))
+                        title = clean_text_for_web(info_title_span.get_text(separator=' ', strip=True))
+                        
+                        # Пропускаем "Middleware"
+                        if title == "Middleware":
+                            current = current.find_next_sibling()
+                            continue
                         
                         all_text = []
                         all_tables = []
@@ -753,10 +1086,14 @@ def extract_beforeiplay_tips(html):
     if not output_div:
         return tips
     
+    # ВАЖНО: Сначала удаляем brackets и ссылки (пока это ещё HTML)
+    remove_brackets_from_text(output_div)
     # Заменяем CSS иконки и изображения
     replace_css_icons_with_emoji(output_div)
     preserve_structure_tags(output_div)
     replace_images_with_text(output_div)
+    replace_abbr_tags(output_div)  # Заменяем abbr теги
+    unwrap_inline_elements(output_div)  # Разворачиваем inline элементы
     
     # Ищем все h2 заголовки
     h2_tags = output_div.find_all('h2')
@@ -769,7 +1106,7 @@ def extract_beforeiplay_tips(html):
             if not headline:
                 continue
             
-            title_text = headline.get_text(strip=True)
+            title_text = headline.get_text(separator=' ', strip=True)
             
             # Пропускаем навигационные секции
             if title_text.lower() in ['contents', 'navigation', 'see also', 'external links']:
@@ -784,7 +1121,7 @@ def extract_beforeiplay_tips(html):
             while current and current.name != 'h2':
                 if current.name == 'ul':
                     for li in current.find_all('li', recursive=False):
-                        tip_text = clean_text_for_web(li.get_text(strip=True))
+                        tip_text = clean_text_for_web(li.get_text(separator=' ', strip=True))
                         if tip_text:
                             section_tips.append(tip_text)
                 current = current.find_next_sibling()
@@ -801,7 +1138,7 @@ def extract_beforeiplay_tips(html):
         section_tips = []
         for ul in all_ul:
             for li in ul.find_all('li', recursive=False):
-                tip_text = clean_text_for_web(li.get_text(strip=True))
+                tip_text = clean_text_for_web(li.get_text(separator=' ', strip=True))
                 if tip_text:
                     section_tips.append(tip_text)
         
@@ -886,20 +1223,20 @@ def main():
     failed_count = 0
     skipped_count = 0
     
-    # В тестовом режиме обрабатываем только игру с ключом "220"
+    # В тестовом режиме обрабатываем только игру с ключом "2600"
     games_to_process = list(games_data.items())
     if test_mode:
-        # Ищем игру с app_id = "220"
+        # Ищем игру с app_id = "2600"
         test_game = None
         for app_id, game_info in games_data.items():
-            if app_id == "220":
+            if app_id == "2600":
                 test_game = (app_id, game_info)
                 break
         
         if test_game:
             games_to_process = [test_game]
         else:
-            print("⚠ Игра с app_id='220' не найдена, используется первая игра")
+            print("⚠ Игра с app_id='2600' не найдена, используется первая игра")
             games_to_process = games_to_process[:1]
     
     for i, (app_id, game_info) in enumerate(games_to_process, 1):
@@ -997,9 +1334,9 @@ def main():
         print("\n" + "=" * 80)
         print("📋 ИТОГОВЫЙ РЕЗУЛЬТАТ (JSON)")
         print("=" * 80)
-        # Берем игру "220" если есть, иначе первую
-        if "220" in games_data:
-            test_app_id = "220"
+        # Берем игру "2600" если есть, иначе первую
+        if "2600" in games_data:
+            test_app_id = "2600"
         else:
             test_app_id = list(games_data.keys())[0]
         
@@ -1024,12 +1361,12 @@ def main():
     output_file = "games_pcgaming.json"
     print(f"\n💾 Сохранение результата в {output_file}...")
     
-    # В test mode сохраняем только игру "220"
+    # В test mode сохраняем только игру "2600"
     if test_mode:
-        if "220" in games_data:
-            output_data = {"220": games_data["220"]}
+        if "2600" in games_data:
+            output_data = {"2600": games_data["2600"]}
         else:
-            # Fallback на первую игру если "220" нет
+            # Fallback на первую игру если "2600" нет
             first_app_id = list(games_data.keys())[0]
             output_data = {first_app_id: games_data[first_app_id]}
     else:
