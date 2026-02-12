@@ -18,8 +18,8 @@ function isPiperInstalled(): boolean {
   try {
     const output = execSync(`"${piperPath}" --help`, { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000, env: piperEnv });
     const helpText = output.toString();
-    // Verify it's actually Piper TTS, not the GTK gaming tool
-    return helpText.includes('--model') || helpText.includes('piper');
+    // Verify it's actually Piper TTS (has --model option), not the GTK gaming tool
+    return helpText.includes('--model');
   } catch {
     return false;
   }

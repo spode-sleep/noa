@@ -402,7 +402,8 @@ async function readAloud(text: string) {
       body: JSON.stringify({ text }),
     })
     if (!res.ok) {
-      alert('TTS not configured')
+      const data = await res.json().catch(() => null)
+      alert(data?.error || 'TTS not configured. Set PIPER_PATH and TTS_MODEL_PATH in .env')
       return
     }
     const blob = await res.blob()
@@ -410,7 +411,7 @@ async function readAloud(text: string) {
     const audio = new Audio(url)
     audio.play()
   } catch {
-    alert('TTS not configured')
+    alert('TTS not configured. Set PIPER_PATH and TTS_MODEL_PATH in .env')
   }
 }
 

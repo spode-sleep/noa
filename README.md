@@ -168,6 +168,7 @@ PIPER_PATH=/opt/piper-tts/piper
 Voice samples: https://rhasspy.github.io/piper-samples/
 All voices: https://huggingface.co/rhasspy/piper-voices/tree/main
 Custom community voices: https://github.com/drycen/piper-tts-voices / https://community.home-assistant.io/t/collections-of-pre-trained-piper-voices/915666
+Skyrim character voices (via Mantella project): https://github.com/art-from-the-machine/Mantella
 
 ### 5. Install kiwix-serve (Reference Library) — Optional
 
