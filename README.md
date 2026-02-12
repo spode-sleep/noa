@@ -124,9 +124,15 @@ sudo mv piper /usr/local/bin/
 mkdir -p ~/models/piper
 cd ~/models/piper
 
-# Download Russian voice
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
+# Download Russian voice (pick one)
+# dmitri — male, deep/serious tone (recommended)
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium.onnx.json
+
+# Other Russian voices:
+# denis — male:   ru_RU-denis-medium
+# ruslan — male:  ru_RU-ruslan-medium
+# irina — female: ru_RU-irina-medium
 
 # Download English voice (optional)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
@@ -136,7 +142,8 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/mediu
 piper --help
 ```
 
-Full voice list: https://rhasspy.github.io/piper-samples/
+Voice samples: https://rhasspy.github.io/piper-samples/
+All voices: https://huggingface.co/rhasspy/piper-voices/tree/main
 
 ### 5. Install kiwix-serve (Reference Library) — Optional
 
@@ -174,7 +181,7 @@ KIWIX_SERVE_PATH=
 
 # TTS (optional)
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-irina-medium
+TTS_DEFAULT_VOICE=ru_RU-dmitri-medium
 
 # AI / LLM (auto-launched)
 LLM_API_URL=http://localhost:11434

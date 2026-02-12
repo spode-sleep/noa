@@ -121,7 +121,7 @@ cp server/.env.example server/.env
 | `FICTION_LIBRARY_PATH`  | Book directories (comma-separated for multiple)  | `/home/user/Books,/media/user/USB/Books`|
 | `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference,/media/user/USB/ZIM`|
 | `TTS_MODEL_PATH`       | Path to Piper TTS model files                   | `/home/user/models/piper`        |
-| `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-irina-medium`             |
+| `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-dmitri-medium`            |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
 
 ### Example `.env`
@@ -132,7 +132,7 @@ MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
 FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Books/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-irina-medium
+TTS_DEFAULT_VOICE=ru_RU-dmitri-medium
 DATA_PATH=../data
 ```
 
@@ -404,9 +404,9 @@ piper --help
 mkdir -p ~/models/piper
 cd ~/models/piper
 
-# Download Russian voice
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
+# Download Russian voice (dmitri — male, deep tone)
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium.onnx.json
 
 # Download English voice (optional)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
@@ -417,13 +417,13 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/mediu
 
 ```env
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-irina-medium
+TTS_DEFAULT_VOICE=ru_RU-dmitri-medium
 ```
 
 ### Test TTS
 
 ```bash
-echo "Привет, мир!" | piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
+echo "Привет, мир!" | piper --model ~/models/piper/ru_RU-dmitri-medium.onnx --output_file test.wav
 aplay test.wav
 ```
 
