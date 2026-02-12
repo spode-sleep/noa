@@ -148,10 +148,11 @@ async function sendToOllama(model: string, messages: ChatMessage[]): Promise<str
   });
 }
 
-async function sendToLlamaCpp(messages: ChatMessage[]): Promise<string> {
+async function sendToLlamaCpp(model: string, messages: ChatMessage[]): Promise<string> {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(llmApiUrl);
     const payload = JSON.stringify({
+      model,
       messages,
       stream: false,
       temperature: 0.7,
@@ -203,8 +204,9 @@ router.post('/chat', async (req: Request, res: Response) => {
   }
 
   // Determine which model to use
-  const selectedModel = (typeof requestedModel === 'string' && requestedModel.trim() && isModelAllowed(requestedModel.trim()))
-    ? requestedModel.trim()
+  const trimmedModel = typeof requestedModel === 'string' ? requestedModel.trim() : '';
+  const selectedModel = (trimmedModel && isModelAllowed(trimmedModel))
+    ? trimmedModel
     : llmModel;
 
   const contextLoaded = { musicLibrary: false, fictionLibrary: false };
@@ -263,7 +265,7 @@ router.post('/chat', async (req: Request, res: Response) => {
     if (detectApiType() === 'ollama') {
       response = await sendToOllama(selectedModel, messages);
     } else {
-      response = await sendToLlamaCpp(messages);
+      response = await sendToLlamaCpp(selectedModel, messages);
     }
 
     res.json({

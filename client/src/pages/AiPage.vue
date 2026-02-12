@@ -322,7 +322,7 @@ async function sendMessage() {
       body: JSON.stringify({
         message: text,
         history: messages.value,
-        model: selectedModel.value || undefined,
+        model: selectedModel.value,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,
