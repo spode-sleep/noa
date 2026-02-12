@@ -4,11 +4,12 @@ Offline Knowledge & Media Hub — a fully offline local application for long-ter
 
 ## Features
 
-- **🎮 Games** — Game library from SteamDB/RAWG with ProtonDB compatibility reports
+- **🎮 Games** — Game library from SteamDB/RAWG with ProtonDB compatibility reports, PCGamingWiki fixes and tips
 - **🎵 Music** — Local music player with library scanning, metadata and playlists
 - **📖 Fiction** — PDF/EPUB/FB2 reader with bookmarks and reading position saving
 - **📚 Reference** — ZIM archive browser for offline Wikipedia, WikiHow, iFixIt and more
-- **🤖 AI Librarian** — Local AI chat with RAG-powered knowledge base search (Ollama + ChromaDB)
+- **🔧 Warez** — Local git repository browser with README viewer and file tree
+- **🤖 AI Librarian** — Local AI chat with multi-model selection and RAG-powered knowledge base search (Ollama + ChromaDB)
 - **🔊 TTS** — Text-to-speech via Piper TTS for reading AI responses and articles aloud
 
 ## Tech Stack
@@ -74,8 +75,12 @@ Ollama is **auto-launched** by BOX server if not already running.
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Pull the LLM model (first time only)
-ollama pull qwen2.5:7b
+# Pull the default LLM model (first time only)
+ollama pull huihui_ai/qwen3-abliterated:8b-v2
+
+# Pull additional models (optional)
+ollama pull huihui_ai/qwen2.5-abliterate:14b
+ollama pull qwen2.5-coder:14b
 
 # Pull the embedding model for RAG (first time only)
 ollama pull nomic-embed-text
@@ -158,6 +163,7 @@ PORT=3001
 MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
 FICTION_LIBRARY_PATH=/home/user/Books,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Reference,/media/user/USB_DRIVE/ZIM
+WAREZ_LIBRARY_PATH=/home/user/Repos,/media/user/USB_DRIVE/Repos
 
 # Data storage
 DATA_PATH=../data
@@ -172,7 +178,8 @@ TTS_DEFAULT_VOICE=ru_RU-medium
 
 # AI / LLM (auto-launched)
 LLM_API_URL=http://localhost:11434
-LLM_MODEL=qwen2.5:7b
+LLM_MODEL=huihui_ai/qwen3-abliterated:8b-v2
+LLM_MODELS=huihui_ai/qwen3-abliterated:8b-v2,huihui_ai/qwen2.5-abliterate:14b,qwen2.5-coder:14b
 LLM_API_TYPE=auto
 EMBEDDING_MODEL=nomic-embed-text
 
@@ -271,6 +278,9 @@ Set FICTION_LIBRARY_PATH in .env, then click **Rescan Library**. Supports PDF, E
 ### Reference
 Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM archives from https://download.kiwix.org/zim/
 
+### Warez
+Set WAREZ_LIBRARY_PATH in .env, pointing to directories containing git repositories or other project folders. BOX will display them with git metadata (branch, commits, last commit message) and render README files.
+
 ---
 
 ## Troubleshooting
@@ -279,10 +289,10 @@ Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM arch
 The server did not shut down cleanly. Find and stop the old process on port 3001.
 
 ### Ollama model pull fails
-Check model name at https://ollama.com/library. Common models:
-- qwen2.5:7b (best for RU/EN)
-- mistral:7b (fast, good English)
-- llama3.1:8b (strong reasoning)
+Check model name at https://ollama.com/library. Configured models:
+- huihui_ai/qwen3-abliterated:8b-v2 (uncensored, RU/EN, default)
+- huihui_ai/qwen2.5-abliterate:14b (uncensored, RU/EN, 14B)
+- qwen2.5-coder:14b (code generation, 14B)
 
 ### ChromaDB won't start
 ```bash
