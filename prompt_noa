@@ -352,7 +352,7 @@
 - Путь к моделям через `.env`:
   ```env
   TTS_MODEL_PATH=/path/to/tts/models
-  TTS_DEFAULT_VOICE=ru_RU-dmitri-medium
+  TTS_DEFAULT_VOICE=ru_RU-irina-medium
   ```
 
 **Backend API**

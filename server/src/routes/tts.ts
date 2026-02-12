@@ -6,7 +6,7 @@ import { execSync, spawn } from 'child_process';
 const router = Router();
 
 const ttsModelPath = process.env.TTS_MODEL_PATH || '';
-const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-dmitri-medium';
+const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-irina-medium';
 
 function isPiperInstalled(): boolean {
   try {
