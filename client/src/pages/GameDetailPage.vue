@@ -377,7 +377,7 @@ function replaceEmojis(str: string): string {
 function formatContent(text: string | string[]): string {
   const str = typeof text === 'string' ? text : text.join(' ')
   const escaped = escapeHtml(str)
-  return replaceEmojis(escaped.replace(/§([^§]+)§/g, '<code>$1</code>'))
+  return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>'))
 }
 
 function formatFixboxRow(row: string | string[]): string {
