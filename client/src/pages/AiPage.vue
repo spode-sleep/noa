@@ -311,9 +311,21 @@ async function sendMessage() {
   messages.value.push({ role: 'user', content: text })
   chatStarted.value = true
   input.value = ''
+  syncCurrentConversation()
 
   if (textareaRef.value) {
     textareaRef.value.style.height = 'auto'
+  }
+
+  function pushResponse(msg: Message) {
+    const conv = conversations.value.find(c => c.id === currentConvId)
+    if (conv) {
+      conv.messages.push(msg)
+      if (activeConversationId.value === currentConvId) {
+        messages.value = conv.messages
+      }
+      saveConversations()
+    }
   }
 
   loadingConversationId.value = currentConvId
@@ -323,7 +335,7 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
-        history: messages.value,
+        history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
         model: selectedModel.value,
         context: {
           musicLibrary: musicLibraryEnabled.value,
@@ -332,27 +344,13 @@ async function sendMessage() {
       }),
     })
     const data = await res.json()
-    const conv = conversations.value.find(c => c.id === currentConvId)
-    if (conv) {
-      conv.messages.push({
-        role: 'assistant',
-        content: data.content ?? data.response ?? 'No response.',
-        sources: data.sources?.length ? data.sources : undefined,
-      })
-      if (activeConversationId.value === currentConvId) {
-        messages.value = conv.messages
-      }
-      saveConversations()
-    }
+    pushResponse({
+      role: 'assistant',
+      content: data.content ?? data.response ?? 'No response.',
+      sources: data.sources?.length ? data.sources : undefined,
+    })
   } catch {
-    const conv = conversations.value.find(c => c.id === currentConvId)
-    if (conv) {
-      conv.messages.push({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
-      if (activeConversationId.value === currentConvId) {
-        messages.value = conv.messages
-      }
-      saveConversations()
-    }
+    pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
   } finally {
     loadingConversationId.value = ''
   }
