@@ -123,7 +123,7 @@ def clean_text_for_web(text):
 
 
 def clean_text_preserve_newlines(text):
-    """Очистка текста с сохранением переносов строк, но убирает избыточные"""
+    """Очистка текста с сохранением переносов строк, включая двойные переносы (пустые строки)"""
     if not text:
         return ""
     
@@ -135,16 +135,22 @@ def clean_text_preserve_newlines(text):
         line = line.strip()
         # Убираем множественные пробелы внутри строки
         line = " ".join(line.split())
-        if line:  # Добавляем только непустые строки
-            cleaned_lines.append(line)
+        # Добавляем все строки, включая пустые (для сохранения двойных переносов)
+        cleaned_lines.append(line)
     
-    # Объединяем строки обратно, убирая множественные переносы
+    # Объединяем строки обратно, сохраняя пустые строки
     result = '\n'.join(cleaned_lines)
     
-    # Убираем переносы вокруг эмодзи (если эмодзи окружены \n с обеих сторон)
+    # Убираем ТОЛЬКО тройные и более переносы, заменяя их на двойные
     import re
+    result = re.sub(r'\n{3,}', '\n\n', result)
+    
+    # Убираем переносы вокруг эмодзи (если эмодзи окружены \n с обеих сторон)
     # Убираем лишние переносы вокруг одиночных эмодзи
     result = re.sub(r'\n+([\U0001F300-\U0001F9FF])\n+', r' \1 ', result)
+    
+    # Убираем пустые строки в начале и конце
+    result = result.strip()
     
     return result
 
@@ -373,18 +379,11 @@ def add_newlines_before_section_headers(element):
             
             # Если это заголовок секции
             if any(keyword in header_text for keyword in section_keywords):
-                # Добавляем перенос строки ПЕРЕД <p>
-                if p.previous_sibling is not None:
-                    # Если предыдущий sibling - текст, проверяем что он не заканчивается на \n
-                    if isinstance(p.previous_sibling, NavigableString):
-                        text = str(p.previous_sibling)
-                        if not text.endswith('\n'):
-                            p.insert_before(NavigableString('\n'))
-                    else:
-                        # Если предыдущий sibling - элемент, добавляем \n перед <p>
-                        p.insert_before(NavigableString('\n'))
+                # Добавляем ДВОЙНОЙ перенос строки ПЕРЕД <p> (визуальный отступ)
+                # Всегда вставляем \n\n, независимо от того что было до этого
+                p.insert_before(NavigableString('\n\n'))
                 
-                # Добавляем перенос строки ПОСЛЕ <p>
+                # Добавляем одинарный перенос строки ПОСЛЕ <p>
                 if p.next_sibling is not None:
                     # Если следующий sibling - текст, проверяем что он не начинается с \n
                     if isinstance(p.next_sibling, NavigableString):
