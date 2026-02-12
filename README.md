@@ -117,40 +117,52 @@ CHROMA_DATA_PATH=./chroma_data
 > ⚠️ **Do NOT use `apt install piper`** — that installs a GTK gaming device tool, not Piper TTS!
 
 ```bash
-# Download and install Piper TTS (keep the whole directory — it has required libs)
+# Step 1: Clean up any previous failed installs
+sudo rm -f /usr/local/bin/piper-tts  # Remove broken binary from previous attempt (if any)
+
+# Step 2: Download Piper TTS
+cd ~
 wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
+
+# Step 3: Extract (creates ~/piper/ directory with binary + libs)
 tar -xzf piper_linux_x86_64.tar.gz
+
+# Step 4: Move the ENTIRE directory to /opt (keeps shared libraries together)
 sudo mv piper /opt/piper-tts
 
-# Set in your .env:
-# PIPER_PATH=/opt/piper-tts/piper
+# Step 5: Clean up tarball
+rm piper_linux_x86_64.tar.gz
 
-# Test (LD_LIBRARY_PATH is needed for shared libraries):
-LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw
+# Step 6: Verify it works
+LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help
+# ✓ Should show: --model, --output_file, --output_raw options
+# ✗ If "No such file or directory" — step 4 didn't run (check with: ls /opt/piper-tts/)
+# ✗ If "libpiper_phonemize.so.1 not found" — you moved only the binary, not the directory
+```
 
-# Create models directory
-mkdir -p ~/models/piper
-cd ~/models/piper
+```bash
+# Download voice models
+mkdir -p ~/models/piper && cd ~/models/piper
 
-# Download Russian voice (default: irina — female)
+# Russian voice (default: irina — female)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
 
-# Other Russian voices:
-# dmitri — male:  ru_RU-dmitri-medium
-# denis — male:   ru_RU-denis-medium
-# ruslan — male:  ru_RU-ruslan-medium
+# Other Russian voices: dmitri (male), denis (male), ruslan (male)
 
-# Download English voice (optional)
+# English voice (optional)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
 
-# Verify
-LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw options
-
 # Test a voice
-echo "Привет, мир!" | LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
+echo "Привет, мир!" | LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper \
+  --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
 aplay test.wav
+```
+
+Set in your `.env`:
+```
+PIPER_PATH=/opt/piper-tts/piper
 ```
 
 Voice samples: https://rhasspy.github.io/piper-samples/
