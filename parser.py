@@ -863,10 +863,12 @@ def extract_pcgaming_data(html):
                 current = current.find_next_sibling()
     
     # ===== MODIFICATIONS =====
+    # Only look for Modifications as a TOP-LEVEL h2 section (not as subsection of Other information)
     modifications_header = soup.find('span', id='Modifications')
     if modifications_header:
         h_tag = modifications_header.find_parent(['h2', 'h3'])
-        if h_tag:
+        # Only process if it's an h2 (top-level section), not h3 (subsection)
+        if h_tag and h_tag.name == 'h2':
             current = h_tag.find_next_sibling()
             
             while current:
@@ -962,24 +964,51 @@ def extract_pcgaming_data(html):
                             current = current.find_next_sibling()
                             continue
                         
-                        all_text = []
-                        all_tables = []
-                        desc_elem = current.find_next_sibling()
-                        
-                        while desc_elem and desc_elem.name not in ['h2', 'h3']:
-                            content = extract_content_from_element(desc_elem, include_fixbox=True)
-                            all_text.extend(content["text"])
-                            all_tables.extend(content["tables"])
-                            desc_elem = desc_elem.find_next_sibling()
-                        
-                        other_info_item = {
-                            "title": title,
-                            "description": " ".join(all_text)
-                        }
-                        if all_tables:
-                            other_info_item["tables"] = all_tables
-                        
-                        result["other_information"].append(other_info_item)
+                        # Для подраздела "Modifications" собираем h4 отдельно
+                        if title == "Modifications":
+                            all_text = []
+                            desc_elem = current.find_next_sibling()
+                            
+                            while desc_elem and desc_elem.name not in ['h2', 'h3']:
+                                # Если это h4 - это отдельная модификация
+                                if desc_elem.name == 'h4':
+                                    h4_title_span = desc_elem.find('span', class_='mw-headline')
+                                    if h4_title_span:
+                                        h4_title = clean_text_for_web(h4_title_span.get_text(separator=' ', strip=True))
+                                        all_text.append(h4_title)
+                                else:
+                                    # Собираем контент под h4
+                                    content = extract_content_from_element(desc_elem, include_fixbox=True)
+                                    all_text.extend(content["text"])
+                                
+                                desc_elem = desc_elem.find_next_sibling()
+                            
+                            # Объединяем с переносами строк
+                            other_info_item = {
+                                "title": title,
+                                "description": "\n".join(all_text)
+                            }
+                            result["other_information"].append(other_info_item)
+                        else:
+                            # Обычная обработка для других подразделов
+                            all_text = []
+                            all_tables = []
+                            desc_elem = current.find_next_sibling()
+                            
+                            while desc_elem and desc_elem.name not in ['h2', 'h3']:
+                                content = extract_content_from_element(desc_elem, include_fixbox=True)
+                                all_text.extend(content["text"])
+                                all_tables.extend(content["tables"])
+                                desc_elem = desc_elem.find_next_sibling()
+                            
+                            other_info_item = {
+                                "title": title,
+                                "description": " ".join(all_text)
+                            }
+                            if all_tables:
+                                other_info_item["tables"] = all_tables
+                            
+                            result["other_information"].append(other_info_item)
                 
                 current = current.find_next_sibling()
     
@@ -1072,8 +1101,64 @@ def get_beforeiplay_page_html(page_title):
     return None
 
 
+def extract_list_item_with_children(li_element):
+    """Извлекает содержимое <li> элемента с учетом вложенных списков"""
+    if not li_element:
+        return None
+    
+    from bs4 import NavigableString
+    
+    # ВАЖНО: Сначала заменяем <b> и <strong> теги на §text§ для bold
+    for bold_tag in li_element.find_all(['b', 'strong']):
+        bold_text = bold_tag.get_text()
+        bold_tag.replace_with(f'§{bold_text}§')
+    
+    # Получаем прямой текст элемента (без вложенных ul/ol)
+    direct_text_parts = []
+    for child in li_element.children:
+        if isinstance(child, NavigableString):
+            text = str(child).strip()
+            if text:
+                direct_text_parts.append(text)
+        elif child.name not in ['ul', 'ol']:
+            # Это другой тег (но уже не b/strong, т.к. они заменены), но не список
+            text = child.get_text(separator=' ', strip=True)
+            if text:
+                direct_text_parts.append(text)
+    
+    main_text = clean_text_for_web(' '.join(direct_text_parts))
+    
+    if not main_text:
+        return None
+    
+    # Проверяем, есть ли вложенные списки
+    nested_ul = li_element.find('ul', recursive=False)
+    nested_ol = li_element.find('ol', recursive=False)
+    nested_list = nested_ul or nested_ol
+    
+    if nested_list:
+        # Есть вложенный список - создаем структуру с children
+        children = []
+        for nested_li in nested_list.find_all('li', recursive=False):
+            child_item = extract_list_item_with_children(nested_li)
+            if child_item:
+                children.append(child_item)
+        
+        if children:
+            return {
+                "text": main_text,
+                "children": children
+            }
+        else:
+            # Вложенный список пустой, возвращаем просто текст
+            return {"text": main_text}
+    else:
+        # Нет вложенных списков - простой элемент
+        return {"text": main_text}
+
+
 def extract_beforeiplay_tips(html):
-    """Извлекает gameplay tips из HTML страницы beforeiplay.com"""
+    """Извлекает gameplay tips из HTML страницы beforeiplay.com с сохранением иерархии"""
     if not html:
         return []
     
@@ -1120,9 +1205,9 @@ def extract_beforeiplay_tips(html):
             while current and current.name != 'h2':
                 if current.name == 'ul':
                     for li in current.find_all('li', recursive=False):
-                        tip_text = clean_text_for_web(li.get_text(separator=' ', strip=True))
-                        if tip_text:
-                            section_tips.append(tip_text)
+                        tip_item = extract_list_item_with_children(li)
+                        if tip_item:
+                            section_tips.append(tip_item)
                 current = current.find_next_sibling()
             
             if section_tips:
@@ -1133,13 +1218,13 @@ def extract_beforeiplay_tips(html):
     
     else:
         # Нет h2 заголовков - собираем все li из всех ul
-        all_ul = output_div.find_all('ul')
+        all_ul = output_div.find_all('ul', recursive=False)
         section_tips = []
         for ul in all_ul:
             for li in ul.find_all('li', recursive=False):
-                tip_text = clean_text_for_web(li.get_text(separator=' ', strip=True))
-                if tip_text:
-                    section_tips.append(tip_text)
+                tip_item = extract_list_item_with_children(li)
+                if tip_item:
+                    section_tips.append(tip_item)
         
         if section_tips:
             tips.append({
@@ -1222,20 +1307,20 @@ def main():
     failed_count = 0
     skipped_count = 0
     
-    # В тестовом режиме обрабатываем только игру с ключом "2600"
+    # В тестовом режиме обрабатываем только игру с ключом "1510"
     games_to_process = list(games_data.items())
     if test_mode:
-        # Ищем игру с app_id = "2600"
+        # Ищем игру с app_id = "1510"
         test_game = None
         for app_id, game_info in games_data.items():
-            if app_id == "2600":
+            if app_id == "1510":
                 test_game = (app_id, game_info)
                 break
         
         if test_game:
             games_to_process = [test_game]
         else:
-            print("⚠ Игра с app_id='2600' не найдена, используется первая игра")
+            print("⚠ Игра с app_id='1510' не найдена, используется первая игра")
             games_to_process = games_to_process[:1]
     
     for i, (app_id, game_info) in enumerate(games_to_process, 1):
@@ -1333,9 +1418,9 @@ def main():
         print("\n" + "=" * 80)
         print("📋 ИТОГОВЫЙ РЕЗУЛЬТАТ (JSON)")
         print("=" * 80)
-        # Берем игру "2600" если есть, иначе первую
-        if "2600" in games_data:
-            test_app_id = "2600"
+        # Берем игру "1510" если есть, иначе первую
+        if "1510" in games_data:
+            test_app_id = "1510"
         else:
             test_app_id = list(games_data.keys())[0]
         
@@ -1360,12 +1445,12 @@ def main():
     output_file = "games_pcgaming.json"
     print(f"\n💾 Сохранение результата в {output_file}...")
     
-    # В test mode сохраняем только игру "2600"
+    # В test mode сохраняем только игру "1510"
     if test_mode:
-        if "2600" in games_data:
-            output_data = {"2600": games_data["2600"]}
+        if "1510" in games_data:
+            output_data = {"1510": games_data["1510"]}
         else:
-            # Fallback на первую игру если "2600" нет
+            # Fallback на первую игру если "1510" нет
             first_app_id = list(games_data.keys())[0]
             output_data = {first_app_id: games_data[first_app_id]}
     else:

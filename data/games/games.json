@@ -1,443 +1,35 @@
 {
-  "2600": {
-    "appId": "2600",
-    "name": "Vampire: The Masquerade - Bloodlines",
-    "description": "Vampire®: The Masquerade-Bloodlines™ delivers a new type of RPG experience-one that blends all the core elements of a traditional RPG with the graphical richness, immediacy and brutal combat of a first-person action game. The game plunges players into the dark and gritty vampire underworld of modern-day L.A. as a creature of the night.",
+  "1510": {
+    "appId": "1510",
+    "name": "Uplink",
+    "description": "Uplink lets you play as a freelance hacker tackling risky contracts for corporations. Break into systems, steal data, sabotage rivals, and upgrade your gear. Support factions or go rogue in this immersive, strategy-driven hacking simulation game where your choices shape the outcome.",
     "tags": [
-      "RPG",
+      "INDIE",
+      "STRATEGY",
       "SINGLEPLAYER",
-      "SUPERNATURAL",
-      "HORROR",
-      "DARK",
-      "ACTION",
+      "CYBERPUNK",
+      "SIMULATION",
+      "SCI-FI",
+      "2D",
       "ATMOSPHERIC",
+      "PUZZLE",
       "NARRATION",
-      "CLASSIC",
-      "ACTION RPG",
+      "PERMA DEATH",
+      "ROGUELIKE",
       "GREAT SOUNDTRACK",
-      "FIRST-PERSON",
-      "FEMALE PROTAGONIST",
-      "THIRD PERSON",
-      "STEALTH",
-      "ADVENTURE",
-      "SHOOTER"
+      "CLASSIC",
+      "REALISTIC"
     ],
-    "protondb_reports": [
-      {
-        "timestamp": 1567548139,
-        "rating": "Borked",
-        "notes": "Still pretty much broken, after the intro movies there is just black screen with menu music for a few seconds. Still leaves processes that need to be killed manually. Tested with unofficial patch and PROTON_USE_D9VK=1",
-        "os": "Gentoo Base System release 2.6",
-        "gpuDriver": "4.5 Mesa 19.2.0-rc1",
-        "specs": null,
-        "protonVersion": "4.11-3"
-      },
-      {
-        "timestamp": 1564634477,
-        "rating": "Gold",
-        "notes": "As previously stated, i used this guide to install the unofficial patch: https://github.com/ValveSoftware/Proton/issues/1804\nAfter installation i had to type \"-game Unofficial_Patch\" in the SET LAUNCH OPTIONS of the game, and it works great.\nWon't shut down properly, have to kill app every time.\nAlso, it has happened 2 times to me now, the game frozen and couldn't reload, had to fresh re-install. However if you back-up saves from the local files \"unofficial patch\" folder, you do not need to worry about losing progress in game. This bug has happened both times due to external reasons (system pop-ups, etc).",
-        "os": "Debian GNU/Linux 10 (buster)",
-        "gpuDriver": "3.0 Mesa 18.3.6",
-        "specs": null,
-        "protonVersion": "Beta (3.16-9)"
-      },
-      {
-        "timestamp": 1561072752,
-        "rating": "Platinum",
-        "notes": "Still doesn't work with 4.2 proton, has to be launched with Proton 3.x-x. I still consider it to be \"out of the box\". Unofficial patch works when using the provided loader-linux.sh. ",
-        "os": "Pop!_OS 19.04",
-        "gpuDriver": "NVIDIA 418.56",
-        "specs": null,
-        "protonVersion": "Beta (3.16-9)"
-      },
-      {
-        "timestamp": 1558299517,
-        "rating": "Gold",
-        "notes": "Like the former two comments stated, if you launch the game after a fresh install with proton 4.2, the main menu will not be correctly rendered, switching to any version of proton 3 will allow it to load properly. That said, if you install the unofficial patch and set the resolution of the game properly to your screens native resolution, then switch back to proton 4.2, it will run perfectly fine, and this is how I have bee nrunning it for a lot of time now without issue. More info on the github issue page for this game.",
-        "os": "Manjaro Linux",
-        "gpuDriver": "NVIDIA 418.56",
-        "specs": null,
-        "protonVersion": "4.2-4"
-      },
-      {
-        "timestamp": 1558272328,
-        "rating": "Gold",
-        "notes": "Works perfectly after applying the unofficial patch. The process has to be killed manually after exiting the game.",
-        "os": "Fedora release 30 (Thirty)",
-        "gpuDriver": "3.0 Mesa 19.0.4",
-        "specs": null,
-        "protonVersion": "Beta (3.16-9)"
-      },
-      {
-        "timestamp": 1555924079,
-        "rating": "Platinum",
-        "notes": "As previous person stated it does not work with the latest Proton 4.2.3 - The menu ends up garbled after the intro videos. Works perfectly with 3.16.4 however I have to manually kill Vampire.exe after quitting each time.",
-        "os": "Ubuntu 19.04",
-        "gpuDriver": "NVIDIA 418.56",
-        "specs": null,
-        "protonVersion": "Beta (3.16-4)"
-      },
-      {
-        "timestamp": 1555652414,
-        "rating": "Borked",
-        "notes": "Latest version of Proton, (4.2-3) borked this game for me, couldn't get to the main menu even. Switching back to 3.16-9 fixed it though. Try 3.16 if you have issues with 4.2.",
-        "os": "Linux Mint 19.1 Tessa",
-        "gpuDriver": "NVIDIA 415.27",
-        "specs": null,
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1549452260,
-        "rating": "Platinum",
-        "notes": "Runs as native. Only minor problem is that the game freezes on exit.\nUnofficial patches work with the steam version under proton.",
-        "os": "Ubuntu 18.04.1 LTS",
-        "gpuDriver": "NVIDIA 415.27",
-        "specs": null,
-        "protonVersion": "Beta (3.16-4)"
-      },
-      {
-        "timestamp": 1545297597,
-        "rating": "Gold",
-        "notes": "Install the Unofficial Patch and use the launcher that comes with it (the bash script) to play it, the Steam  version is broken.",
-        "os": "Linux 4.14",
-        "gpuDriver": "3.0 Mesa 18.2.3",
-        "specs": null,
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1541848582,
-        "rating": "Gold",
-        "notes": "This is a bit of a buggy mess even on Windows so I tend to prefer running the GOG version on straight up WINE with the unofficial patch when it comes to this game.",
-        "os": "Manjaro Linux",
-        "gpuDriver": "NVIDIA 410.73",
-        "specs": null,
-        "protonVersion": "Beta (3.7-8)"
-      },
-      {
-        "timestamp": 1541235556,
-        "rating": "Gold",
-        "notes": "Okay, this one is a bit more complicated.\n\nThis game doesn't work well out-of-the-box even on Windows and that's why the awesome community made \"Unofficial Patch\" exists which I used for this game. It is highly recommended that you do so as well as otherwise the came might soft-lock on you fairly late in the story and that's the end. Not something you want, trust 2004 me, he was very frustrated.\n\nFind the unofficial patch here: https://www.patches-scrolls.de/patch/4647/7\n\nYou can install this patch by running it in regular Wine and simply selecting the games install location. Don't hesitate to also install the + marked changes which alter the game more drastically compared to its original release. Even if you have never played it, it will only help to restore missing content, fix confusing things and make the game much better.\n\nRunning on Linux might introduce some additional issues, I need the following launch parameters:\n\nWINEDLLOVERRIDES=\"dbghelp=n,b\" %command% -game Unofficial_Patch\n\nIf the door in the beginning of the tutorial doesn't open, try approaching it crouched a couple of times.\n\n",
-        "os": "Solus",
-        "gpuDriver": "NVIDIA 396.54.09",
-        "specs": null,
-        "protonVersion": "Beta (3.16-4)"
-      },
-      {
-        "timestamp": 1541184504,
-        "rating": "Platinum",
-        "notes": "The game works as well as on windows out of the box... That is, it's buggy :D See in-depth details on the github issue: https://github.com/ValveSoftware/Proton/issues/1804",
-        "os": "Manjaro Linux",
-        "gpuDriver": "NVIDIA 396.54.09",
-        "specs": null,
-        "protonVersion": "Beta (3.16-4)"
-      },
-      {
-        "timestamp": 1540427024,
-        "rating": "Silver",
-        "notes": "It crashed a few times in the tutorial and Santa Monica loading screens. Ran perfectly afterwards without any tweak. The process won't finish after quitting the game, though.  ",
-        "os": "Ubuntu 16.04.5 LTS",
-        "gpuDriver": "3.0 Mesa 18.0.5",
-        "specs": null,
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1538752884,
-        "rating": "Platinum",
-        "notes": "This ran better for me through Proton than it would through Windows these days. It's still a buggy crashy mess if you don't add in at least the unofficial patch for it though, but that isn't SteamPlays fault.",
-        "os": "\"Solus\" (64 bit)",
-        "gpuDriver": "4.6.0 NVIDIA 390.87",
-        "specs": null,
-        "protonVersion": "Beta"
-      },
-      {
-        "timestamp": 1538336714,
-        "rating": "Silver",
-        "notes": "Runs flawlessly, but doesn't close properly.",
-        "os": "Linux Mint 19 Tara (64 bit)",
-        "gpuDriver": "4.6.0 NVIDIA 396.54",
-        "specs": null,
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1537448684,
-        "rating": "Platinum",
-        "notes": "Works great.",
-        "os": "Linux Mint 19 Tara (64 bit)",
-        "gpuDriver": "4.6.0 NVIDIA 390.87",
-        "specs": null,
-        "protonVersion": "3.7.6"
-      },
-      {
-        "timestamp": 1537216042,
-        "rating": "Platinum",
-        "notes": "Tested with Community-Patch 10.0",
-        "os": "\"Manjaro Linux\" (64 Bit)",
-        "gpuDriver": "3.1 Mesa 18.1.8",
-        "specs": null,
-        "protonVersion": "3.7-6"
-      },
-      {
-        "timestamp": 1535231977,
-        "rating": "Platinum",
-        "notes": "No issues",
-        "os": "Arch Linux 64 Bit (4.18.3-arch1-1-ARCH)",
-        "gpuDriver": "NVIDIA 396.51",
-        "specs": "i7-7700K / GTX 970",
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1535078126,
-        "rating": "Silver",
-        "notes": "Runs well. Suffers from occasional crashes if the game loses focus.",
-        "os": "Manjaro Unstable (Kernel 4.18.4)",
-        "gpuDriver": "NVIDIA 396.54",
-        "specs": "i5-2500k / GTX 970",
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1534951772,
-        "rating": "Silver",
-        "notes": "Works perfectly, didn't finish the process on exit.",
-        "os": "Debian unstable",
-        "gpuDriver": "NVIDIA 390.77",
-        "specs": "i5-7400 / NVIDIA GTX 1070",
-        "protonVersion": "Default"
-      },
-      {
-        "timestamp": 1534946639,
-        "rating": "Platinum",
-        "notes": "No problems. Haven't tried mods or forced widescreen resolution.",
-        "os": "18.04.1",
-        "gpuDriver": "NVIDIA 396.51",
-        "specs": "i3-6100H / GeForce 940M",
-        "protonVersion": "Default"
-      }
-    ],
+    "protondb_reports": [],
     "source": "steam",
-    "essential_improvements": [
-      {
-        "title": "Patches",
-        "description": "Patch 1.2is the latest official version. This patch is already included in the Unofficial Patch."
-      },
-      {
-        "title": "Unofficial Patch",
-        "description": "👍Fixes various bugs present in the latest version of the game and adds multiple features, including widescreen support.\n👍This mod is in active development.",
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Installation",
-              "Install and run the game once (it's fine if it crashes or shows memory error on 64-bit OSes).\nDownload the patch and run the installer as administrator.\nChoose the installation folder when prompted and the type of installation: Basic - Fixes various bugs that do not alter Troika's vision, along with minor changes to streamline the gameplay.\nPlus - adds several changes, including some fan-made content.\nRun 📄 §vampire.exe§ with the §-game Unofficial_Patch§ command line argument .\nNotes\nℹ️ If a shortcut or batch file is preferred for the Steam version, use §steam://rungameid/2600// -game Unofficial_Patch§ or §start \"\" \"steam://rungameid/2600// -game Unofficial_Patch\"§ ."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "True Patch Gold",
-        "description": "ℹ️Similar to theBasicversion of the Unofficial Patch, but without any additions or changes to the game itself.",
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Installation",
-              "Install the game. For the GOG version , install Unpatch .\nFor the Retail version , it is not necessary to install the Official Patch 1.2.\nRun the game once in order to initialize additional files.\nDownload the patch.\nCopy the contents of the RAR file to 📁 §<path-to-game>§ and overwrite when prompted."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Skip intro videos",
-        "description": "",
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Delete or rename intro videos",
-              "Go to 📁 §<path-to-game>\\Vampire\\media§ .\nDelete or rename 📄 §activision.bik§ , 📄 §nvidiabloodlogo.bik§ , 📄 §troika.bik§ and 📄 §whitewolf.bik§ ."
-            ]
-          }
-        ]
-      }
-    ],
-    "issues_fixed": [
-      {
-        "issue": "The game runs in windowed mode by default",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Run 📄 §vampire.exe§ with the §-fullscreen§ command line argument"
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Black screen during intros / movies",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Apply compatibility settings",
-              "Right-click on 📄 §vampire.exe§ , then click Properties .\nTick §Disable visual themes§ and §Disable desktop composition§ ."
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Missing Textures",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Enable §Bump Mapping§ in the game settings",
-              "Notes\nℹ️ Restarting the game is required."
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Very blurry and low quality textures",
-        "solutions": [
-          {
-            "type": "note",
-            "content": "ℹ️On modern systems, since the vanilla version cannot detect more than 2 GB of VRAM, textures will be rendered at a very low level of detail."
-          }
-        ],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Install Unofficial Patch"
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Vampire caused an access violation",
-        "solutions": [
-          {
-            "type": "note",
-            "content": "ℹ️If this error occurs, check the crash logs in the game directory."
-          }
-        ],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Change default audio device",
-              "If using something like Voicemeter Banana to split audio channels, set the Speakers as default device in Windows, then adjust the game’s audio output via Windows’ \" App volume and device preferences \" while the game is running."
-            ]
-          },
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Install Unofficial Patch",
-              "Notes\nℹ️ Even if it isn’t launched, it installs some engine fixes that commonly fix these errors."
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "A.I. are disabled",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Read this guide"
-            ]
-          },
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Delete AIN files",
-              "Install the Unofficial Patch (even if it won’t be used).\nDelete all AIN files from 📁 §<path-to-game>\\maps\\graphs§ .\nNotes\nℹ️ This is necessary because the game normally uses AIN files in 📁 §<path-to-game>\\maps\\graphs§ to determine A.I. pathing. The changes to the universal engine from the Unofficial Patch (which run even if the patch isn't being used) will instead build these on the fly as LOC files, but the game will still try to read AIN files from this directory which will break all A.I. pathing."
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Error: \"Available memory less than 15MB\"",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Install the newest version of Unofficial Patch (either Basic or Plus)",
-              "Notes\nℹ️ If this doesn't help, try Application Compatibility fixes ."
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Voices and Sound Effects have low quality surround/echo",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Edit CFG file",
-              "Open 📄 §<path-to-game>\\Vampire\\cfg\\autoexec.cfg§ .\nCopy and paste the following code: §// snd_mixahead 0.35 snd_surround 1 snd_gain 2.2 snd_gain_max 1.58 dsp_on 1 dsp_spatial 73 dsp_stereo 1 dsp_dist_max 9999 hisound 1 footstep_pc_vol 0.31 // footstep_npc_use_templates 0 volume \"0.930000\" § Save the changes.\nNotes\nℹ️ dsp_spatial (digital spatial profiler) can be configured via console."
-            ]
-          }
-        ]
-      },
-      {
-        "issue": "Input Lag",
-        "solutions": [],
-        "tables": [
-          {
-            "type": "fixbox",
-            "rows": [
-              "🔧 Enable compatibility mode in the properties of 📄 §vampire.exe§ and set it to §Windows 98/Me§",
-              "Notes\nℹ️ Alternatively, run the game in windowed mode or borderless fullscreen windowed mode to disable Vsync. Or simply turn off Vsync in the GPU control panel."
-            ]
-          }
-        ]
-      }
-    ],
+    "essential_improvements": [],
+    "issues_fixed": [],
     "issues_unresolved": [],
-    "modifications": [
-      {
-        "title": "X20 Mod",
-        "description": "ℹ️Named after the 20th Anniversary Editions of the World of Darkness tabletop game lines.\nℹ️Comes in two editions: Textures (textures only) and Scripts (scripts, emails, dialogs and additional textures).\nℹ️Both the Textures and Scripts are compatible with the latest version of theUnofficial Patchwith the Textures having no compatibility problems with other mods.\nℹ️While both editions can be used separately, it is recommended to install both editions for optimal use.\n👍Improved textures at higher resolutions and with corrections.\n👍UI Improvements such as better loading screens.\n👍Lore-friendly additions based on other works in the World of Darkness.\n👍Other minor fixes not found in the Unofficial Patch.\n👎Development has been stopped."
-      },
-      {
-        "title": "VTMB: Clan Quest Mod",
-        "description": "ℹ️An unofficial expansion pack with new contents.\nℹ️Integrates both Unofficial Patch and X20 mod, as well as some contents from other mods.\n👍Add new quests that are exclusive for each clan and for other special conditions.\n👍Adds a new storyline, which includes new quests and three new endings.\n👍Revised humanity system that's more in line with the pen and paper system.\n👍An optional achievement system.\n👎Development has been stopped.\n👎Integrated mods are outdated (Unofficial Patch 9.2 and X20 Mod 1.0). While it is possible to upgrade X20 to the latest basic edition, updating the Unofficial Patch included in the mod will break it. It is recommended to install the latest unofficial patch in the base game folder and launch it separately from this mod."
-      },
-      {
-        "title": "Bloodlines Voices Remastered",
-        "description": "ℹ️An audio upsampling project, which aims to improve the quality of spoken dialogues in the game.\nℹ️For Clan Quest mod, useClan Quest Mod Voices Remastered.\n👍About 5500 voice files were manually remastered and enhanced."
-      },
-      {
-        "title": "HQ Music Tracks",
-        "description": "ℹ️An audio upsampling project, which aims to improve the quality of music tracks in the game."
-      },
-      {
-        "title": "VTMB Prelude",
-        "description": "ℹ️An unofficial expansion campaign mod that serves as a prequel to the main campaign."
-      },
-      {
-        "title": "Enhanced Textures and SFX",
-        "description": "ℹ️A modpack that includes enhanced textures and sfx, which can be chosen which to download manually."
-      },
-      {
-        "title": "Female Hands Retexture",
-        "description": "ℹ️Retextures the female hands to make it higher res."
-      },
-      {
-        "title": "Safemilk's Vampire The Masquerade: Bloodlines - RTX Remaster",
-        "description": "ℹ️Asset by asset remaster of Vampire the Masquerade: Bloodlines. Fully remodeled, retextured and re-lit using Nvidia's RTX Remix tools."
-      }
-    ],
+    "modifications": [],
     "game_data": [
       {
         "title": "Configuration file(s) location",
-        "description": "",
+        "description": "👎This game does not follow theXDG Base Directory Specificationon Linux.",
         "tables": [
           {
             "type": "table",
@@ -448,11 +40,15 @@
             "rows": [
               [
                 "Windows",
-                "%path-to-game%\\Vampire\\cfgHKEY_CURRENT_USER\\Software\\Troika\\Vampire"
+                "%path-to-game%\\users\\options\\"
               ],
               [
-                "Steam Play (Linux)",
-                "%SteamLibrary-folder%/steamapps/compatdata/2600/pfx/"
+                "macOS (OS X)",
+                "$HOME/Library/Application Support/Uplink/options"
+              ],
+              [
+                "Linux",
+                "$HOME/.uplink/"
               ]
             ]
           }
@@ -460,7 +56,7 @@
       },
       {
         "title": "Save game data location",
-        "description": "ℹ️Each quicksave creates a new save slot, they don't override each other.",
+        "description": "",
         "tables": [
           {
             "type": "table",
@@ -471,11 +67,15 @@
             "rows": [
               [
                 "Windows",
-                "%path-to-game%\\Vampire\\save%path-to-game%\\Unofficial_Patch\\Vampire\\save"
+                "%path-to-game%\\users\\"
               ],
               [
-                "Steam Play (Linux)",
-                "%SteamLibrary-folder%/steamapps/compatdata/2600/pfx/"
+                "macOS (OS X)",
+                "$HOME/Library/Application Support/Uplink/"
+              ],
+              [
+                "Linux",
+                "$HOME/.uplink/"
               ]
             ]
           }
@@ -484,37 +84,59 @@
     ],
     "other_information": [
       {
+        "title": "Modifications",
+        "description": "UplinkOS\nℹ️A massive overhaul of Uplink's interface. Replaces with a more streamlined, modernised interface.\n👍More modern and easy to use interface.\n👍Adds better support for modern resolutions.\nUplink: Deep Blue\nℹ️A fan made non-commercial modification aimed at giving players a game enhancement true to Uplink's unique original style.\n👍Moderately polishes classic interface.\n👍Enhances and expands selection of gateways and adds variety of company and personal names.\n👍Extends soundtrack with hours of new music.\nOnlink\nℹ️Fanmade overhaul mod."
+      },
+      {
         "title": "API",
         "description": "",
         "tables": [
           {
             "type": "table",
             "headers": [
-              "Technical specs",
-              "Supported",
-              "Notes"
-            ],
-            "rows": [
-              [
-                "Direct3D",
-                "9",
-                ""
-              ]
-            ]
-          },
-          {
-            "type": "table",
-            "headers": [
               "Executable",
+              "PPC",
+              "16-bit",
               "32-bit",
               "64-bit",
+              "ARM",
               "Notes"
             ],
             "rows": [
               [
                 "Windows",
+                "Not applicable",
+                "No native support",
                 "Native support",
                 "No native support",
+                "No native support",
+                ""
+              ],
+              [
+                "macOS (OS X)",
+                "Native support",
+                "Not applicable",
+                "Native support",
+                "Native support",
+                "Hackable",
+                "Received a ppc universal binary in 2007. Current GOG and Steam versions no longer support PPC or 32-bit Intel. A universal binary with native Apple Silicon support is available in the Steam 'NewMac' beta branch"
+              ],
+              [
+                "Linux",
+                "No native support",
+                "No native support",
+                "Native support",
+                "Native support",
+                "No native support",
+                "Steam and GOG have executables for both x86-32 and x86-64"
+              ],
+              [
+                "Mac OS (Classic)",
+                "Unknown",
+                "Unknown",
+                "Not applicable",
+                "Not applicable",
+                "Not applicable",
                 ""
               ]
             ]
@@ -526,18 +148,64 @@
       {
         "title": "",
         "tips": [
-          "Make sure you don't ignore your combat skills. Even if you want to play a diplomatic or sneaky character, you still want to have at least one combat stat at 9-10 by the end of the game. There's a lot of unavoidable fighting.",
-          "Your life will be a lot easier with decent lockpicking skill. However, you don't need to get it up above 8 - you'll always be able to use Blood Buff to get it to 10 and pick any lock in the game.",
-          "Similarly, Persuasion 9 is the highest necessary to make all the skill checks, and even then, you only need 9 for a minor sidequest in the Giovanni mansion. Get it to 9 before then, or just leave it at 8.",
-          "Firearms SUCK early on. The revolver is pretty much worthless, even against human opponents, even if you have decent Firearms skill. Even if you plan on playing a gunfighter, it's never a waste to put some early points in Unarmed to get through the start, since you'll use Unarmed when trying to feed on enemies during combat. Don't worry, the guns are MUCH more effective once you get to the third city section. Also, don't tattle on Mercurio - he's the source for the best guns in the game.",
-          "There's a quest dealing with a plague in the second section of the city. The boss you'll eventually fight will be really tough if you take him on as soon as you can, especially if your combat skills aren't up to snuff. You'll have a much easier time if you wait till the better guns I mentioned become available, or your character starts to become a powerhouse.",
-          "Enable the console. There are a few bugs you might need to use noclip to get past. Also, consider noclipping the sewer dungeon if it drives you nuts.",
-          "You want to install Wesp's unofficial patch . The Steam version is probably pre-patched to the latest official version 1.2, but if not the official patches include all official content. Wesp's patch comes in Regular and Plus editions (selectable within the installer), the Regular version is just straight bugfixes while Plus tries to improve or balance the game as well. I would go with Plus personally because they are not intrusive changes.",
-          "Male or female really doesn't seem to matter, even with the seduction skill.",
-          "Don't play Malkavians first time through, you won't understand anything (your mad character will only make sense if you already know what's happening). Don't play the Nosferatu either, because they can't move about freely or access a lot of sidequests. The more \"generic\" clans are probably your best bet.",
-          "If you kick ass in most FPSs, remember this is mainly a RPG - your damage with ranged weapons depends more on character skill than player skill. Most weapons don't do headshots, sometimes even counting headshots as a partial hits.",
-          "Pick one: fists, melee weapons, or guns, don't try putting skills into all.",
-          "Lockpicking and hacking are needed to and pass all missions, unless you cheat, so take your pick, as having both at once is difficult."
+          {
+            "text": "The trick is knowing how to do a safe hack. As such:",
+            "children": [
+              {
+                "text": "You'll notice that Internic is the only site that never raises an alarm when you hack it. Get its admin password, then go to the directory and add a ton of public servers."
+              },
+              {
+                "text": "Set up a relay starting at Internic as your first hop, bouncing around all the rest of the Public servers. Save this route - you'll load it back up a lot, and can just add on whichever server you're using as a target at the end."
+              },
+              {
+                "text": "This will give you an obscene delay before the trace gets to you. But you still have to protect yourself from further investigations. After you're done with your hack, log into Internic and go into the admin logs."
+              },
+              {
+                "text": "You'll see some lines:",
+                "children": [
+                  {
+                    "text": "§ Connection from (your IP) established§"
+                  },
+                  {
+                    "text": "§ Connection from (your IP) logged off§"
+                  },
+                  {
+                    "text": "Connection from (your IP) established (the connection you're on right now)"
+                  },
+                  {
+                    "text": "§ (your IP) gained admin priviledges§"
+                  }
+                ]
+              },
+              {
+                "text": "Only delete the lines in bold. You want to remove any indication that you pathed through Internic, and you want to remove the fact that you logged into the admin account - but if you remove the line that isn't bolded, the logs will end up with a logoff line that isn't matched up to a logon line, and the powers that be will know you tampered with the logs. (A note on this, you can choose to delete either of the 2 connection established logs, it doesn't matter which, so don't stress out. Just make sure that InterNIC displays the same number of connected and disconnected lines. )"
+              },
+              {
+                "text": "Get logdeleter to its max level as soon as possible and you'll be basically untouchable."
+              }
+            ]
+          },
+          {
+            "text": "Another good way to get more time before a trace hits you is to bounce through servers you have access to. The easiest way to do it is to open an account in each game bank (search \"bank\" in Internic)."
+          },
+          {
+            "text": "My usual starting gambit is to open accounts in all banks, get loans, get password craker max version (skip the dictionary ones AND TraceTracker), get log deleter max version and complete some easy jobs. If you don't have enough cash for log deleter do a few easy jobs anyway, because if your bounce is long enough the traces will take at least a couple real time hours, enough for you to complete a lot of jobs and still delete your traces on Internic."
+          },
+          {
+            "text": "If you want to play on the stock market, buy stock for the companies that you take jobs from. After doing the job, wait until it hits the news and your stock will be worth much more."
+          },
+          {
+            "text": "Divert CPU power to the program you are using RIGHT NOW with the arrows at each side of the programs. That will speed up cracking stuff."
+          },
+          {
+            "text": "Don't make a long bounce chain in missions where you have to frame someone. You'll fail the mission because the trace is too long and the game can't trace it back to your scapegoat."
+          },
+          {
+            "text": "Don't do incremental upgrades, at least at the start. Either buy the best version of a program or don't buy it at all."
+          },
+          {
+            "text": "Also you can gain a ridiculous amount of money if you got the speed and the guts to do it. Sometimes you'll get a mission where they want you to hack someone's bank account to find the balance and it'll be a ridiculous amount, over $200M. What you'll need is set up an account in the bank you are going to hack, hack the bank with all the cipher crackers, transfer the money to your account in that same bank. Wipe the records of the transaction on both accounts and then use the safe hacking method outlined above. Basically there are two types of traces: Passive and Active. Active is the countdown that you get when you are hacking. Passive doesn't give any indication that its undergoing. Even if you clear the logs and disconnect before the active trace hits you, IT personnel will follow the switch and router logs and find you. Usually within 24 hours. The bank hack I mentioned before gets a REALLY fast passive trace...measured in seconds. You get about 20 seconds to transfer the money, delete the transaction records and wipe the records at interNIC. Once you do this, you don't need to take a job again, you can dedicate yourself to the plot."
+          }
         ]
       }
     ]
