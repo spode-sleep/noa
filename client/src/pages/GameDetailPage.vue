@@ -900,6 +900,7 @@ h2 {
 
 .info-table-wrap {
   margin-top: 10px;
+  overflow-x: auto;
 }
 
 /* Fixbox styling */
@@ -994,6 +995,7 @@ h2 {
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
   word-break: break-word;
+  min-width: 20%;
 }
 
 .info-table th {
