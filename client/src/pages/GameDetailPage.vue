@@ -1054,7 +1054,7 @@ h2 {
 .arch-icon-wrap::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   padding: 4px 8px;
