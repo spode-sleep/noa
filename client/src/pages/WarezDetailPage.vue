@@ -154,7 +154,7 @@ onMounted(async () => {
       return
     }
     repo.value = await res.json()
-    if (repo.value?.name) document.title = `BOX - ${repo.value.name}`
+    if (repo.value?.name) document.title = `${repo.value.name} - BOX`
   } catch (e) {
     error.value = 'Failed to load repository'
   } finally {

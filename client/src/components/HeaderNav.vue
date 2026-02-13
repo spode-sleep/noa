@@ -1,7 +1,7 @@
 <template>
   <nav class="header-nav glass">
     <div class="nav-content container">
-      <span class="nav-logo"><Icon icon="mdi:package-variant-closed" class="nav-logo-icon" /> BOX</span>
+      <router-link to="/games" class="nav-logo"><Icon icon="mdi:package-variant-closed" class="nav-logo-icon" /> BOX</router-link>
       <ul class="nav-links">
         <li v-for="link in links" :key="link.to">
           <router-link
@@ -71,6 +71,8 @@ function isActive(to: string): boolean {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  text-decoration: none;
+  color: inherit;
 }
 
 .nav-logo-icon {

@@ -53,7 +53,7 @@
             </div>
             <div v-if="game.tags?.length" class="tags-section">
               <div class="tags-list">
-                <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                <span v-for="tag in game.tags" :key="tag" class="tag-pill clickable-tag" @click="router.push({ path: '/games', query: { q: tag } })">{{ tag }}</span>
               </div>
             </div>
           </div>
@@ -275,7 +275,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Icon, getIcon, buildIcon } from '@iconify/vue'
 import TipItem from '../components/TipItem.vue'
 
@@ -342,6 +342,7 @@ interface Game {
 }
 
 const route = useRoute()
+const router = useRouter()
 const game = ref<Game | null>(null)
 const loading = ref(true)
 const error = ref('')
@@ -443,6 +444,10 @@ watch(game, () => {
   nextTick(() => setTimeout(checkOverflow, 50))
 })
 
+watch(showTipsModal, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
+})
+
 function ratingClass(rating: string): string {
   return (rating || '').toLowerCase()
 }
@@ -460,7 +465,7 @@ onMounted(async () => {
       return
     }
     game.value = await res.json()
-    if (game.value?.name) document.title = `BOX - ${game.value.name}`
+    if (game.value?.name) document.title = `${game.value.name} - BOX`
     await nextTick()
     checkOverflow()
   } catch (e) {
@@ -471,6 +476,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  document.body.style.overflow = ''
   document.title = 'BOX'
 })
 </script>
@@ -710,6 +716,15 @@ h1 {
   border: 1px solid var(--glass-border);
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.03);
+}
+
+.clickable-tag {
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.clickable-tag:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .reviews-section {

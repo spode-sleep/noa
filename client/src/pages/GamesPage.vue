@@ -111,7 +111,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 
 interface Game {
@@ -124,9 +125,12 @@ interface Game {
   protondb_reports?: any[]
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const games = ref<Game[]>([])
 const allTags = ref<string[]>([])
-const search = ref('')
+const search = ref((route.query.q as string) || '')
 const sourceFilter = ref('')
 const selectedTags = ref<Set<string>>(new Set())
 const loading = ref(true)
@@ -176,14 +180,20 @@ function clearAllTags() {
 }
 
 watch(showTagModal, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
   if (open) {
     tagSearch.value = ''
     nextTick(() => tagSearchRef.value?.focus())
   }
 })
 
+watch(search, (val) => {
+  const query = val ? { q: val } : {}
+  router.replace({ query })
+})
+
 onMounted(async () => {
-  document.title = 'BOX - Games'
+  document.title = 'Games - BOX'
   try {
     const [gamesRes, tagsRes] = await Promise.all([
       fetch('/api/games'),
@@ -197,6 +207,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 </script>
 

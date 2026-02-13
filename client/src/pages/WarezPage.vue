@@ -81,7 +81,7 @@ function formatDate(dateStr: string): string {
 }
 
 onMounted(async () => {
-  document.title = 'BOX - Warez'
+  document.title = 'Warez - BOX'
   try {
     const res = await fetch('/api/warez/repos')
     const data = await res.json()

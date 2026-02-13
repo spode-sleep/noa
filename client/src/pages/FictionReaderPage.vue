@@ -392,7 +392,7 @@ async function fetchBook() {
     const res = await fetch(`/api/fiction/books/${bookId}`)
     if (res.ok) {
       book.value = await res.json()
-      if (book.value?.title) document.title = `BOX - ${book.value.title}`
+      if (book.value?.title) document.title = `${book.value.title} - BOX`
     }
   } catch (e) {
     console.error('Failed to fetch book:', e)

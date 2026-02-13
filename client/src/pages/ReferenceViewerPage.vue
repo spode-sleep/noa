@@ -28,7 +28,7 @@ const kiwixUrl = ref('')
 const loading = ref(true)
 
 onMounted(async () => {
-  document.title = `BOX - ${displayName.value}`
+  document.title = `${displayName.value} - BOX`
   try {
     const res = await fetch('/api/reference/status')
     const data = await res.json()
