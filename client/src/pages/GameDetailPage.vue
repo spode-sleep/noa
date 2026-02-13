@@ -107,7 +107,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :data-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -136,7 +136,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :data-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -167,7 +167,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :data-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -206,7 +206,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :data-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -235,7 +235,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :data-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -1048,30 +1048,6 @@ h2 {
 
 .arch-icon-wrap {
   cursor: help;
-  position: relative;
-}
-
-.arch-icon-wrap::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  background: var(--glass-bg, rgba(30, 30, 40, 0.95));
-  border: 1px solid var(--glass-border);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-size: 0.75rem;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 10;
-}
-
-.arch-icon-wrap:hover::after {
-  opacity: 1;
 }
 
 .arch-icon {
