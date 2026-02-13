@@ -48,7 +48,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 interface Repo {
   name: string
@@ -61,8 +62,11 @@ interface Repo {
   isGitRepo: boolean
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const repos = ref<Repo[]>([])
-const search = ref('')
+const search = ref((route.query.q as string) || '')
 const loading = ref(true)
 
 const filteredRepos = computed(() => {
@@ -72,6 +76,15 @@ const filteredRepos = computed(() => {
     r.name.toLowerCase().includes(q) ||
     r.description.toLowerCase().includes(q)
   )
+})
+
+watch(search, (val) => {
+  const query = val ? { q: val } : {}
+  router.replace({ query })
+})
+
+watch(() => route.query, (q) => {
+  search.value = (q.q as string) || ''
 })
 
 function formatDate(dateStr: string): string {

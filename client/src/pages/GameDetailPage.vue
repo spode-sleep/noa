@@ -53,7 +53,7 @@
             </div>
             <div v-if="game.tags?.length" class="tags-section">
               <div class="tags-list">
-                <span v-for="tag in game.tags" :key="tag" class="tag-pill clickable-tag" @click="router.push({ path: '/games', query: { q: tag } })">{{ tag }}</span>
+                <span v-for="tag in game.tags" :key="tag" class="tag-pill clickable-tag" @click="router.push({ path: '/games', query: { tag: tag } })">{{ tag }}</span>
               </div>
             </div>
           </div>

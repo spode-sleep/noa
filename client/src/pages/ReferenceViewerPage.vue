@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <router-link to="/reference" class="back-link">← Back to Reference</router-link>
+    <router-link to="/reference" class="btn btn-back">← Reference</router-link>
     <h1>{{ displayName }}</h1>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
@@ -53,17 +53,24 @@ onUnmounted(() => {
   padding: 24px 0;
 }
 
-.back-link {
-  display: inline-block;
-  color: var(--accent-teal);
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
   text-decoration: none;
-  font-size: 0.95rem;
   margin-bottom: 12px;
-  transition: opacity var(--transition-fast);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.back-link:hover {
-  opacity: 0.8;
+.btn-back:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-teal);
 }
 
 h1 {

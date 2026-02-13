@@ -132,7 +132,7 @@ const games = ref<Game[]>([])
 const allTags = ref<string[]>([])
 const search = ref((route.query.q as string) || '')
 const sourceFilter = ref('')
-const selectedTags = ref<Set<string>>(new Set())
+const selectedTags = ref<Set<string>>(route.query.tag ? new Set([(route.query.tag as string)]) : new Set())
 const loading = ref(true)
 const showTagModal = ref(false)
 const tagSearch = ref('')
@@ -188,8 +188,19 @@ watch(showTagModal, (open) => {
 })
 
 watch(search, (val) => {
-  const query = val ? { q: val } : {}
+  const query: Record<string, string> = {}
+  if (val) query.q = val
+  if (selectedTags.value.size === 1) query.tag = [...selectedTags.value][0]
   router.replace({ query })
+})
+
+watch(() => route.query, (q) => {
+  search.value = (q.q as string) || ''
+  if (q.tag) {
+    selectedTags.value = new Set([(q.tag as string)])
+  } else if (!q.q) {
+    selectedTags.value = new Set()
+  }
 })
 
 onMounted(async () => {

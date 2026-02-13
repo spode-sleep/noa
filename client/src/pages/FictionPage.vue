@@ -68,7 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 interface Book {
   id: string
@@ -90,9 +91,12 @@ interface BookBookmark {
   }
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const books = ref<Book[]>([])
 const bookmarks = ref<BookBookmark[]>([])
-const search = ref('')
+const search = ref((route.query.q as string) || '')
 const formatFilter = ref('')
 const languageFilter = ref('')
 const authorFilter = ref('')
@@ -133,6 +137,15 @@ const filteredBooks = computed(() => {
   }
 
   return result
+})
+
+watch(search, (val) => {
+  const query = val ? { q: val } : {}
+  router.replace({ query })
+})
+
+watch(() => route.query, (q) => {
+  search.value = (q.q as string) || ''
 })
 
 function formatFileSize(bytes: number): string {
