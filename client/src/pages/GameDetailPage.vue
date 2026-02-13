@@ -901,6 +901,7 @@ h2 {
 .info-table-wrap {
   margin-top: 10px;
   overflow-x: auto;
+  container-type: inline-size;
 }
 
 /* Fixbox styling */
@@ -981,7 +982,7 @@ h2 {
 
 /* Data tables */
 .info-table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
   border: 1px solid var(--glass-border);
@@ -995,7 +996,7 @@ h2 {
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
   word-break: break-word;
-  min-width: 20%;
+  min-width: 20cqi;
 }
 
 .info-table th {
