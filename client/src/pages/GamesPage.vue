@@ -187,18 +187,21 @@ watch(showTagModal, (open) => {
   }
 })
 
-watch(search, (val) => {
+function syncQuery() {
   const query: Record<string, string> = {}
-  if (val) query.q = val
+  if (search.value) query.q = search.value
   if (selectedTags.value.size === 1) query.tag = [...selectedTags.value][0]
   router.replace({ query })
-})
+}
+
+watch(search, syncQuery)
+watch(selectedTags, syncQuery)
 
 watch(() => route.query, (q) => {
   search.value = (q.q as string) || ''
   if (q.tag) {
     selectedTags.value = new Set([(q.tag as string)])
-  } else if (!q.q) {
+  } else {
     selectedTags.value = new Set()
   }
 })
