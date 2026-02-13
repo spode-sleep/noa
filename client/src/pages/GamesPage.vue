@@ -131,8 +131,12 @@ const router = useRouter()
 const games = ref<Game[]>([])
 const allTags = ref<string[]>([])
 const search = ref((route.query.q as string) || '')
-const sourceFilter = ref('')
-const selectedTags = ref<Set<string>>(route.query.tag ? new Set([(route.query.tag as string)]) : new Set())
+const sourceFilter = ref((route.query.source as string) || '')
+const selectedTags = ref<Set<string>>(
+  route.query.tag
+    ? new Set(Array.isArray(route.query.tag) ? (route.query.tag as string[]) : [route.query.tag as string])
+    : new Set()
+)
 const loading = ref(true)
 const showTagModal = ref(false)
 const tagSearch = ref('')
@@ -188,19 +192,22 @@ watch(showTagModal, (open) => {
 })
 
 function syncQuery() {
-  const query: Record<string, string> = {}
+  const query: Record<string, string | string[]> = {}
   if (search.value) query.q = search.value
-  if (selectedTags.value.size === 1) query.tag = [...selectedTags.value][0]
+  if (sourceFilter.value) query.source = sourceFilter.value
+  if (selectedTags.value.size > 0) query.tag = [...selectedTags.value]
   router.replace({ query })
 }
 
 watch(search, syncQuery)
+watch(sourceFilter, syncQuery)
 watch(selectedTags, syncQuery)
 
 watch(() => route.query, (q) => {
   search.value = (q.q as string) || ''
+  sourceFilter.value = (q.source as string) || ''
   if (q.tag) {
-    selectedTags.value = new Set([(q.tag as string)])
+    selectedTags.value = new Set(Array.isArray(q.tag) ? (q.tag as string[]) : [q.tag as string])
   } else {
     selectedTags.value = new Set()
   }
