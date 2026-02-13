@@ -2,9 +2,9 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <router-link to="/games" class="sidebar-link">
+      <a class="sidebar-link" @click="router.back()" style="cursor:pointer">
         <Icon icon="mdi:arrow-left" /> Games
-      </router-link>
+      </a>
       <div class="sidebar-divider"></div>
       <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">Top</a>
       <a v-if="game.game_data?.length" href="#game-data" class="sidebar-link" @click.prevent="scrollToSection('game-data')">Game Data</a>
@@ -17,7 +17,7 @@
     </nav>
 
     <div class="page">
-      <router-link v-if="!game" to="/games" class="btn btn-back">← Games</router-link>
+      <a v-if="!game" class="btn btn-back" @click="router.back()" style="cursor:pointer">← Games</a>
 
       <div v-if="loading" class="loading">Loading game...</div>
       <div v-else-if="error" class="error">{{ error }}</div>

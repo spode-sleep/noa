@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <router-link to="/reference" class="btn btn-back">← Reference</router-link>
+    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Reference</a>
     <h1>{{ displayName }}</h1>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
@@ -19,9 +19,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const archiveId = computed(() => route.params.id as string)
 const displayName = computed(() => archiveId.value.replace(/_/g, ' '))
 const kiwixUrl = ref('')

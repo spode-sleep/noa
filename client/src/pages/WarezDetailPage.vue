@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <router-link to="/warez" class="btn btn-back">← Warez</router-link>
+    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Warez</a>
 
     <div v-if="loading" class="loading">Loading repository...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 interface RepoFile {
   name: string
@@ -63,6 +63,7 @@ interface RepoDetail {
 }
 
 const route = useRoute()
+const router = useRouter()
 const repo = ref<RepoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
