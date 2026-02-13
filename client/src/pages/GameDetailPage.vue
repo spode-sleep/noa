@@ -1047,7 +1047,6 @@ h2 {
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
   word-break: break-word;
-  min-width: 20%;
 }
 
 .info-table th:first-child,
@@ -1059,8 +1058,9 @@ h2 {
 
 .info-table th.middle-col,
 .info-table td.middle-col {
-  width: 20%;
-  max-width: 20%;
+  min-width: 0;
+  width: 1%;
+  white-space: nowrap;
 }
 
 .info-table th.arch-col,
