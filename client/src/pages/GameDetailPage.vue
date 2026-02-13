@@ -102,11 +102,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
+                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -128,11 +131,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
+                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -156,11 +162,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
+                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -192,11 +201,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
+                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -218,11 +230,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
+                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -381,6 +396,24 @@ function formatFixboxRow(row: string | string[]): string {
 function formatTipText(text: string): string {
   const escaped = escapeHtml(text)
   return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>'))
+}
+
+const archColumns = new Set(['PPC', '16-bit', '32-bit', '64-bit', 'ARM'])
+
+function isArchColumn(header: string): boolean {
+  return archColumns.has(header)
+}
+
+const archValueMap: Record<string, { icon: string; cls: string }> = {
+  'Native support': { icon: 'mdi:check-circle', cls: 'arch-native' },
+  'No native support': { icon: 'mdi:close-circle', cls: 'arch-none' },
+  'Not applicable': { icon: 'mdi:minus-circle', cls: 'arch-na' },
+  'Hackable': { icon: 'mdi:wrench', cls: 'arch-hackable' },
+  'Unknown': { icon: 'mdi:help-circle', cls: 'arch-unknown' },
+}
+
+function getArchIcon(value: string): { icon: string; cls: string } | null {
+  return archValueMap[value] || null
 }
 
 function scrollToSection(id: string) {
@@ -901,7 +934,6 @@ h2 {
 .info-table-wrap {
   margin-top: 10px;
   overflow-x: auto;
-  container-type: inline-size;
 }
 
 /* Fixbox styling */
@@ -982,7 +1014,7 @@ h2 {
 
 /* Data tables */
 .info-table {
-  min-width: 100%;
+  width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
   border: 1px solid var(--glass-border);
@@ -996,7 +1028,41 @@ h2 {
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
   word-break: break-word;
-  min-width: 20cqi;
+  min-width: 20%;
+}
+
+.info-table th.arch-col,
+.info-table td.arch-col {
+  min-width: 0;
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.arch-icon {
+  font-size: 1.2rem;
+  cursor: help;
+}
+
+.arch-native {
+  color: #34d399;
+}
+
+.arch-none {
+  color: #f44336;
+}
+
+.arch-na {
+  color: var(--text-muted);
+}
+
+.arch-hackable {
+  color: #f0a030;
+}
+
+.arch-unknown {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .info-table th {
