@@ -107,7 +107,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -136,7 +136,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -167,7 +167,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -206,7 +206,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -235,7 +235,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]) }">
-                        <Icon v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" :title="typeof cell === 'string' ? cell : ''" />
+                        <span v-if="table.headers && isArchColumn(table.headers[ci]) && getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -1031,6 +1031,11 @@ h2 {
   min-width: 20%;
 }
 
+.info-table th:first-child,
+.info-table td:first-child {
+  min-width: 0;
+}
+
 .info-table th.arch-col,
 .info-table td.arch-col {
   min-width: 0;
@@ -1039,9 +1044,12 @@ h2 {
   text-align: center;
 }
 
+.arch-icon-wrap {
+  cursor: help;
+}
+
 .arch-icon {
   font-size: 1.2rem;
-  cursor: help;
 }
 
 .arch-native {
