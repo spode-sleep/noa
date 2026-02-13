@@ -250,7 +250,7 @@
         <div v-if="game.protondb_reports?.length" id="protondb-reports" class="reviews-section">
           <h2>ProtonDB Reports</h2>
           <div
-            v-for="(report, i) in game.protondb_reports"
+            v-for="(report, i) in sortedProtonReports"
             :key="i"
             class="review-card glass"
           >
@@ -274,7 +274,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon, getIcon, buildIcon } from '@iconify/vue'
 import TipItem from '../components/TipItem.vue'
@@ -456,6 +456,23 @@ function ratingClass(rating: string): string {
   return (rating || '').toLowerCase()
 }
 
+const protonRankOrder: Record<string, number> = {
+  platinum: 0,
+  gold: 1,
+  silver: 2,
+  bronze: 3,
+  borked: 4,
+}
+
+const sortedProtonReports = computed(() => {
+  if (!game.value?.protondb_reports) return []
+  return [...game.value.protondb_reports].sort((a, b) => {
+    const ra = protonRankOrder[a.rating?.toLowerCase()] ?? 99
+    const rb = protonRankOrder[b.rating?.toLowerCase()] ?? 99
+    return ra - rb
+  })
+})
+
 function formatDate(ts: number): string {
   if (!ts) return ''
   return new Date(ts * 1000).toLocaleDateString()
@@ -506,17 +523,16 @@ onUnmounted(() => {
 }
 
 .sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   padding: 6px 12px;
   font-size: 0.8rem;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
-  white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .sidebar-link:hover {
