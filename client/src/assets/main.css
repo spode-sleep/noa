@@ -143,6 +143,13 @@ a:hover {
   border-color: var(--glass-bg);
 }
 
+.v-popper--theme-tooltip {
+  transition: none !important;
+}
+.v-popper--theme-tooltip .v-popper__wrapper {
+  transition: none !important;
+}
+
 /* Search clear button */
 .search-wrap {
   position: relative;

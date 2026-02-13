@@ -6,7 +6,7 @@
         <Icon icon="mdi:arrow-left" /> Games
       </a>
       <div class="sidebar-divider"></div>
-      <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">Top</a>
+      <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">{{ game.name || 'Top' }}</a>
       <a v-if="game.game_data?.length" href="#game-data" class="sidebar-link" @click.prevent="scrollToSection('game-data')">Game Data</a>
       <a v-if="game.essential_improvements?.length" href="#essential-improvements" class="sidebar-link" @click.prevent="scrollToSection('essential-improvements')">Essential Improvements</a>
       <a v-if="game.issues_fixed?.length" href="#issues-fixed" class="sidebar-link" @click.prevent="scrollToSection('issues-fixed')">Issues Fixed</a>
@@ -727,7 +727,7 @@ h1 {
   transition: border-color 0.2s, color 0.2s;
 }
 .clickable-tag:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-purple);
   color: var(--text-primary);
 }
 
