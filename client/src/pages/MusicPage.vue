@@ -589,6 +589,7 @@ watch(activeTab, tab => {
 })
 
 onMounted(() => {
+  document.title = 'BOX - Music'
   fetchTracks()
 })
 </script>

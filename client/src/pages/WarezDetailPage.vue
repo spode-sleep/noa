@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 interface RepoFile {
@@ -154,11 +154,16 @@ onMounted(async () => {
       return
     }
     repo.value = await res.json()
+    if (repo.value?.name) document.title = `BOX - ${repo.value.name}`
   } catch (e) {
     error.value = 'Failed to load repository'
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.title = 'BOX'
 })
 </script>
 

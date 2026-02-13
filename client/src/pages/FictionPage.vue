@@ -185,6 +185,7 @@ async function fetchBookmarks() {
 }
 
 onMounted(async () => {
+  document.title = 'BOX - Fiction'
   try {
     await Promise.all([fetchBooks(), fetchBookmarks()])
   } finally {

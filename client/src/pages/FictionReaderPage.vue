@@ -392,6 +392,7 @@ async function fetchBook() {
     const res = await fetch(`/api/fiction/books/${bookId}`)
     if (res.ok) {
       book.value = await res.json()
+      if (book.value?.title) document.title = `BOX - ${book.value.title}`
     }
   } catch (e) {
     console.error('Failed to fetch book:', e)
@@ -445,6 +446,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  document.title = 'BOX'
   savePosition()
   if (fb2ScrollTimer) clearInterval(fb2ScrollTimer)
   if (zimUrlTimer) clearInterval(zimUrlTimer)

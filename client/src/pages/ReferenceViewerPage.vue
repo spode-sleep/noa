@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -28,6 +28,7 @@ const kiwixUrl = ref('')
 const loading = ref(true)
 
 onMounted(async () => {
+  document.title = `BOX - ${displayName.value}`
   try {
     const res = await fetch('/api/reference/status')
     const data = await res.json()
@@ -40,6 +41,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.title = 'BOX'
 })
 </script>
 

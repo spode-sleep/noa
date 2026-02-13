@@ -81,7 +81,7 @@
                 <div v-for="(group, gi) in game.gameplay_tips" :key="gi" class="tips-group">
                   <h3 v-if="group.title" class="tips-group-title">{{ group.title }}</h3>
                   <ul class="tips-list">
-                    <li v-for="(tip, ti) in group.tips" :key="ti" class="tip-item">{{ tip }}</li>
+                    <TipItem v-for="(tip, ti) in group.tips" :key="ti" :tip="tip" :format-tip-text="formatTipText" />
                   </ul>
                 </div>
               </div>
@@ -259,9 +259,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Icon, getIcon, buildIcon } from '@iconify/vue'
+import TipItem from '../components/TipItem.vue'
 
 interface ProtonReport {
   timestamp: number
@@ -297,9 +298,14 @@ interface IssueUnresolved {
   notes?: string
 }
 
+interface Tip {
+  text: string
+  children?: Tip[]
+}
+
 interface TipsGroup {
   title?: string
-  tips: string[]
+  tips: Tip[]
 }
 
 interface Game {
@@ -372,6 +378,11 @@ function formatFixboxRow(row: string | string[]): string {
   return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>').replace(/`([^`]+)`/g, '<code>$1</code>'))
 }
 
+function formatTipText(text: string): string {
+  const escaped = escapeHtml(text)
+  return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>'))
+}
+
 function scrollToSection(id: string) {
   if (id === 'top') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -416,6 +427,7 @@ onMounted(async () => {
       return
     }
     game.value = await res.json()
+    if (game.value?.name) document.title = `BOX - ${game.value.name}`
     await nextTick()
     checkOverflow()
   } catch (e) {
@@ -423,6 +435,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.title = 'BOX'
 })
 </script>
 
@@ -831,26 +847,6 @@ h2 {
 .tips-list {
   list-style: none;
   padding: 0;
-}
-
-.tip-item {
-  position: relative;
-  padding: 8px 0 8px 18px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.6;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.tip-item:last-child {
-  border-bottom: none;
-}
-
-.tip-item::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: var(--accent-teal);
 }
 
 /* Info sections (Game Data, Essential Improvements, etc.) */

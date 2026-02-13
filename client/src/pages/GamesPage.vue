@@ -183,6 +183,7 @@ watch(showTagModal, (open) => {
 })
 
 onMounted(async () => {
+  document.title = 'BOX - Games'
   try {
     const [gamesRes, tagsRes] = await Promise.all([
       fetch('/api/games'),
