@@ -3,12 +3,17 @@
     <h1>Fiction</h1>
 
     <div class="toolbar glass">
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Search by title or author..."
-        class="search-input"
-      />
+      <div class="search-wrap">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search by title or author..."
+          class="search-input"
+        />
+        <button v-if="search" class="search-clear" @click="search = ''">
+          <Icon icon="mdi:close" />
+        </button>
+      </div>
       <select v-model="formatFilter" class="filter-select">
         <option value="">All Formats</option>
         <option value="pdf">PDF</option>
@@ -70,6 +75,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 interface Book {
   id: string

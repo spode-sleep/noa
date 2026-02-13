@@ -13,12 +13,17 @@
 
     <template v-else>
       <div v-if="repos.length > 0" class="toolbar glass">
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search repositories..."
-          class="search-input"
-        />
+        <div class="search-wrap">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Search repositories..."
+            class="search-input"
+          />
+          <button v-if="search" class="search-clear" @click="search = ''">
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
       </div>
 
       <div class="repo-grid">
@@ -50,6 +55,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 interface Repo {
   name: string

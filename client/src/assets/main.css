@@ -137,5 +137,41 @@ a:hover {
 }
 
 .v-popper--theme-tooltip .v-popper__arrow-inner {
+  visibility: visible;
   border-color: var(--bg-secondary);
+}
+
+/* Search clear button */
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-wrap .search-input {
+  width: 100%;
+  padding-right: 28px;
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.search-clear:hover {
+  opacity: 1;
+  color: var(--text-primary);
 }

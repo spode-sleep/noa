@@ -1063,10 +1063,14 @@ h2 {
 
 .arch-icon-wrap {
   cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .arch-icon {
   font-size: 1.2rem;
+  pointer-events: none;
 }
 
 .arch-native {

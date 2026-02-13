@@ -23,12 +23,17 @@
     <!-- Tracks Tab -->
     <div v-if="activeTab === 'tracks'">
       <div class="toolbar glass">
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search by title, artist, album..."
-          class="search-input"
-        />
+        <div class="search-wrap">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Search by title, artist, album..."
+            class="search-input"
+          />
+          <button v-if="search" class="search-clear" @click="search = ''">
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
         <button class="btn" :disabled="scanning" @click="rescanLibrary">
           <span v-if="scanning" class="spinner"></span>
           {{ scanning ? 'Scanning...' : 'Rescan Library' }}

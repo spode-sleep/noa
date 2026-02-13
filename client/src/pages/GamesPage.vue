@@ -3,12 +3,17 @@
     <h1>Games</h1>
 
     <div class="filters glass">
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Search games..."
-        class="search-input"
-      />
+      <div class="search-wrap">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search games..."
+          class="search-input"
+        />
+        <button v-if="search" class="search-clear" @click="search = ''">
+          <Icon icon="mdi:close" />
+        </button>
+      </div>
       <select v-model="sourceFilter" class="source-select">
         <option value="">All Sources</option>
         <option value="steam">Steam</option>
