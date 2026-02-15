@@ -9,7 +9,40 @@
 
 ---
 
-## 🚀 УСТАНОВКА ИГР (3 шага):
+## 🚀 УСТАНОВКА ИГР (4 шага):
+
+### Шаг 0: Настройка постоянного монтирования (ОДИН РАЗ)
+
+**Это нужно сделать только один раз, чтобы диск всегда монтировался в одно место:**
+
+```bash
+# 1. Узнать UUID вашего внешнего HDD
+lsblk -o NAME,UUID,SIZE,MOUNTPOINT | grep sdb1
+
+# Пример вывода:
+# sdb1   abc123-def456-...  1.8T  /media/repeater/ARCHIVE11
+
+# 2. Создать постоянную точку монтирования
+sudo mkdir -p /mnt/ARCHIVE1
+
+# 3. Размонтировать текущее
+sudo umount /media/repeater/ARCHIVE11
+
+# 4. Добавить в /etc/fstab (замените YOUR_UUID на реальный!)
+echo "UUID=YOUR_UUID /mnt/ARCHIVE1 auto defaults,nofail 0 0" | sudo tee -a /etc/fstab
+
+# 5. Смонтировать
+sudo mount -a
+
+# 6. Проверить
+df -h | grep ARCHIVE1
+# Должно показать: /dev/sdb1  1.8T  ... /mnt/ARCHIVE1
+
+# 7. Дать права
+sudo chown -R $USER:$USER /mnt/ARCHIVE1
+```
+
+**Теперь диск ВСЕГДА будет в `/mnt/ARCHIVE1` при загрузке!**
 
 ### Шаг 1: Создайте список игр
 
@@ -33,6 +66,13 @@ python3 extract_appids.py ~/.steam/steam/steamapps
 ### Шаг 2: Запустите установку
 
 ```bash
+# Если настроили постоянное монтирование (Шаг 0)
+./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
+
+# Или укажите текущий путь
+./install_games.sh my_games.txt /media/repeater/ARCHIVE11/steam
+
+# Без второго параметра использует /media/repeater/ARCHIVE11/steam по умолчанию
 ./install_games.sh my_games.txt
 ```
 
@@ -62,7 +102,7 @@ Steam Guard код: (если попросит)
 
 Результат:
 ✓ Только ОДИН Steam Guard запрос!
-✓ Игры в: /media/repeater/ARCHIVE1/steam/game_XXXXX
+✓ Игры в: /mnt/ARCHIVE1/steam/XXXXX
 ✓ Список установленных: installed_TIMESTAMP.txt
 ```
 
@@ -200,8 +240,8 @@ cat > test.txt << EOF
 413150
 EOF
 
-# Установить
-./install_games.sh test.txt
+# Установить (укажите свой путь!)
+./install_games.sh test.txt /mnt/ARCHIVE1/steam
 ```
 
 ### Скопировать игры с другого диска
@@ -211,14 +251,24 @@ EOF
 python3 extract_appids.py /media/old_disk/steamapps -o old_games.txt
 
 # Установить на новый диск
-./install_games.sh old_games.txt
+./install_games.sh old_games.txt /mnt/ARCHIVE1/steam
 ```
 
 ### Установить одну игру
 
 ```bash
 echo "730" > one_game.txt
-./install_games.sh one_game.txt
+./install_games.sh one_game.txt /mnt/ARCHIVE1/steam
+```
+
+### Установить на разные диски
+
+```bash
+# Первая партия игр на HDD 1
+./install_games.sh games1.txt /mnt/hdd1/steam
+
+# Вторая партия на HDD 2
+./install_games.sh games2.txt /mnt/hdd2/steam
 ```
 
 ---
@@ -248,7 +298,11 @@ echo "730" > one_game.txt
 ## 🎯 ОДНА КОМАНДА ДЛЯ ВСЕГО:
 
 ```bash
-./install_games.sh my_games.txt
+# Если настроили UUID монтирование
+./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
+
+# Или с текущим путем
+./install_games.sh my_games.txt /media/repeater/ARCHIVE11/steam
 ```
 
 **Готово!** 🚀
