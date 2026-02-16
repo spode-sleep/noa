@@ -50,8 +50,8 @@ echo "Проверка частично установленных игр"
 echo "════════════════════════════════════════"
 echo ""
 
-# Проверяем оба возможных пути
-for STEAM_DIR in /media/repeater/ARCHIVE11/steam /media/repeater/ARCHIVE1/steam /mnt/steam_hdd/steam; do
+# Проверяем оба возможных пути и локальную папку загрузок
+for STEAM_DIR in /media/repeater/ARCHIVE11/steam /media/repeater/ARCHIVE1/steam /mnt/steam_hdd/steam /mnt/ARCHIVE1/steam $HOME/steam_downloads; do
     if [ ! -d "$STEAM_DIR" ]; then
         continue
     fi

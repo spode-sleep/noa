@@ -8,6 +8,7 @@ warn() { echo -e "${Y}[$(date '+%H:%M:%S')]${NC} $1"; }
 STEAMCMD="$HOME/steamcmd/steamcmd.sh"
 LANG="russian"
 CACHE_SAFETY_GB=10
+LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
 
 # Использование
 if [ $# -lt 1 ]; then
@@ -15,10 +16,13 @@ if [ $# -lt 1 ]; then
     echo ""
     echo "Примеры:"
     echo "  $0 my_games.txt"
-    echo "  $0 my_games.txt /mnt/steam_hdd/steam"
+    echo "  $0 my_games.txt /mnt/ARCHIVE1/steam"
     echo "  $0 my_games.txt /media/repeater/ARCHIVE11/steam"
     echo ""
     echo "По умолчанию: /media/repeater/ARCHIVE11/steam"
+    echo ""
+    echo "Игры сначала скачиваются в $HOME/steam_downloads,"
+    echo "потом копируются на HDD, потом удаляются с компьютера."
     exit 1
 fi
 
@@ -29,6 +33,7 @@ INSTALL_DIR="${2:-/media/repeater/ARCHIVE11/steam}"
 [ ! -f "$STEAMCMD" ] && { err "SteamCMD не найден!"; exit 1; }
 
 mkdir -p "$INSTALL_DIR"
+mkdir -p "$LOCAL_DOWNLOAD_DIR"
 
 # Функция очистки кэша
 clean_cache() {
@@ -61,7 +66,9 @@ TOTAL=${#APPIDS[@]}
 
 log "════════════════════════════════════════════"
 log "Установка $TOTAL игр"
-log "Директория: $INSTALL_DIR"
+log "Локальная папка: $LOCAL_DOWNLOAD_DIR"
+log "HDD директория: $INSTALL_DIR"
+log "Схема: скачать → скопировать на HDD → удалить локально"
 log "════════════════════════════════════════════"
 
 read -p "Логин: " USER
@@ -98,6 +105,7 @@ OK=0; FAIL=0
 
 for ((i=0; i<TOTAL; i++)); do
     APPID="${APPIDS[$i]}"
+    LOCAL_DIR="$LOCAL_DOWNLOAD_DIR/$APPID"
     DIR="$INSTALL_DIR/$APPID"
     
     log "════════════════════════════════════════════"
@@ -107,22 +115,25 @@ for ((i=0; i<TOTAL; i++)); do
     # Проверка места (предполагаем ~5GB на игру, если нужно точнее - можно добавить API запрос)
     check_disk_space 5
     
-    [ -d "$DIR" ] && rm -rf "$DIR"
+    [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
     
     echo ""
     
     # Запуск установки с прогрессом и ionice
+    # Скачиваем в локальную папку на основном диске
     IONICE_CMD=""
     if command -v ionice &> /dev/null; then
         IONICE_CMD="ionice -c2 -n7"
         log "Используем ionice для снижения нагрузки на диск"
     fi
     
+    log "Скачиваем в локальную папку: $LOCAL_DIR"
+    
     $IONICE_CMD $STEAMCMD \
         +@ShutdownOnFailedCommand 0 \
         +@NoPromptForPassword 1 \
         +login $USER \
-        +force_install_dir $DIR \
+        +force_install_dir $LOCAL_DIR \
         +app_update $APPID -language $LANG \
         +quit \
         2>&1 | tee -a "$LOG" | while IFS= read -r line; do
@@ -142,16 +153,33 @@ for ((i=0; i<TOTAL; i++)); do
     echo ""
     echo ""
     
-    # Проверка результата
-    if [ -d "$DIR" ] && [ -n "$(find "$DIR" -type f -size +10M 2>/dev/null | head -1)" ]; then
-        SIZE=$(du -sh "$DIR" 2>/dev/null | cut -f1)
-        echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
-        log "✓ Установлен: $SIZE"
-        ((OK++))
-    else
-        err "✗ Не установлен"
-        ((FAIL++))
+    # Проверка результата скачивания
+    if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +10M 2>/dev/null | head -1)" ]; then
+        SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
+        log "✓ Скачано локально: $SIZE"
+        
+        # Копирование на HDD
+        log "Копирование на HDD: $DIR ..."
         [ -d "$DIR" ] && rm -rf "$DIR"
+        
+        if cp -a "$LOCAL_DIR" "$DIR"; then
+            sync
+            log "✓ Скопировано на HDD"
+            
+            # Удаление локальной копии
+            rm -rf "$LOCAL_DIR"
+            log "✓ Локальная копия удалена"
+            
+            echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
+            ((OK++))
+        else
+            err "✗ Ошибка копирования на HDD"
+            ((FAIL++))
+        fi
+    else
+        err "✗ Не скачан"
+        ((FAIL++))
+        [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
     fi
     
     echo ""
@@ -163,6 +191,9 @@ done
 # Финальная очистка кэша через 10 минут после последней игры
 log "Установка завершена, очистка кэша через 10 минут..."
 (sleep 600 && clean_cache) &
+
+# Удаление локальной папки если пуста
+rmdir "$LOCAL_DOWNLOAD_DIR" 2>/dev/null
 
 log "════════════════════════════════════════════"
 log "✓ Успешно: $OK/$TOTAL"
