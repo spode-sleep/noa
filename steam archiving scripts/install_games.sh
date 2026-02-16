@@ -131,7 +131,7 @@ for ((i=0; i<TOTAL; i++)); do
     log "════════════════════════════════════════════"
     
     # Пропуск уже установленных игр
-    if [ -d "$DIR" ] && [ -n "$(find "$DIR" -type f -size +10M 2>/dev/null | head -1)" ]; then
+    if [ -d "$DIR" ] && [ -n "$(find "$DIR" -maxdepth 2 -type f -size +10M 2>/dev/null | head -1)" ]; then
         SIZE=$(du -sh "$DIR" 2>/dev/null | cut -f1)
         log "⏭ Уже установлен на HDD ($SIZE), пропускаем"
         echo "$APPID|$APPID|$SIZE|$(date)|skipped" >> "$SUCCESS"
@@ -140,7 +140,7 @@ for ((i=0; i<TOTAL; i++)); do
     fi
     
     # Проверка доступности HDD
-    if ! mountpoint -q "$(df "$INSTALL_DIR" 2>/dev/null | tail -1 | awk '{print $NF}')" 2>/dev/null && [ ! -d "$INSTALL_DIR" ]; then
+    if [ ! -d "$INSTALL_DIR" ]; then
         err "HDD недоступен: $INSTALL_DIR"
         err "Проверьте подключение диска!"
         ((FAIL++))
