@@ -1,4 +1,5 @@
 #!/bin/bash
+set -uo pipefail
 
 G='\033[0;32m'; R='\033[0;31m'; Y='\033[1;33m'; NC='\033[0m'
 log() { echo -e "${G}[$(date '+%H:%M:%S')]${NC} $1"; }
@@ -6,9 +7,23 @@ err() { echo -e "${R}[$(date '+%H:%M:%S')]${NC} $1"; }
 warn() { echo -e "${Y}[$(date '+%H:%M:%S')]${NC} $1"; }
 
 STEAMCMD="$HOME/steamcmd/steamcmd.sh"
-LANG="russian"
+GAME_LANG="russian"
 CACHE_SAFETY_GB=10
 LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
+
+# Очистка при прерывании (Ctrl+C, завершение)
+cleanup_on_exit() {
+    echo ""
+    warn "Прерывание! Очистка..."
+    rm -f "/tmp/login_$$.txt"
+    if [ -n "${CURRENT_LOCAL_DIR:-}" ] && [ -d "$CURRENT_LOCAL_DIR" ]; then
+        warn "Удаление частичной загрузки: $CURRENT_LOCAL_DIR"
+        rm -rf "$CURRENT_LOCAL_DIR"
+    fi
+    warn "Очистка завершена"
+    exit 1
+}
+trap cleanup_on_exit INT TERM
 
 # Использование
 if [ $# -lt 1 ]; then
@@ -71,8 +86,8 @@ log "HDD директория: $INSTALL_DIR"
 log "Схема: скачать → скопировать на HDD → удалить локально"
 log "════════════════════════════════════════════"
 
-read -p "Логин: " USER
-read -sp "Пароль: " PASS
+read -p "Логин: " STEAM_USER
+read -sp "Пароль: " STEAM_PASS
 echo ""
 echo ""
 
@@ -81,15 +96,17 @@ log "Авторизация..."
 log "Подтвердите вход в мобильном приложении Steam!"
 echo ""
 
+umask 077
 cat > /tmp/login_$$.txt << EOF
-login $USER $PASS
+login $STEAM_USER $STEAM_PASS
 @NoPromptForPassword 1
 quit
 EOF
+umask 022
 
-$STEAMCMD +runscript /tmp/login_$$.txt
+"$STEAMCMD" +runscript /tmp/login_$$.txt
 
-rm /tmp/login_$$.txt
+rm -f /tmp/login_$$.txt
 
 echo ""
 log "✓ Начинаем установку"
@@ -106,11 +123,29 @@ OK=0; FAIL=0
 for ((i=0; i<TOTAL; i++)); do
     APPID="${APPIDS[$i]}"
     LOCAL_DIR="$LOCAL_DOWNLOAD_DIR/$APPID"
+    CURRENT_LOCAL_DIR="$LOCAL_DIR"
     DIR="$INSTALL_DIR/$APPID"
     
     log "════════════════════════════════════════════"
     log "[$((i+1))/$TOTAL] AppID: $APPID"
     log "════════════════════════════════════════════"
+    
+    # Пропуск уже установленных игр
+    if [ -d "$DIR" ] && [ -n "$(find "$DIR" -type f -size +10M 2>/dev/null | head -1)" ]; then
+        SIZE=$(du -sh "$DIR" 2>/dev/null | cut -f1)
+        log "⏭ Уже установлен на HDD ($SIZE), пропускаем"
+        echo "$APPID|$APPID|$SIZE|$(date)|skipped" >> "$SUCCESS"
+        ((OK++))
+        continue
+    fi
+    
+    # Проверка доступности HDD
+    if ! mountpoint -q "$(df "$INSTALL_DIR" 2>/dev/null | tail -1 | awk '{print $NF}')" 2>/dev/null && [ ! -d "$INSTALL_DIR" ]; then
+        err "HDD недоступен: $INSTALL_DIR"
+        err "Проверьте подключение диска!"
+        ((FAIL++))
+        continue
+    fi
     
     # Проверка места (предполагаем ~5GB на игру, если нужно точнее - можно добавить API запрос)
     check_disk_space 5
@@ -129,12 +164,12 @@ for ((i=0; i<TOTAL; i++)); do
     
     log "Скачиваем в локальную папку: $LOCAL_DIR"
     
-    $IONICE_CMD $STEAMCMD \
+    $IONICE_CMD "$STEAMCMD" \
         +@ShutdownOnFailedCommand 0 \
         +@NoPromptForPassword 1 \
-        +login $USER \
-        +force_install_dir $LOCAL_DIR \
-        +app_update $APPID -language $LANG \
+        +login "$STEAM_USER" \
+        +force_install_dir "$LOCAL_DIR" \
+        +app_update "$APPID" -language "$GAME_LANG" \
         +quit \
         2>&1 | tee -a "$LOG" | while IFS= read -r line; do
             if [[ "$line" =~ progress:\ ([0-9.]+)\ \(([0-9]+)\ /\ ([0-9]+)\) ]]; then
@@ -156,6 +191,7 @@ for ((i=0; i<TOTAL; i++)); do
     # Проверка результата скачивания
     if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +10M 2>/dev/null | head -1)" ]; then
         SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
+        LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
         log "✓ Скачано локально: $SIZE"
         
         # Копирование на HDD
@@ -164,14 +200,25 @@ for ((i=0; i<TOTAL; i++)); do
         
         if cp -a "$LOCAL_DIR" "$DIR"; then
             sync
-            log "✓ Скопировано на HDD"
             
-            # Удаление локальной копии
-            rm -rf "$LOCAL_DIR"
-            log "✓ Локальная копия удалена"
-            
-            echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
-            ((OK++))
+            # Верификация копирования — сравнение размеров
+            HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
+            if [ "$LOCAL_BYTES" = "$HDD_BYTES" ]; then
+                log "✓ Скопировано на HDD (верифицировано: ${SIZE})"
+                
+                # Удаление локальной копии
+                rm -rf "$LOCAL_DIR"
+                CURRENT_LOCAL_DIR=""
+                log "✓ Локальная копия удалена"
+                
+                echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
+                ((OK++))
+            else
+                err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
+                err "Локальная копия сохранена в: $LOCAL_DIR"
+                CURRENT_LOCAL_DIR=""
+                ((FAIL++))
+            fi
         else
             err "✗ Ошибка копирования на HDD"
             ((FAIL++))
@@ -182,6 +229,7 @@ for ((i=0; i<TOTAL; i++)); do
         [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
     fi
     
+    CURRENT_LOCAL_DIR=""
     echo ""
     log "Пауза 5 сек..."
     sleep 5
