@@ -111,8 +111,14 @@ for ((i=0; i<TOTAL; i++)); do
     
     echo ""
     
-    # Запуск установки с прогрессом
-    $STEAMCMD \
+    # Запуск установки с прогрессом и ionice
+    IONICE_CMD=""
+    if command -v ionice &> /dev/null; then
+        IONICE_CMD="ionice -c2 -n7"
+        log "Используем ionice для снижения нагрузки на диск"
+    fi
+    
+    $IONICE_CMD $STEAMCMD \
         +@ShutdownOnFailedCommand 0 \
         +@NoPromptForPassword 1 \
         +login $USER \
