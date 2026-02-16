@@ -130,15 +130,6 @@ for ((i=0; i<TOTAL; i++)); do
     log "[$((i+1))/$TOTAL] AppID: $APPID"
     log "════════════════════════════════════════════"
     
-    # Пропуск уже установленных игр
-    if [ -d "$DIR" ] && [ -n "$(find "$DIR" -maxdepth 2 -type f -size +10M 2>/dev/null | head -1)" ]; then
-        SIZE=$(du -sh "$DIR" 2>/dev/null | cut -f1)
-        log "⏭ Уже установлен на HDD ($SIZE), пропускаем"
-        echo "$APPID|$APPID|$SIZE|$(date)|skipped" >> "$SUCCESS"
-        ((OK++))
-        continue
-    fi
-    
     # Проверка доступности HDD
     if [ ! -d "$INSTALL_DIR" ]; then
         err "HDD недоступен: $INSTALL_DIR"
