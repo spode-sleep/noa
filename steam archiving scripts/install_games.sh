@@ -15,6 +15,7 @@ LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
 cleanup_on_exit() {
     echo ""
     warn "Прерывание! Очистка..."
+    rm -f "/tmp/dd_output_$$.txt"
     if [ -n "${CURRENT_LOCAL_DIR:-}" ] && [ -d "$CURRENT_LOCAL_DIR" ]; then
         warn "Удаление частичной загрузки: $CURRENT_LOCAL_DIR"
         rm -rf "$CURRENT_LOCAL_DIR"
@@ -138,60 +139,73 @@ for ((i=0; i<TOTAL; i++)); do
     log "Скачиваем в: $LOCAL_DIR"
     
     # Скачивание через DepotDownloader
-    # -remember-password использует сохранённую сессию
-    # -language задаёт язык контента
-    # -os задаёт платформу
-    # -dir задаёт директорию для скачивания
-    if "$DEPOT_DOWNLOADER" \
-        -app "$APPID" \
-        -username "$STEAM_USER" -remember-password \
-        -language "$GAME_LANG" \
-        -os "$GAME_OS" \
-        -dir "$LOCAL_DIR" \
-        2>&1 | tee -a "$LOG"; then
+    # Сначала пробуем указанную ОС, если нет депотов — пробуем windows
+    DOWNLOAD_OK=false
+    TRIED_OS=""
+    for TRY_OS in "$GAME_OS" "windows"; do
+        # Не пробуем одну и ту же ОС дважды
+        [ "$TRY_OS" = "$TRIED_OS" ] && continue
+        TRIED_OS="$TRY_OS"
+        log "Платформа: $TRY_OS"
         
-        echo ""
+        "$DEPOT_DOWNLOADER" \
+            -app "$APPID" \
+            -username "$STEAM_USER" -remember-password \
+            -language "$GAME_LANG" \
+            -os "$TRY_OS" \
+            -dir "$LOCAL_DIR" \
+            2>&1 | tee -a "$LOG" | tee /tmp/dd_output_$$.txt
         
-        # Проверка результата скачивания
-        if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +1M 2>/dev/null | head -1)" ]; then
-            SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
-            LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
-            log "✓ Скачано локально: $SIZE"
+        # Если нет депотов для этой ОС — пробуем следующую
+        if grep -q "Couldn't find any depots" /tmp/dd_output_$$.txt 2>/dev/null; then
+            warn "Нет депотов для $TRY_OS, пробуем другую платформу..."
+            rm -rf "$LOCAL_DIR"
+            mkdir -p "$LOCAL_DIR"
+            continue
+        fi
+        
+        DOWNLOAD_OK=true
+        break
+    done
+    rm -f /tmp/dd_output_$$.txt
+    
+    echo ""
+    
+    # Проверка результата скачивания
+    if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +1M 2>/dev/null | head -1)" ]; then
+        SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
+        LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
+        log "✓ Скачано локально: $SIZE"
+        
+        # Копирование на HDD
+        log "Копирование на HDD: $DIR ..."
+        [ -d "$DIR" ] && rm -rf "$DIR"
+        
+        if rsync -a --info=progress2 "$LOCAL_DIR/" "$DIR"; then
             
-            # Копирование на HDD
-            log "Копирование на HDD: $DIR ..."
-            [ -d "$DIR" ] && rm -rf "$DIR"
-            
-            if rsync -a --info=progress2 "$LOCAL_DIR/" "$DIR"; then
+            # Верификация копирования
+            HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
+            if [ "$LOCAL_BYTES" = "$HDD_BYTES" ]; then
+                log "✓ Скопировано на HDD (верифицировано: ${SIZE})"
                 
-                # Верификация копирования
-                HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
-                if [ "$LOCAL_BYTES" = "$HDD_BYTES" ]; then
-                    log "✓ Скопировано на HDD (верифицировано: ${SIZE})"
-                    
-                    rm -rf "$LOCAL_DIR"
-                    CURRENT_LOCAL_DIR=""
-                    log "✓ Локальная копия удалена"
-                    
-                    echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
-                    ((OK++))
-                else
-                    err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
-                    err "Локальная копия сохранена: $LOCAL_DIR"
-                    CURRENT_LOCAL_DIR=""
-                    ((FAIL++))
-                fi
+                rm -rf "$LOCAL_DIR"
+                CURRENT_LOCAL_DIR=""
+                log "✓ Локальная копия удалена"
+                
+                echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
+                ((OK++))
             else
-                err "✗ Ошибка копирования на HDD"
+                err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
+                err "Локальная копия сохранена: $LOCAL_DIR"
+                CURRENT_LOCAL_DIR=""
                 ((FAIL++))
             fi
         else
-            err "✗ Не скачан (пустая директория)"
+            err "✗ Ошибка копирования на HDD"
             ((FAIL++))
-            [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
         fi
     else
-        err "✗ DepotDownloader вернул ошибку"
+        err "✗ Не скачан (нет файлов)"
         ((FAIL++))
         [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
     fi
