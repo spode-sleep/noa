@@ -155,6 +155,10 @@ for ((i=0; i<TOTAL; i++)); do
     
     log "Скачиваем в локальную папку: $LOCAL_DIR"
     
+    # Очистка состояния SteamCMD чтобы не застревал на чужих обновлениях
+    rm -f "$HOME/steamcmd/steamapps/appmanifest_"*.acf 2>/dev/null
+    rm -rf "$HOME/steamcmd/steamapps/downloading/"* 2>/dev/null
+    
     $IONICE_CMD "$STEAMCMD" \
         +@ShutdownOnFailedCommand 0 \
         +@NoPromptForPassword 1 \
