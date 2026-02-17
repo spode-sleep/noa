@@ -11,11 +11,14 @@ GAME_LANG="russian"
 GAME_OS="linux"
 LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
 
+# Безопасный временный файл для вывода DepotDownloader
+DD_OUTPUT=$(mktemp /tmp/dd_output.XXXXXX)
+
 # Очистка при прерывании (Ctrl+C, завершение)
 cleanup_on_exit() {
     echo ""
     warn "Прерывание! Очистка..."
-    rm -f "/tmp/dd_output_$$.txt"
+    rm -f "$DD_OUTPUT"
     if [ -n "${CURRENT_LOCAL_DIR:-}" ] && [ -d "$CURRENT_LOCAL_DIR" ]; then
         warn "Удаление частичной загрузки: $CURRENT_LOCAL_DIR"
         rm -rf "$CURRENT_LOCAL_DIR"
@@ -154,10 +157,10 @@ for ((i=0; i<TOTAL; i++)); do
             -language "$GAME_LANG" \
             -os "$TRY_OS" \
             -dir "$LOCAL_DIR" \
-            2>&1 | tee -a "$LOG" | tee /tmp/dd_output_$$.txt
+            2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT"
         
         # Если нет депотов для этой ОС — пробуем следующую
-        if grep -q "Couldn't find any depots" /tmp/dd_output_$$.txt 2>/dev/null; then
+        if grep -q "Couldn't find any depots" "$DD_OUTPUT" 2>/dev/null; then
             warn "Нет депотов для $TRY_OS, пробуем другую платформу..."
             rm -rf "$LOCAL_DIR"
             mkdir -p "$LOCAL_DIR"
@@ -167,7 +170,7 @@ for ((i=0; i<TOTAL; i++)); do
         DOWNLOAD_OK=true
         break
     done
-    rm -f /tmp/dd_output_$$.txt
+    rm -f "$DD_OUTPUT"
     
     echo ""
     
