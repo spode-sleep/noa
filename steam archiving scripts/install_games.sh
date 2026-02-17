@@ -157,11 +157,11 @@ for ((i=0; i<TOTAL; i++)); do
     
     # Очистка состояния SteamCMD чтобы не застревал на чужих обновлениях
     # SteamCMD при логине может подхватить обновления из библиотеки Steam
-    rm -f "$HOME/steamcmd/steamapps/appmanifest_"*.acf 2>/dev/null
-    rm -rf "$HOME/steamcmd/steamapps/downloading/"* 2>/dev/null
-    rm -f "$HOME/.steam/debian-installation/steamapps/appmanifest_"*.acf 2>/dev/null
-    rm -f "$HOME/.steam/steamapps/appmanifest_"*.acf 2>/dev/null
-    rm -f "$HOME/.local/share/Steam/steamapps/appmanifest_"*.acf 2>/dev/null
+    rm -f "${HOME:?}/steamcmd/steamapps/appmanifest_"*.acf 2>/dev/null
+    rm -rf "${HOME:?}/steamcmd/steamapps/downloading/"* 2>/dev/null
+    rm -f "${HOME:?}/.steam/debian-installation/steamapps/appmanifest_"*.acf 2>/dev/null
+    rm -f "${HOME:?}/.steam/steamapps/appmanifest_"*.acf 2>/dev/null
+    rm -f "${HOME:?}/.local/share/Steam/steamapps/appmanifest_"*.acf 2>/dev/null
     
     $IONICE_CMD "$STEAMCMD" \
         +@ShutdownOnFailedCommand 0 \
