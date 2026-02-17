@@ -89,6 +89,7 @@ read -p "Логин Steam: " STEAM_USER
 echo ""
 
 # Первый запуск — авторизация и сохранение пароля
+# Используем AppID 730 (CS2, бесплатная) с -manifest-only для проверки авторизации без скачивания
 log "Авторизация (подтвердите в мобильном приложении Steam)..."
 "$DEPOT_DOWNLOADER" -app 730 -depot 731 -manifest-only \
     -username "$STEAM_USER" -remember-password 2>&1 | tail -5
