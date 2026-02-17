@@ -6,16 +6,15 @@ log() { echo -e "${G}[$(date '+%H:%M:%S')]${NC} $1"; }
 err() { echo -e "${R}[$(date '+%H:%M:%S')]${NC} $1"; }
 warn() { echo -e "${Y}[$(date '+%H:%M:%S')]${NC} $1"; }
 
-STEAMCMD="$HOME/steamcmd/steamcmd.sh"
+DEPOT_DOWNLOADER="$HOME/depotdownloader/DepotDownloader"
 GAME_LANG="russian"
-CACHE_SAFETY_GB=10
+GAME_OS="linux"
 LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
 
 # Очистка при прерывании (Ctrl+C, завершение)
 cleanup_on_exit() {
     echo ""
     warn "Прерывание! Очистка..."
-    rm -f "/tmp/login_$$.txt"
     if [ -n "${CURRENT_LOCAL_DIR:-}" ] && [ -d "$CURRENT_LOCAL_DIR" ]; then
         warn "Удаление частичной загрузки: $CURRENT_LOCAL_DIR"
         rm -rf "$CURRENT_LOCAL_DIR"
@@ -36,6 +35,7 @@ if [ $# -lt 1 ]; then
     echo ""
     echo "По умолчанию: /media/repeater/ARCHIVE11/steam"
     echo ""
+    echo "Используется DepotDownloader (https://github.com/SteamRE/DepotDownloader)"
     echo "Игры сначала скачиваются в $HOME/steam_downloads,"
     echo "потом копируются на HDD, потом удаляются с компьютера."
     exit 1
@@ -45,71 +45,55 @@ APPID_FILE="$1"
 INSTALL_DIR="${2:-/media/repeater/ARCHIVE11/steam}"
 
 [ ! -f "$APPID_FILE" ] && { err "Файл не найден: $APPID_FILE"; exit 1; }
-[ ! -f "$STEAMCMD" ] && { err "SteamCMD не найден!"; exit 1; }
+
+# Проверка DepotDownloader
+if [ ! -x "$DEPOT_DOWNLOADER" ]; then
+    err "DepotDownloader не найден: $DEPOT_DOWNLOADER"
+    echo ""
+    echo "Установка:"
+    echo "  mkdir -p ~/depotdownloader && cd ~/depotdownloader"
+    echo "  curl -sqL https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_3.4.0/DepotDownloader-linux-x64.zip -o dd.zip"
+    echo "  unzip dd.zip && chmod +x DepotDownloader && rm dd.zip"
+    exit 1
+fi
 
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$LOCAL_DOWNLOAD_DIR"
 
-# Функция очистки кэша
-clean_cache() {
-    log "Очистка кэша Steam..."
-    rm -rf ~/.steam/debian-installation/steamapps/downloading/* 2>/dev/null
-    rm -rf ~/.steam/debian-installation/steamapps/temp/* 2>/dev/null
-    rm -rf ~/.steam/debian-installation/steamapps/workshop/temp/* 2>/dev/null
-    sync
-    sleep 2
-}
-
 # Функция проверки места
 check_disk_space() {
-    local game_size_gb=$1
-    local required_gb=$((game_size_gb + CACHE_SAFETY_GB))
-    local available_gb=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
+    local required_gb=$1
+    local available_gb
+    available_gb=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
     
     if [ "$available_gb" -lt "$required_gb" ]; then
         warn "Мало места на основном диске (нужно ${required_gb}GB, доступно ${available_gb}GB)"
-        clean_cache
-        available_gb=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
-        log "После очистки доступно: ${available_gb}GB"
+        return 1
     fi
+    return 0
 }
 
 # Читаем AppID
 mapfile -t APPIDS < <(grep -v '^#' "$1" | grep -v '^[[:space:]]*$' | tr -d '\r' | xargs -n1)
 TOTAL=${#APPIDS[@]}
-[ $TOTAL -eq 0 ] && { err "Нет AppID!"; exit 1; }
+[ "$TOTAL" -eq 0 ] && { err "Нет AppID!"; exit 1; }
 
 log "════════════════════════════════════════════"
-log "Установка $TOTAL игр"
+log "Установка $TOTAL игр (DepotDownloader)"
 log "Локальная папка: $LOCAL_DOWNLOAD_DIR"
 log "HDD директория: $INSTALL_DIR"
 log "Схема: скачать → скопировать на HDD → удалить локально"
 log "════════════════════════════════════════════"
 
-read -p "Логин: " STEAM_USER
-read -sp "Пароль: " STEAM_PASS
-echo ""
+read -p "Логин Steam: " STEAM_USER
 echo ""
 
-# Авторизация
-log "Авторизация..."
-log "Подтвердите вход в мобильном приложении Steam!"
+# Первый запуск — авторизация и сохранение пароля
+log "Авторизация (подтвердите в мобильном приложении Steam)..."
+"$DEPOT_DOWNLOADER" -app 730 -depot 731 -manifest-only \
+    -username "$STEAM_USER" -remember-password 2>&1 | tail -5
 echo ""
-
-umask 077
-cat > /tmp/login_$$.txt << EOF
-login $STEAM_USER $STEAM_PASS
-@NoPromptForPassword 1
-quit
-EOF
-umask 022
-
-"$STEAMCMD" +runscript /tmp/login_$$.txt
-
-rm -f /tmp/login_$$.txt
-
-echo ""
-log "✓ Начинаем установку"
+log "✓ Авторизация завершена"
 echo ""
 
 # Результаты
@@ -138,105 +122,84 @@ for ((i=0; i<TOTAL; i++)); do
         continue
     fi
     
-    # Проверка места (предполагаем ~5GB на игру, если нужно точнее - можно добавить API запрос)
-    check_disk_space 5
-    
-    [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
-    
-    echo ""
-    
-    # Запуск установки с прогрессом и ionice
-    # Скачиваем в локальную папку на основном диске
-    IONICE_CMD=""
-    if command -v ionice &> /dev/null; then
-        IONICE_CMD="ionice -c2 -n7"
-        log "Используем ionice для снижения нагрузки на диск"
+    # Проверка места
+    if ! check_disk_space 15; then
+        err "Недостаточно места на основном диске"
+        ((FAIL++))
+        continue
     fi
     
-    log "Скачиваем в локальную папку: $LOCAL_DIR"
-    
-    # Очистка состояния SteamCMD чтобы не застревал на чужих обновлениях
-    # SteamCMD при логине может подхватить обновления из библиотеки Steam
-    rm -f "${HOME:?}/steamcmd/steamapps/appmanifest_"*.acf 2>/dev/null
-    rm -rf "${HOME:?}/steamcmd/steamapps/downloading/"* 2>/dev/null
-    rm -f "${HOME:?}/.steam/debian-installation/steamapps/appmanifest_"*.acf 2>/dev/null
-    rm -f "${HOME:?}/.steam/steamapps/appmanifest_"*.acf 2>/dev/null
-    rm -f "${HOME:?}/.local/share/Steam/steamapps/appmanifest_"*.acf 2>/dev/null
-    
-    $IONICE_CMD "$STEAMCMD" \
-        +@ShutdownOnFailedCommand 0 \
-        +@NoPromptForPassword 1 \
-        +login "$STEAM_USER" \
-        +force_install_dir "$LOCAL_DIR" \
-        +app_update "$APPID" -language "$GAME_LANG" \
-        +quit \
-        2>&1 | tee -a "$LOG" | while IFS= read -r line; do
-            if [[ "$line" =~ progress:\ ([0-9.]+)\ \(([0-9]+)\ /\ ([0-9]+)\) ]]; then
-                percent="${BASH_REMATCH[1]}"
-                downloaded="${BASH_REMATCH[2]}"
-                total="${BASH_REMATCH[3]}"
-                downloaded_gb=$(echo "scale=2; $downloaded / 1073741824" | bc)
-                total_gb=$(echo "scale=2; $total / 1073741824" | bc)
-                printf "\r\033[K[%.1f%%] %.2fGB / %.2fGB" "$percent" "$downloaded_gb" "$total_gb"
-            elif [[ "$line" =~ Update\ state.*progress:\ ([0-9.]+) ]]; then
-                percent="${BASH_REMATCH[1]}"
-                printf "\r\033[K[%.1f%%] Загрузка..." "$percent"
-            fi
-        done
+    [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
+    mkdir -p "$LOCAL_DIR"
     
     echo ""
-    echo ""
+    log "Скачиваем в: $LOCAL_DIR"
     
-    # Проверка результата скачивания
-    if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +10M 2>/dev/null | head -1)" ]; then
-        SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
-        LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
-        log "✓ Скачано локально: $SIZE"
+    # Скачивание через DepotDownloader
+    # -remember-password использует сохранённую сессию
+    # -language задаёт язык контента
+    # -os задаёт платформу
+    # -dir задаёт директорию для скачивания
+    if "$DEPOT_DOWNLOADER" \
+        -app "$APPID" \
+        -username "$STEAM_USER" -remember-password \
+        -language "$GAME_LANG" \
+        -os "$GAME_OS" \
+        -dir "$LOCAL_DIR" \
+        2>&1 | tee -a "$LOG"; then
         
-        # Копирование на HDD (rsync с прогрессом, чтобы не зависало)
-        log "Копирование на HDD: $DIR ..."
-        [ -d "$DIR" ] && rm -rf "$DIR"
+        echo ""
         
-        if rsync -a --info=progress2 "$LOCAL_DIR/" "$DIR"; then
+        # Проверка результата скачивания
+        if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +1M 2>/dev/null | head -1)" ]; then
+            SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
+            LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
+            log "✓ Скачано локально: $SIZE"
             
-            # Верификация копирования — сравнение размеров
-            HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
-            if [ "$LOCAL_BYTES" = "$HDD_BYTES" ]; then
-                log "✓ Скопировано на HDD (верифицировано: ${SIZE})"
+            # Копирование на HDD
+            log "Копирование на HDD: $DIR ..."
+            [ -d "$DIR" ] && rm -rf "$DIR"
+            
+            if rsync -a --info=progress2 "$LOCAL_DIR/" "$DIR"; then
                 
-                # Удаление локальной копии
-                rm -rf "$LOCAL_DIR"
-                CURRENT_LOCAL_DIR=""
-                log "✓ Локальная копия удалена"
-                
-                echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
-                ((OK++))
+                # Верификация копирования
+                HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
+                if [ "$LOCAL_BYTES" = "$HDD_BYTES" ]; then
+                    log "✓ Скопировано на HDD (верифицировано: ${SIZE})"
+                    
+                    rm -rf "$LOCAL_DIR"
+                    CURRENT_LOCAL_DIR=""
+                    log "✓ Локальная копия удалена"
+                    
+                    echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
+                    ((OK++))
+                else
+                    err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
+                    err "Локальная копия сохранена: $LOCAL_DIR"
+                    CURRENT_LOCAL_DIR=""
+                    ((FAIL++))
+                fi
             else
-                err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
-                err "Локальная копия сохранена в: $LOCAL_DIR"
-                CURRENT_LOCAL_DIR=""
+                err "✗ Ошибка копирования на HDD"
                 ((FAIL++))
             fi
         else
-            err "✗ Ошибка копирования на HDD"
+            err "✗ Не скачан (пустая директория)"
             ((FAIL++))
+            [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
         fi
     else
-        err "✗ Не скачан"
+        err "✗ DepotDownloader вернул ошибку"
         ((FAIL++))
         [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
     fi
     
     CURRENT_LOCAL_DIR=""
     echo ""
-    log "Пауза 5 сек..."
-    sleep 5
+    log "Пауза 3 сек..."
+    sleep 3
     echo ""
 done
-
-# Финальная очистка кэша через 10 минут после последней игры
-log "Установка завершена, очистка кэша через 10 минут..."
-(sleep 600 && clean_cache) &
 
 # Удаление локальной папки если пуста
 rmdir "$LOCAL_DOWNLOAD_DIR" 2>/dev/null
@@ -244,4 +207,5 @@ rmdir "$LOCAL_DOWNLOAD_DIR" 2>/dev/null
 log "════════════════════════════════════════════"
 log "✓ Успешно: $OK/$TOTAL"
 [ $FAIL -gt 0 ] && err "✗ Неудачно: $FAIL"
-log "$SUCCESS | $LOG"
+log "Результаты: $SUCCESS"
+log "Лог: $LOG"

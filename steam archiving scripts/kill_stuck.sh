@@ -1,42 +1,39 @@
 #!/bin/bash
 
-# Убийство зависших процессов SteamCMD
+# Убийство зависших процессов DepotDownloader / SteamCMD
 
 echo "════════════════════════════════════════"
-echo "Остановка всех процессов SteamCMD"
+echo "Остановка процессов загрузки"
 echo "════════════════════════════════════════"
 echo ""
 
-# Найти все процессы связанные с steamcmd
-PIDS=$(pgrep -f "steamcmd\|steam")
+# Найти все процессы связанные с DepotDownloader или steamcmd
+PIDS=$(pgrep -f "DepotDownloader\|steamcmd\|steam" 2>/dev/null)
 
 if [ -z "$PIDS" ]; then
-    echo "✓ Процессов SteamCMD не найдено"
+    echo "✓ Процессов загрузки не найдено"
 else
     echo "Найдены процессы:"
-    ps aux | grep -E "steamcmd|steam" | grep -v grep | grep -v kill_stuck
+    ps aux | grep -E "DepotDownloader|steamcmd|steam" | grep -v grep | grep -v kill_stuck
     echo ""
     
-    read -p "Убить все процессы SteamCMD и Steam? (y/n): " CONFIRM
+    read -p "Убить все процессы? (y/n): " CONFIRM
     
     if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
         echo ""
         echo "Убиваем процессы..."
         
-        # Убить все связанные процессы
-        pkill -9 -f steamcmd
-        pkill -9 -f "linux32/steamcmd"
-        pkill -9 -f "linux64/steamcmd"
+        pkill -9 -f DepotDownloader 2>/dev/null
+        pkill -9 -f steamcmd 2>/dev/null
         
         sleep 2
         
         # Проверка
-        if pgrep -f steamcmd > /dev/null; then
+        if pgrep -f "DepotDownloader\|steamcmd" > /dev/null 2>&1; then
             echo "✗ Некоторые процессы еще работают"
-            echo "Попробуйте с sudo:"
-            echo "  sudo pkill -9 steamcmd"
+            echo "Попробуйте с sudo"
         else
-            echo "✓ Все процессы SteamCMD убиты"
+            echo "✓ Все процессы убиты"
         fi
     else
         echo "Отменено"
