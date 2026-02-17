@@ -90,9 +90,10 @@ echo ""
 
 # Первый запуск — авторизация и сохранение пароля
 # Используем AppID 730 (CS2, бесплатная) с -manifest-only для проверки авторизации без скачивания
-log "Авторизация (подтвердите в мобильном приложении Steam)..."
+# НЕ перенаправляем вывод — DepotDownloader запросит пароль и Steam Guard интерактивно
+log "Авторизация..."
 "$DEPOT_DOWNLOADER" -app 730 -depot 731 -manifest-only \
-    -username "$STEAM_USER" -remember-password 2>&1 | tail -5
+    -username "$STEAM_USER" -remember-password
 echo ""
 log "✓ Авторизация завершена"
 echo ""
