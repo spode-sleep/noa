@@ -185,12 +185,11 @@ for ((i=0; i<TOTAL; i++)); do
         LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
         log "✓ Скачано локально: $SIZE"
         
-        # Копирование на HDD
+        # Копирование на HDD (rsync с прогрессом, чтобы не зависало)
         log "Копирование на HDD: $DIR ..."
         [ -d "$DIR" ] && rm -rf "$DIR"
         
-        if cp -a "$LOCAL_DIR" "$DIR"; then
-            sync
+        if rsync -a --info=progress2 "$LOCAL_DIR/" "$DIR/"; then
             
             # Верификация копирования — сравнение размеров
             HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
