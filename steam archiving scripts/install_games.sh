@@ -142,33 +142,37 @@ for ((i=0; i<TOTAL; i++)); do
     log "Скачиваем в: $LOCAL_DIR"
     
     # Скачивание через DepotDownloader
-    # Сначала пробуем указанную ОС, если нет депотов — пробуем windows
+    # Пробуем комбинации: язык (russian → english) × платформа (linux → windows)
     DOWNLOAD_OK=false
-    TRIED_OS=""
-    for TRY_OS in "$GAME_OS" "windows"; do
-        # Не пробуем одну и ту же ОС дважды
-        [ "$TRY_OS" = "$TRIED_OS" ] && continue
-        TRIED_OS="$TRY_OS"
-        log "Платформа: $TRY_OS"
-        
-        "$DEPOT_DOWNLOADER" \
-            -app "$APPID" \
-            -username "$STEAM_USER" -remember-password \
-            -language "$GAME_LANG" \
-            -os "$TRY_OS" \
-            -dir "$LOCAL_DIR" \
-            2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT"
-        
-        # Если нет депотов для этой ОС — пробуем следующую
-        if grep -q "Couldn't find any depots" "$DD_OUTPUT" 2>/dev/null; then
-            warn "Нет депотов для $TRY_OS, пробуем другую платформу..."
-            rm -rf "$LOCAL_DIR"
-            mkdir -p "$LOCAL_DIR"
-            continue
-        fi
-        
-        DOWNLOAD_OK=true
-        break
+    TRIED=""
+    for TRY_LANG in "$GAME_LANG" "english"; do
+        for TRY_OS in "$GAME_OS" "windows"; do
+            # Не пробуем одну комбинацию дважды
+            KEY="${TRY_OS}:${TRY_LANG}"
+            case "$TRIED" in *"$KEY"*) continue ;; esac
+            TRIED="$TRIED $KEY"
+            
+            log "Платформа: $TRY_OS, язык: $TRY_LANG"
+            
+            "$DEPOT_DOWNLOADER" \
+                -app "$APPID" \
+                -username "$STEAM_USER" -remember-password \
+                -language "$TRY_LANG" \
+                -os "$TRY_OS" \
+                -dir "$LOCAL_DIR" \
+                2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT"
+            
+            # Если нет депотов — пробуем следующую комбинацию
+            if grep -q "Couldn't find any depots" "$DD_OUTPUT" 2>/dev/null; then
+                warn "Нет депотов для $TRY_OS/$TRY_LANG"
+                rm -rf "$LOCAL_DIR"
+                mkdir -p "$LOCAL_DIR"
+                continue
+            fi
+            
+            DOWNLOAD_OK=true
+            break 2
+        done
     done
     rm -f "$DD_OUTPUT"
     
