@@ -1,7 +1,7 @@
 <template>
   <div class="reader-page">
     <div class="reader-header glass">
-      <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Library</a>
+      <a class="btn btn-back" @click="router.push('/fiction')" style="cursor:pointer">← Library</a>
       <div v-if="book" class="header-info">
         <span class="header-title">{{ book.title }}</span>
         <span class="header-author">{{ book.author }}</span>

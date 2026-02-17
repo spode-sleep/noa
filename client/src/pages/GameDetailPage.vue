@@ -2,7 +2,7 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <a class="sidebar-link" @click="router.back()" style="cursor:pointer">
+      <a class="sidebar-link" @click="router.push('/games')" style="cursor:pointer">
         <Icon icon="mdi:arrow-left" /> Games
       </a>
       <div class="sidebar-divider"></div>
@@ -17,7 +17,7 @@
     </nav>
 
     <div class="page">
-      <a v-if="!game" class="btn btn-back" @click="router.back()" style="cursor:pointer">← Games</a>
+      <a v-if="!game" class="btn btn-back" @click="router.push('/games')" style="cursor:pointer">← Games</a>
 
       <div v-if="loading" class="loading">Loading game...</div>
       <div v-else-if="error" class="error">{{ error }}</div>

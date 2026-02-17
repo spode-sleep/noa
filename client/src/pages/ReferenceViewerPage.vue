@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Reference</a>
+    <a class="btn btn-back" @click="router.push('/reference')" style="cursor:pointer">← Reference</a>
     <h1>{{ displayName }}</h1>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>

@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Warez</a>
+    <a class="btn btn-back" @click="router.push('/warez')" style="cursor:pointer">← Warez</a>
 
     <div v-if="loading" class="loading">Loading repository...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
