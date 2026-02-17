@@ -9,6 +9,29 @@
 
 ---
 
+## 🔧 УСТАНОВКА STEAMCMD (ОДИН РАЗ):
+
+```bash
+# 1. Установите необходимые пакеты
+sudo dpkg --add-architecture i386
+sudo apt update
+sudo apt install -y lib32gcc-s1 lib32stdc++6 curl tar
+
+# 2. Создайте папку и скачайте SteamCMD
+mkdir -p ~/steamcmd && cd ~/steamcmd
+curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+
+# 3. Первый запуск (обновит себя и выйдет)
+./steamcmd.sh +quit
+
+# 4. Проверьте что работает
+./steamcmd.sh +quit && echo "✓ SteamCMD готов!"
+```
+
+**Готово!** SteamCMD установлен в `~/steamcmd/steamcmd.sh`.
+
+---
+
 ## 🚀 УСТАНОВКА ИГР (4 шага):
 
 ### Шаг 0: Настройка постоянного монтирования (ОДИН РАЗ)
@@ -284,8 +307,8 @@ echo "730" > one_game.txt
 
 ## ✅ ЧЕКЛИСТ ПЕРЕД ЗАПУСКОМ:
 
-- [ ] SteamCMD установлен и обновлен (`cd ~/steamcmd && ./steamcmd.sh +quit`)
-- [ ] 32-bit библиотеки установлены (`sudo apt install lib32gcc-s1 lib32stdc++6`)
+- [ ] SteamCMD установлен (см. раздел «Установка SteamCMD» выше)
+- [ ] 32-bit библиотеки установлены (устанавливаются вместе со SteamCMD)
 - [ ] Диск подключен (`/media/repeater/ARCHIVE1` доступен)
 - [ ] ~200 ГБ свободного места на основном диске (для скачивания)
 - [ ] Есть список игр (файл .txt с AppID)
