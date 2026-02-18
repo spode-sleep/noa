@@ -10,6 +10,7 @@ DEPOT_DOWNLOADER="$HOME/depotdownloader/DepotDownloader"
 GAME_LANG="russian"
 GAME_OS="linux"
 LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
+MIN_GAME_SIZE_BYTES=1048576  # 1MB — меньше = подозрительно (возможно только метаданные)
 
 # Безопасный временный файл для вывода DepotDownloader
 DD_OUTPUT=$(mktemp /tmp/dd_output.XXXXXX)
@@ -221,7 +222,7 @@ for ((i=0; i<TOTAL; i++)); do
                 ((OK++))
                 
                 # Предупреждение: подозрительно маленькая игра (< 1MB)
-                if [ "$LOCAL_BYTES" -lt 1048576 ]; then
+                if [ "$LOCAL_BYTES" -lt "$MIN_GAME_SIZE_BYTES" ]; then
                     warn "⚠ AppID $APPID очень маленький ($SIZE) — возможно скачались только метаданные"
                     WARNED_APPIDS+=("$APPID")
                     ((WARN++))
