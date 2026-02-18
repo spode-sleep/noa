@@ -39,11 +39,11 @@ def main():
 
     if args.rawg:
         print("⚠ Опция --rawg пока не реализована")
-        sys.exit(0)
+        sys.exit(1)
 
     app_ids = parse_appid_file(args.appid_file)
     if not app_ids:
-        print("Нет AppID в файле")
+        print(f"Нет AppID в файле: {args.appid_file}")
         sys.exit(1)
 
     with open(args.games_json, "r", encoding="utf-8") as f:
