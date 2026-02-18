@@ -54,12 +54,6 @@ restore_dirty_pages() {
     fi
 }
 
-# ionice для снижения нагрузки на диск (best-effort, низкий приоритет)
-IONICE_CMD=""
-if command -v ionice &> /dev/null; then
-    IONICE_CMD="ionice -c2 -n7"
-fi
-
 # Безопасный временный файл для вывода DepotDownloader
 DD_OUTPUT=$(mktemp /tmp/dd_output.XXXXXX)
 
@@ -200,7 +194,7 @@ rsync_with_retry() {
         # --timeout: I/O таймаут (если нет данных N секунд — rsync выходит с ошибкой)
         # --partial: сохранять частично переданные файлы
         # --partial-dir: класть частичные файлы в отдельную папку
-        if $IONICE_CMD rsync -a --info=progress2 \
+        if rsync -a --info=progress2 \
             --timeout="$RSYNC_TIMEOUT" \
             --partial --partial-dir=.rsync-partial \
             "$src" "$dst"; then
@@ -239,9 +233,6 @@ log "Установка $TOTAL игр (DepotDownloader)"
 log "Локальная папка: $LOCAL_DOWNLOAD_DIR"
 log "HDD директория: $INSTALL_DIR"
 log "Схема: скачать → скопировать на HDD → удалить локально"
-if [ -n "$IONICE_CMD" ]; then
-    log "Используем ionice для снижения нагрузки на диск"
-fi
 log "Dirty pages будут ограничены при копировании на USB HDD (предотвращение зависаний)"
 log "════════════════════════════════════════════"
 
@@ -321,7 +312,7 @@ for ((i=0; i<TOTAL; i++)); do
             
             log "Платформа: $TRY_OS, язык: $TRY_LANG"
             
-            $IONICE_CMD "$DEPOT_DOWNLOADER" \
+            "$DEPOT_DOWNLOADER" \
                 -app "$APPID" \
                 -username "$STEAM_USER" -remember-password \
                 -language "$TRY_LANG" \
@@ -353,7 +344,7 @@ for ((i=0; i<TOTAL; i++)); do
         warn "Все комбинации ОС/язык не дали результата"
         log "Попытка: все платформы, без языкового фильтра"
         
-        $IONICE_CMD "$DEPOT_DOWNLOADER" \
+        "$DEPOT_DOWNLOADER" \
             -app "$APPID" \
             -username "$STEAM_USER" -remember-password \
             -all-platforms \
