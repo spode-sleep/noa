@@ -9,7 +9,7 @@
 3. Распакуйте в `%USERPROFILE%\depotdownloader\`
 4. Проверьте: `%USERPROFILE%\depotdownloader\DepotDownloader.exe` должен существовать
 
-## 2. Установка Python 3.10+
+## 2. Установка Python 3.10+ (рекомендуется 3.12)
 
 Если ещё не установлен:
 ```

@@ -10,8 +10,8 @@ Steam Library Archiver — Windows version (Python3)
 
 Использование:
     python install_games.py my_games.txt
-    python install_games.py my_games.txt D:\\steam
-    python install_games.py my_games.txt "E:\\Archive\\steam"
+    python install_games.py my_games.txt D:/steam
+    python install_games.py my_games.txt "E:/Archive/steam"
 """
 
 import argparse
@@ -91,7 +91,7 @@ def dir_size_human(size_bytes: int) -> str:
 def has_any_files(path: Path) -> bool:
     """Проверка наличия хотя бы одного файла."""
     try:
-        return any(path.rglob("*"))
+        return any(f.is_file() for f in path.rglob("*"))
     except OSError:
         return False
 
@@ -351,6 +351,8 @@ def main() -> None:
     failed_appids: list[str] = []
     warned_appids: list[str] = []
 
+    local_dir: Path | None = None
+
     try:
         for i, appid in enumerate(appids):
             local_dir = LOCAL_DOWNLOAD_DIR / appid
@@ -476,7 +478,7 @@ def main() -> None:
         print()
         warn("Прерывание! (Ctrl+C)")
         # Очистка текущей локальной папки
-        if "local_dir" in locals() and local_dir.exists():
+        if local_dir is not None and local_dir.exists():
             warn(f"Удаление частичной загрузки: {local_dir}")
             shutil.rmtree(local_dir, ignore_errors=True)
 

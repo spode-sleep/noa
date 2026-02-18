@@ -9,6 +9,7 @@
 """
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -121,7 +122,6 @@ def main() -> None:
 
             answer = input("  Удалить их? (y/n): ").strip().lower()
             if answer == "y":
-                import shutil
                 for d, _ in small_dirs:
                     print(f"    Удаление {d}...")
                     shutil.rmtree(d, ignore_errors=True)
