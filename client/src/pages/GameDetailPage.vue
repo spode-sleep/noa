@@ -444,10 +444,11 @@ function copyAppId() {
 
 function copyPath() {
   const path = game.value?.archivePath || ''
+  if (!path) return
   navigator.clipboard.writeText(path).then(() => {
     pathCopied.value = true
     setTimeout(() => { pathCopied.value = false }, 1500)
-  })
+  }).catch(() => {})
 }
 
 function checkOverflow() {
