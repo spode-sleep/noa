@@ -13,6 +13,7 @@ const routes = [
   { path: '/fiction', name: 'Fiction', component: FictionPage },
   { path: '/fiction/:id', name: 'FictionReader', component: () => import('../pages/FictionReaderPage.vue') },
   { path: '/reference', name: 'Reference', component: ReferencePage },
+  { path: '/reference/:id', name: 'ReferenceViewer', component: () => import('../pages/ReferenceViewerPage.vue') },
   { path: '/ai', name: 'AI', component: AiPage },
 ]
 
