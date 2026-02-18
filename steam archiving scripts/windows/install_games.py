@@ -38,8 +38,8 @@ DEFAULT_DD_PATHS = [
     Path.home() / "depotdownloader" / "depotdownloader.exe",
 ]
 
-# Локальная папка для загрузки (SSD)
-LOCAL_DOWNLOAD_DIR = Path.home() / "steam_downloads"
+# Локальная папка для загрузки (диск D:)
+LOCAL_DOWNLOAD_DIR = Path("D:/steam_downloads")
 
 # ═══════════════════════════ Цвета ═══════════════════════════
 

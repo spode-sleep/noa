@@ -59,7 +59,7 @@ python install_games.py ..\my_games.txt D:\steam --dd "C:\tools\DepotDownloader.
 ## 6. Что происходит
 
 Для каждой игры:
-1. **Скачивание** в `%USERPROFILE%\steam_downloads\{appId}` (SSD)
+1. **Скачивание** в `D:\steam_downloads\{appId}`
 2. **Копирование** на HDD через robocopy (стабильнее shutil/xcopy для NTFS)
 3. **Верификация** — сравнение размеров
 4. **Удаление** локальной копии
