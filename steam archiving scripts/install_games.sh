@@ -6,10 +6,17 @@ log() { echo -e "${G}[$(date '+%H:%M:%S')]${NC} $1"; }
 err() { echo -e "${R}[$(date '+%H:%M:%S')]${NC} $1"; }
 warn() { echo -e "${Y}[$(date '+%H:%M:%S')]${NC} $1"; }
 
-DEPOT_DOWNLOADER="$HOME/depotdownloader/DepotDownloader"
+# Определяем домашнюю папку реального пользователя (не root при sudo)
+if [ -n "${SUDO_USER:-}" ]; then
+    REAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+    REAL_HOME="$HOME"
+fi
+
+DEPOT_DOWNLOADER="$REAL_HOME/depotdownloader/DepotDownloader"
 GAME_LANG="russian"
 GAME_OS="linux"
-LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
+LOCAL_DOWNLOAD_DIR="$REAL_HOME/steam_downloads"
 MIN_GAME_SIZE_BYTES=1048576  # 1MB — меньше = подозрительно (возможно только метаданные)
 
 # Настройки rsync и восстановления HDD
@@ -83,7 +90,7 @@ if [ $# -lt 1 ]; then
     echo "По умолчанию: /media/repeater/ARCHIVE11/steam"
     echo ""
     echo "Используется DepotDownloader (https://github.com/SteamRE/DepotDownloader)"
-    echo "Игры сначала скачиваются в $HOME/steam_downloads,"
+    echo "Игры сначала скачиваются в $REAL_HOME/steam_downloads,"
     echo "потом копируются на HDD, потом удаляются с компьютера."
     exit 1
 fi
@@ -396,7 +403,7 @@ for ((i=0; i<TOTAL; i++)); do
                 rm -rf "$LOCAL_DIR"
                 CURRENT_LOCAL_DIR=""
                 # Очистка кэша .steam чтобы не копилось
-                rm -rf "${HOME:?}/.steam/debian-installation/steamapps/shadercache/$APPID" 2>/dev/null
+                rm -rf "${REAL_HOME:?}/.steam/debian-installation/steamapps/shadercache/$APPID" 2>/dev/null
                 log "✓ Локальная копия удалена"
                 
                 echo "$APPID" >> "$SUCCESS"
