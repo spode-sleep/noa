@@ -7,3 +7,4 @@ cache/
 *.tsbuildinfo
 chroma_data/
 steam archiving scripts/results/
+__pycache__/
