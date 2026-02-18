@@ -12,6 +12,11 @@ GAME_OS="linux"
 LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"
 MIN_GAME_SIZE_BYTES=1048576  # 1MB — меньше = подозрительно (возможно только метаданные)
 
+# Настройки rsync и восстановления HDD
+RSYNC_TIMEOUT=300       # Таймаут бездействия rsync (секунды): если нет прогресса — значит завис
+RSYNC_MAX_RETRIES=3     # Максимум попыток копирования
+HDD_RECOVER_WAIT=10     # Секунды ожидания после повторной монтировки
+
 # Безопасный временный файл для вывода DepotDownloader
 DD_OUTPUT=$(mktemp /tmp/dd_output.XXXXXX)
 
@@ -76,6 +81,108 @@ check_disk_space() {
         return 1
     fi
     return 0
+}
+
+# Попытка восстановления зависшего USB HDD
+# Unmount → power-cycle USB → remount → проверка
+recover_hdd() {
+    local mount_dir="$1"
+    
+    warn "Попытка восстановления HDD: $mount_dir"
+    
+    # Определяем блочное устройство для точки монтирования
+    local dev
+    dev=$(findmnt -n -o SOURCE "$mount_dir" 2>/dev/null)
+    
+    if [ -z "$dev" ]; then
+        warn "Не могу определить устройство для $mount_dir"
+        warn "Попробуйте переподключить HDD вручную"
+        warn "Ожидание 30 секунд..."
+        sleep 30
+        # Проверяем, вернулся ли HDD
+        if mountpoint -q "$mount_dir" 2>/dev/null; then
+            log "HDD доступен после ожидания"
+            return 0
+        fi
+        return 1
+    fi
+    
+    log "Устройство: $dev"
+    
+    # 1. Сброс буферов
+    warn "Сброс буферов (sync)..."
+    sync 2>/dev/null
+    
+    # 2. Пробуем мягкий сброс: remount read-only → remount read-write
+    warn "Попытка ремонтирования..."
+    if sudo umount "$mount_dir" 2>/dev/null; then
+        sleep 2
+        if sudo mount "$dev" "$mount_dir" 2>/dev/null; then
+            sleep "$HDD_RECOVER_WAIT"
+            if mountpoint -q "$mount_dir" 2>/dev/null; then
+                log "✓ HDD восстановлен через перемонтирование"
+                return 0
+            fi
+        fi
+    fi
+    
+    # 3. Если мягкий сброс не помог, ждём ручного переподключения
+    warn "Автоматическое восстановление не удалось"
+    warn "Переподключите HDD вручную и нажмите Enter..."
+    read -r
+    
+    if mountpoint -q "$mount_dir" 2>/dev/null || [ -d "$mount_dir" ]; then
+        log "✓ HDD доступен"
+        return 0
+    fi
+    
+    return 1
+}
+
+# rsync с таймаутом и авто-восстановлением
+# Использует --timeout rsync (I/O таймаут) + retry логику
+rsync_with_retry() {
+    local src="$1"
+    local dst="$2"
+    local mount_dir="$3"
+    local attempt
+    
+    for ((attempt=1; attempt<=RSYNC_MAX_RETRIES; attempt++)); do
+        if [ "$attempt" -gt 1 ]; then
+            warn "Попытка копирования $attempt/$RSYNC_MAX_RETRIES"
+        fi
+        
+        # --timeout: I/O таймаут (если нет данных N секунд — rsync выходит с ошибкой)
+        # --partial: сохранять частично переданные файлы
+        # --partial-dir: класть частичные файлы в отдельную папку
+        if rsync -a --info=progress2 \
+            --timeout="$RSYNC_TIMEOUT" \
+            --partial --partial-dir=.rsync-partial \
+            "$src" "$dst"; then
+            # Удаляем папку с частичными файлами если осталась
+            rm -rf "${dst}/.rsync-partial" 2>/dev/null
+            return 0
+        fi
+        
+        local rsync_exit=$?
+        warn "rsync завершился с кодом $rsync_exit"
+        
+        if [ "$attempt" -lt "$RSYNC_MAX_RETRIES" ]; then
+            # rsync exit 30 = timeout, 12 = protocol error, 23 = partial transfer
+            warn "Копирование зависло или прервалось. Восстановление HDD..."
+            
+            if recover_hdd "$mount_dir"; then
+                log "Повторяем копирование..."
+                sleep 3
+            else
+                err "HDD не восстановлен"
+                return 1
+            fi
+        fi
+    done
+    
+    err "Все $RSYNC_MAX_RETRIES попыток копирования неудачны"
+    return 1
 }
 
 # Читаем AppID
@@ -227,11 +334,14 @@ for ((i=0; i<TOTAL; i++)); do
         LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
         log "✓ Скачано локально: $SIZE"
         
-        # Копирование на HDD
+        # Копирование на HDD (с автовосстановлением при зависании)
         log "Копирование на HDD: $DIR ..."
         [ -d "$DIR" ] && rm -rf "$DIR"
         
-        if rsync -a --info=progress2 "$LOCAL_DIR/" "$DIR"; then
+        # Определяем точку монтирования для HDD
+        MOUNT_POINT=$(df "$INSTALL_DIR" 2>/dev/null | tail -1 | awk '{print $6}')
+        
+        if rsync_with_retry "$LOCAL_DIR/" "$DIR" "$MOUNT_POINT"; then
             
             # Верификация копирования
             HDD_BYTES=$(du -sb "$DIR" 2>/dev/null | cut -f1)
