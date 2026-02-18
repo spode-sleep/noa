@@ -100,15 +100,19 @@ python3 extract_appids.py ~/.steam/steam/steamapps
 ├─ 1. DepotDownloader скачивает в ~/steam_downloads/APPID
 ├─ 2. rsync копирует на HDD: /mnt/ARCHIVE1/steam/APPID
 ├─ 3. Верифицирует копирование (сравнивает размеры)
-├─ 4. Удаляет локальную копию
+├─ 4. Удаляет локальную копию + чистит кэш .steam
 └─ Повторяет для следующей игры
 
-Результат:
+Результаты сохраняются в: results/TIMESTAMP/
+├─ install.log       — полный лог
+├─ installed.txt     — AppID успешных (формат как my_games.txt)
+└─ failed.txt        — AppID неудачных
+
 ✓ Авторизация один раз, запоминается
 ✓ Не зависает (DepotDownloader стабильнее SteamCMD)
-✓ Прогресс скачивания виден
+✓ Автофоллбэк: linux → windows, russian → english
+✓ Чанки скачиваются с автоматическим ретраем
 ✓ Ctrl+C безопасно прерывает и чистит за собой
-✓ Игры в: /mnt/ARCHIVE1/steam/XXXXX
 ```
 
 > **Почему не напрямую на HDD?** Скачивание на основной диск и копирование
@@ -119,8 +123,20 @@ python3 extract_appids.py ~/.steam/steam/steamapps
 ## 📊 ПРОСМОТР РЕЗУЛЬТАТОВ:
 
 ```bash
+# Посмотреть результаты последнего запуска
+ls results/
+
+# Успешно скачанные AppID (можно использовать как входной файл)
+cat results/*/installed.txt
+
+# Не скачанные AppID (можно перезапустить для них)
+cat results/*/failed.txt
+
+# Перезапустить для неудачных
+./install_games.sh results/20260218_041500/failed.txt /mnt/ARCHIVE1/steam
+
+# Посмотреть что на HDD
 ./view_games.sh
-ls /mnt/ARCHIVE1/steam/
 du -sh /mnt/ARCHIVE1/steam/*
 ```
 

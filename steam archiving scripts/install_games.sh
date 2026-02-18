@@ -102,13 +102,19 @@ echo ""
 log "✓ Авторизация завершена"
 echo ""
 
-# Результаты
+# Результаты — в подпапку results/TIMESTAMP/
 TS=$(date +%Y%m%d_%H%M%S)
-LOG="install_${TS}.log"
-SUCCESS="installed_${TS}.txt"
-echo "# Установленные - $(date)" > "$SUCCESS"
+RESULTS_DIR="results/${TS}"
+mkdir -p "$RESULTS_DIR"
+
+LOG="$RESULTS_DIR/install.log"
+SUCCESS="$RESULTS_DIR/installed.txt"
+FAILED="$RESULTS_DIR/failed.txt"
+
+touch "$SUCCESS" "$FAILED"
 
 OK=0; FAIL=0
+FAILED_APPIDS=()
 
 for ((i=0; i<TOTAL; i++)); do
     APPID="${APPIDS[$i]}"
@@ -124,6 +130,7 @@ for ((i=0; i<TOTAL; i++)); do
     if [ ! -d "$INSTALL_DIR" ]; then
         err "HDD недоступен: $INSTALL_DIR"
         err "Проверьте подключение диска!"
+        FAILED_APPIDS+=("$APPID")
         ((FAIL++))
         continue
     fi
@@ -131,6 +138,7 @@ for ((i=0; i<TOTAL; i++)); do
     # Проверка места
     if ! check_disk_space 15; then
         err "Недостаточно места на основном диске"
+        FAILED_APPIDS+=("$APPID")
         ((FAIL++))
         continue
     fi
@@ -197,22 +205,27 @@ for ((i=0; i<TOTAL; i++)); do
                 
                 rm -rf "$LOCAL_DIR"
                 CURRENT_LOCAL_DIR=""
+                # Очистка кэша .steam чтобы не копилось
+                rm -rf "${HOME:?}/.steam/debian-installation/steamapps/shadercache/$APPID" 2>/dev/null
                 log "✓ Локальная копия удалена"
                 
-                echo "$APPID|$APPID|$SIZE|$(date)" >> "$SUCCESS"
+                echo "$APPID" >> "$SUCCESS"
                 ((OK++))
             else
                 err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
                 err "Локальная копия сохранена: $LOCAL_DIR"
                 CURRENT_LOCAL_DIR=""
+                FAILED_APPIDS+=("$APPID")
                 ((FAIL++))
             fi
         else
             err "✗ Ошибка копирования на HDD"
+            FAILED_APPIDS+=("$APPID")
             ((FAIL++))
         fi
     else
         err "✗ Не скачан (нет файлов)"
+        FAILED_APPIDS+=("$APPID")
         ((FAIL++))
         [ -d "$LOCAL_DIR" ] && rm -rf "$LOCAL_DIR"
     fi
@@ -227,8 +240,21 @@ done
 # Удаление локальной папки если пуста
 rmdir "$LOCAL_DOWNLOAD_DIR" 2>/dev/null
 
+# Запись итогов в файлы
+# Формат success/failed — как входной файл (AppID по одному на строку)
+echo "# OK: $OK/$TOTAL" >> "$SUCCESS"
+
+if [ ${#FAILED_APPIDS[@]} -gt 0 ]; then
+    for fid in "${FAILED_APPIDS[@]}"; do
+        echo "$fid" >> "$FAILED"
+    done
+fi
+echo "# FAILED: $FAIL/$TOTAL" >> "$FAILED"
+
 log "════════════════════════════════════════════"
 log "✓ Успешно: $OK/$TOTAL"
 [ $FAIL -gt 0 ] && err "✗ Неудачно: $FAIL"
-log "Результаты: $SUCCESS"
-log "Лог: $LOG"
+log "Результаты: $RESULTS_DIR/"
+log "  Лог:       $LOG"
+log "  Успешные:  $SUCCESS"
+log "  Неудачные: $FAILED"
