@@ -65,9 +65,9 @@ def main():
 
     print(f"✓ Помечено как заархивированные: {marked}/{len(app_ids)}")
     if not_found:
-        print(f"⚠ Не найдены в games.json ({len(not_found)}): {', '.join(not_found[:10])}")
-        if len(not_found) > 10:
-            print(f"  ... и ещё {len(not_found) - 10}")
+        print(f"⚠ Не найдены в games.json ({len(not_found)}):")
+        for nf in not_found:
+            print(f"  {nf}")
 
 
 if __name__ == "__main__":
