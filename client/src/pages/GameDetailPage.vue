@@ -2,7 +2,7 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <a class="sidebar-link" @click="router.push('/games')" style="cursor:pointer">
+      <a class="sidebar-link sidebar-back" @click="router.push('/games')" style="cursor:pointer">
         <Icon icon="mdi:arrow-left" /> Games
       </a>
       <div class="sidebar-divider"></div>
@@ -552,6 +552,12 @@ onUnmounted(() => {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.04);
   text-shadow: none;
+}
+
+.sidebar-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .sidebar-divider {
