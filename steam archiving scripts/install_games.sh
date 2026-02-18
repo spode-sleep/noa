@@ -113,7 +113,8 @@ recover_hdd() {
     warn "Сброс буферов (sync)..."
     sync 2>/dev/null
     
-    # 2. Пробуем мягкий сброс: remount read-only → remount read-write
+    # 2. Пробуем мягкий сброс: unmount → mount
+    # Требует sudo (настройте NOPASSWD для mount/umount если нужно автоматическое восстановление)
     warn "Попытка ремонтирования..."
     if sudo umount "$mount_dir" 2>/dev/null; then
         sleep 2
@@ -131,7 +132,7 @@ recover_hdd() {
     warn "Переподключите HDD вручную и нажмите Enter..."
     read -r
     
-    if mountpoint -q "$mount_dir" 2>/dev/null || [ -d "$mount_dir" ]; then
+    if mountpoint -q "$mount_dir" 2>/dev/null; then
         log "✓ HDD доступен"
         return 0
     fi
@@ -168,7 +169,6 @@ rsync_with_retry() {
         warn "rsync завершился с кодом $rsync_exit"
         
         if [ "$attempt" -lt "$RSYNC_MAX_RETRIES" ]; then
-            # rsync exit 30 = timeout, 12 = protocol error, 23 = partial transfer
             warn "Копирование зависло или прервалось. Восстановление HDD..."
             
             if recover_hdd "$mount_dir"; then
@@ -340,6 +340,7 @@ for ((i=0; i<TOTAL; i++)); do
         
         # Определяем точку монтирования для HDD
         MOUNT_POINT=$(df "$INSTALL_DIR" 2>/dev/null | tail -1 | awk '{print $6}')
+        [ -z "$MOUNT_POINT" ] && MOUNT_POINT="$INSTALL_DIR"
         
         if rsync_with_retry "$LOCAL_DIR/" "$DIR" "$MOUNT_POINT"; then
             
