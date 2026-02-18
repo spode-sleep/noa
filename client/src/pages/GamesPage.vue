@@ -7,7 +7,7 @@
         <input
           v-model="search"
           type="text"
-          placeholder="Search games..."
+          placeholder="Search by name or AppID..."
           class="search-input"
         />
         <button v-if="search" class="search-clear" @click="search = ''">
@@ -92,10 +92,10 @@
         />
         <div class="game-info">
           <div class="game-name">
-            <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam">
+            <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam" aria-label="Steam">
               <Icon icon="mdi:steam" width="22" height="22" />
             </span>
-            <span class="source-icon rawg-icon" v-else title="RAWG">
+            <span class="source-icon rawg-icon" v-else title="RAWG" aria-label="RAWG">
               <Icon icon="mdi:gamepad-variant" width="22" height="22" />
             </span>
             {{ game.name }}
@@ -163,7 +163,7 @@ const filteredGames = computed(() => {
 
   if (search.value) {
     const lower = search.value.toLowerCase()
-    result = result.filter(g => g.name.toLowerCase().includes(lower))
+    result = result.filter(g => g.name.toLowerCase().includes(lower) || g.appId.toLowerCase().includes(lower))
   }
 
   if (sourceFilter.value) {

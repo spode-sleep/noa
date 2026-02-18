@@ -27,17 +27,12 @@
           <div class="game-header">
             <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
             <h1>{{ game.name }}</h1>
-            <span v-if="game.isArchived" class="archive-chip archived">Archived</span>
-            <span v-else class="archive-chip not-archived">Not Archived</span>
+            <span v-if="!game.isArchived" class="archive-chip not-archived">Not Archived</span>
           </div>
           <span v-if="game.isArchived && game.archivePath" class="archive-path">
-            <Icon icon="mdi:folder-outline" width="16" height="16" />
             {{ game.archivePath }}
-          </span>
-          <span v-else class="app-id">
-            {{ game.appId || game.id }}
-            <button class="copy-btn" @click="copyAppId" :title="copied ? 'Copied!' : 'Copy App ID'">
-              <Icon :icon="copied ? 'mdi:check' : 'mdi:content-copy'" />
+            <button class="copy-btn" @click="copyPath" :title="pathCopied ? 'Copied!' : 'Copy path'">
+              <Icon :icon="pathCopied ? 'mdi:check' : 'mdi:content-copy'" />
             </button>
           </span>
         </div>
@@ -358,6 +353,7 @@ const descExpanded = ref(false)
 const descRef = ref<HTMLElement | null>(null)
 const descOverflows = ref(false)
 const copied = ref(false)
+const pathCopied = ref(false)
 const showTipsModal = ref(false)
 
 function escapeHtml(str: string): string {
@@ -443,6 +439,14 @@ function copyAppId() {
   navigator.clipboard.writeText(String(id)).then(() => {
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
+  })
+}
+
+function copyPath() {
+  const path = game.value?.archivePath || ''
+  navigator.clipboard.writeText(path).then(() => {
+    pathCopied.value = true
+    setTimeout(() => { pathCopied.value = false }, 1500)
   })
 }
 
@@ -635,12 +639,7 @@ onUnmounted(() => {
   padding: 3px 10px;
   border-radius: 12px;
   white-space: nowrap;
-}
-
-.archive-chip.archived {
-  background: rgba(46, 204, 113, 0.15);
-  border: 1px solid rgba(46, 204, 113, 0.3);
-  color: #2ecc71;
+  align-self: center;
 }
 
 .archive-chip.not-archived {
@@ -655,7 +654,7 @@ onUnmounted(() => {
   margin-bottom: 20px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .app-id {
