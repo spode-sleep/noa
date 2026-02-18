@@ -187,6 +187,23 @@ chmod +x ~/depotdownloader/DepotDownloader
 ./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
 ```
 
+### Копирование на USB HDD зависает
+
+Известная проблема Linux: при копировании с быстрого SSD на медленный USB HDD
+ядро накапливает гигабайты "грязных страниц" (dirty pages) в RAM и пытается
+сбросить их разом — USB контроллер не справляется и зависает.
+
+**Скрипт решает это автоматически:** перед каждым копированием ограничивает
+dirty pages до 48MB/16MB через `sysctl`, после копирования восстанавливает.
+Для этого нужен `sudo` без пароля для sysctl (или просто запустите скрипт с sudo).
+
+Для постоянного исправления (без sudo в скрипте):
+```bash
+# Создать файл с настройками
+echo -e "vm.dirty_bytes=50331648\nvm.dirty_background_bytes=16777216" | sudo tee /etc/sysctl.d/99-usb-hdd.conf
+sudo sysctl -p /etc/sysctl.d/99-usb-hdd.conf
+```
+
 ---
 
 ## ⚙️ НАСТРОЙКИ:
