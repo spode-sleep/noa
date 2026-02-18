@@ -192,8 +192,8 @@ for ((i=0; i<TOTAL; i++)); do
     
     echo ""
     
-    # Проверка результата скачивания
-    if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f -size +1M 2>/dev/null | head -1)" ]; then
+    # Проверка результата скачивания (любые файлы = успех)
+    if [ -d "$LOCAL_DIR" ] && [ -n "$(find "$LOCAL_DIR" -type f 2>/dev/null | head -1)" ]; then
         SIZE=$(du -sh "$LOCAL_DIR" 2>/dev/null | cut -f1)
         LOCAL_BYTES=$(du -sb "$LOCAL_DIR" 2>/dev/null | cut -f1)
         log "✓ Скачано локально: $SIZE"
