@@ -168,7 +168,13 @@ for ((i=0; i<TOTAL; i++)); do
                 -language "$TRY_LANG" \
                 -os "$TRY_OS" \
                 -dir "$LOCAL_DIR" \
-                2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT"
+                2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT" | while IFS= read -r line; do
+                    # Показываем только строки с процентом загрузки
+                    if [[ "$line" =~ ([0-9]+(\.[0-9]+)?%) ]]; then
+                        printf "\r\033[K  %s" "${BASH_REMATCH[0]}"
+                    fi
+                done
+            echo ""
             
             # Если нет депотов — пробуем следующую комбинацию
             if grep -q "Couldn't find any depots" "$DD_OUTPUT" 2>/dev/null; then
