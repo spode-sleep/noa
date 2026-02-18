@@ -2,10 +2,11 @@
 """Пометка игр как заархивированных в games.json.
 
 Принимает .txt файл с AppID (формат my_games.txt) и проставляет
-isArchived: true и archivePath: "steam/APPID" для каждой найденной игры.
+isArchived: true и archivePath для каждой найденной игры.
 
 Использование:
     python3 mark_archived.py installed.txt
+    python3 mark_archived.py installed.txt --hdd ARCHIVE1
     python3 mark_archived.py installed.txt --games-json ../data/games/games.json
     python3 mark_archived.py installed.txt --rawg   # TODO: не реализовано
 """
@@ -34,11 +35,19 @@ def main():
     parser = argparse.ArgumentParser(description="Пометка игр как заархивированных")
     parser.add_argument("appid_file", help="Файл с AppID (формат my_games.txt)")
     parser.add_argument("--games-json", default=GAMES_JSON, help="Путь к games.json")
+    parser.add_argument("--hdd", default=None, help="Имя HDD (например ARCHIVE1 → /mnt/ARCHIVE1/steam/{appId})")
     parser.add_argument("--rawg", action="store_true", help="Обогащение данными из RAWG API (не реализовано)")
     args = parser.parse_args()
 
     if args.rawg:
         print("⚠ Опция --rawg пока не реализована")
+        sys.exit(1)
+
+    hdd_name = args.hdd
+    if hdd_name is None:
+        hdd_name = input("Имя HDD (например ARCHIVE1): ").strip()
+    if not hdd_name:
+        print("Ошибка: имя HDD не указано")
         sys.exit(1)
 
     app_ids = parse_appid_file(args.appid_file)
@@ -54,7 +63,7 @@ def main():
     for app_id in app_ids:
         if app_id in games:
             games[app_id]["isArchived"] = True
-            games[app_id]["archivePath"] = f"steam/{app_id}"
+            games[app_id]["archivePath"] = f"/mnt/{hdd_name}/steam/{app_id}"
             marked += 1
         else:
             not_found.append(app_id)
@@ -64,6 +73,7 @@ def main():
         f.write("\n")
 
     print(f"✓ Помечено как заархивированные: {marked}/{len(app_ids)}")
+    print(f"  Путь: /mnt/{hdd_name}/steam/{{appId}}")
     if not_found:
         print(f"⚠ Не найдены в games.json ({len(not_found)}):")
         for nf in not_found:

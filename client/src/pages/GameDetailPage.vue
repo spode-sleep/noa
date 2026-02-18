@@ -27,8 +27,14 @@
           <div class="game-header">
             <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
             <h1>{{ game.name }}</h1>
+            <span v-if="game.isArchived" class="archive-chip archived">Archived</span>
+            <span v-else class="archive-chip not-archived">Not Archived</span>
           </div>
-          <span class="app-id">
+          <span v-if="game.isArchived && game.archivePath" class="archive-path">
+            <Icon icon="mdi:folder-outline" width="16" height="16" />
+            {{ game.archivePath }}
+          </span>
+          <span v-else class="app-id">
             {{ game.appId || game.id }}
             <button class="copy-btn" @click="copyAppId" :title="copied ? 'Copied!' : 'Copy App ID'">
               <Icon :icon="copied ? 'mdi:check' : 'mdi:content-copy'" />
@@ -339,6 +345,8 @@ interface Game {
   modifications?: InfoEntry[]
   game_data?: InfoEntry[]
   other_information?: InfoEntry[]
+  isArchived?: boolean
+  archivePath?: string
 }
 
 const route = useRoute()
@@ -619,6 +627,35 @@ onUnmounted(() => {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 4px;
+}
+
+.archive-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.archive-chip.archived {
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  color: #2ecc71;
+}
+
+.archive-chip.not-archived {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+}
+
+.archive-path {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .app-id {

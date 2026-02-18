@@ -106,6 +106,9 @@
             </span>
           </div>
         </div>
+        <span v-if="!game.isArchived" class="not-archived-badge" title="Not Archived">
+          <Icon icon="mdi:alert-circle" width="20" height="20" />
+        </span>
       </router-link>
     </div>
 
@@ -128,6 +131,8 @@ interface Game {
   source: string
   imageUrl: string
   protondb_reports?: any[]
+  isArchived?: boolean
+  archivePath?: string
 }
 
 const route = useRoute()
@@ -534,6 +539,16 @@ h1 {
   text-decoration: none;
   color: var(--text-primary);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+}
+
+.not-archived-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  color: #e74c3c;
+  filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.5));
+  line-height: 1;
 }
 
 .game-card:hover {
