@@ -110,11 +110,13 @@ mkdir -p "$RESULTS_DIR"
 LOG="$RESULTS_DIR/install.log"
 SUCCESS="$RESULTS_DIR/installed.txt"
 FAILED="$RESULTS_DIR/failed.txt"
+WARNINGS="$RESULTS_DIR/warnings.txt"
 
-touch "$SUCCESS" "$FAILED"
+touch "$SUCCESS" "$FAILED" "$WARNINGS"
 
-OK=0; FAIL=0
+OK=0; FAIL=0; WARN=0
 FAILED_APPIDS=()
+WARNED_APPIDS=()
 
 for ((i=0; i<TOTAL; i++)); do
     APPID="${APPIDS[$i]}"
@@ -217,6 +219,13 @@ for ((i=0; i<TOTAL; i++)); do
                 
                 echo "$APPID" >> "$SUCCESS"
                 ((OK++))
+                
+                # Предупреждение: подозрительно маленькая игра (< 1MB)
+                if [ "$LOCAL_BYTES" -lt 1048576 ]; then
+                    warn "⚠ AppID $APPID очень маленький ($SIZE) — возможно скачались только метаданные"
+                    WARNED_APPIDS+=("$APPID")
+                    ((WARN++))
+                fi
             else
                 err "✗ Ошибка верификации! Локально: ${LOCAL_BYTES}B, HDD: ${HDD_BYTES}B"
                 err "Локальная копия сохранена: $LOCAL_DIR"
@@ -247,7 +256,7 @@ done
 rmdir "$LOCAL_DOWNLOAD_DIR" 2>/dev/null
 
 # Запись итогов в файлы
-# Формат success/failed — как входной файл (AppID по одному на строку)
+# Формат success/failed/warnings — как входной файл (AppID по одному на строку)
 echo "# OK: $OK/$TOTAL" >> "$SUCCESS"
 
 if [ ${#FAILED_APPIDS[@]} -gt 0 ]; then
@@ -257,10 +266,19 @@ if [ ${#FAILED_APPIDS[@]} -gt 0 ]; then
 fi
 echo "# FAILED: $FAIL/$TOTAL" >> "$FAILED"
 
+if [ ${#WARNED_APPIDS[@]} -gt 0 ]; then
+    for wid in "${WARNED_APPIDS[@]}"; do
+        echo "$wid" >> "$WARNINGS"
+    done
+fi
+echo "# WARNINGS: $WARN/$TOTAL (подозрительно маленькие, проверьте вручную)" >> "$WARNINGS"
+
 log "════════════════════════════════════════════"
 log "✓ Успешно: $OK/$TOTAL"
 [ $FAIL -gt 0 ] && err "✗ Неудачно: $FAIL"
+[ $WARN -gt 0 ] && warn "⚠ Предупреждения: $WARN (подозрительно маленькие)"
 log "Результаты: $RESULTS_DIR/"
-log "  Лог:       $LOG"
-log "  Успешные:  $SUCCESS"
-log "  Неудачные: $FAILED"
+log "  Лог:          $LOG"
+log "  Успешные:     $SUCCESS"
+log "  Неудачные:    $FAILED"
+log "  Подозрительные: $WARNINGS"
