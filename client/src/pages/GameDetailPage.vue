@@ -2,8 +2,8 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <a class="sidebar-link sidebar-back" @click="router.push('/games')" style="cursor:pointer">
-        <Icon icon="mdi:arrow-left" /> Games
+      <a class="sidebar-link" @click="router.push('/games')" style="cursor:pointer">
+        <Icon icon="mdi:arrow-left" class="back-icon" /> Games
       </a>
       <div class="sidebar-divider"></div>
       <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">{{ game.name || 'Top' }}</a>
@@ -554,10 +554,8 @@ onUnmounted(() => {
   text-shadow: none;
 }
 
-.sidebar-back {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.back-icon {
+  vertical-align: -2px;
 }
 
 .sidebar-divider {
