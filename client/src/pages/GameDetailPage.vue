@@ -108,7 +108,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -137,7 +137,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -168,7 +168,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -207,7 +207,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -236,7 +236,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -650,8 +650,9 @@ onUnmounted(() => {
 }
 
 .archive-path {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
+  opacity: 0.5;
   margin-bottom: 20px;
   display: flex;
   align-items: center;
