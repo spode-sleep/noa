@@ -173,6 +173,7 @@ for ((i=0; i<TOTAL; i++)); do
                 -os "$TRY_OS" \
                 -dir "$LOCAL_DIR" \
                 2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT" | while IFS= read -r line; do
+                    # Показываем только строки с процентом загрузки
                     if [[ "$line" =~ ([0-9]+(\.[0-9]+)?%) ]]; then
                         printf "\r\033[K  %s" "${BASH_REMATCH[0]}"
                     fi
@@ -203,6 +204,7 @@ for ((i=0; i<TOTAL; i++)); do
             -all-platforms \
             -dir "$LOCAL_DIR" \
             2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT" | while IFS= read -r line; do
+                # Показываем только строки с процентом загрузки
                 if [[ "$line" =~ ([0-9]+(\.[0-9]+)?%) ]]; then
                     printf "\r\033[K  %s" "${BASH_REMATCH[0]}"
                 fi
