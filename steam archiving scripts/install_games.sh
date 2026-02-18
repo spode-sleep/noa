@@ -154,6 +154,7 @@ for ((i=0; i<TOTAL; i++)); do
     
     # Скачивание через DepotDownloader
     # Пробуем комбинации: язык (russian → english) × платформа (linux → windows)
+    # 5-й вариант: все платформы, без языкового фильтра (скачивает всё что есть)
     DOWNLOAD_OK=false
     TRIED=""
     for TRY_LANG in "$GAME_LANG" "english"; do
@@ -172,7 +173,6 @@ for ((i=0; i<TOTAL; i++)); do
                 -os "$TRY_OS" \
                 -dir "$LOCAL_DIR" \
                 2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT" | while IFS= read -r line; do
-                    # Показываем только строки с процентом загрузки
                     if [[ "$line" =~ ([0-9]+(\.[0-9]+)?%) ]]; then
                         printf "\r\033[K  %s" "${BASH_REMATCH[0]}"
                     fi
@@ -191,6 +191,30 @@ for ((i=0; i<TOTAL; i++)); do
             break 2
         done
     done
+    
+    # 5-й вариант: все платформы, без языкового фильтра
+    if [ "$DOWNLOAD_OK" = false ]; then
+        warn "Все комбинации ОС/язык не дали результата"
+        log "Попытка: все платформы, без языкового фильтра"
+        
+        "$DEPOT_DOWNLOADER" \
+            -app "$APPID" \
+            -username "$STEAM_USER" -remember-password \
+            -all-platforms \
+            -dir "$LOCAL_DIR" \
+            2>&1 | tee -a "$LOG" | tee "$DD_OUTPUT" | while IFS= read -r line; do
+                if [[ "$line" =~ ([0-9]+(\.[0-9]+)?%) ]]; then
+                    printf "\r\033[K  %s" "${BASH_REMATCH[0]}"
+                fi
+            done
+        echo ""
+        
+        if ! grep -q "Couldn't find any depots" "$DD_OUTPUT" 2>/dev/null; then
+            DOWNLOAD_OK=true
+        else
+            warn "Нет депотов даже без фильтров"
+        fi
+    fi
     rm -f "$DD_OUTPUT"
     
     echo ""
