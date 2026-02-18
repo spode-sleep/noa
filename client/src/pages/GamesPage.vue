@@ -106,7 +106,7 @@
             </span>
           </div>
         </div>
-        <span v-if="!game.isArchived" class="not-archived-badge" title="Not Archived">
+        <span v-if="!game.isArchived" class="not-archived-badge" title="Not Archived" aria-label="Not Archived">
           <Icon icon="mdi:alert-circle" width="20" height="20" />
         </span>
       </router-link>
