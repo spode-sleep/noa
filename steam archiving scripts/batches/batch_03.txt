@@ -1,0 +1,125 @@
+# Батч 3: 61 игр
+# Создан: 2026-02-19 01:59:57
+#
+#>observer_
+514900
+#[Chilla's Art] The Radio Station | 深夜放送
+1744910
+#A Bird Story
+327410
+#Angels of Death
+537110
+#At Home Alone II
+1120360
+#AudioSurf
+12900
+#BELOW
+250680
+#Crypt of the NecroDancer
+247080
+#Disco Elysium - The Final Cut
+632470
+#Dragon Age: Origins
+17450
+#Enter The Backrooms
+1511670
+#Fable Anniversary
+288470
+#Fallen Legion: Rise to Glory
+612820
+#Forget Me Not: My Organic Garden
+363980
+#Fractal Block World
+1540570
+#Gothic® 3
+39500
+#Grand Theft Auto IV: The Complete Edition
+12210
+#Grand Theft Auto V Enhanced
+3240220
+#Grand Theft Auto V Legacy
+271590
+#Gridworld
+396890
+#Hades
+1145360
+#Her Story
+368370
+#Kingdoms of Amalur: Re-Reckoning
+1041720
+#Labyronia RPG 2
+397500
+#Life is Strange - Episode 1
+319630
+#Life is Strange: Before the Storm
+554620
+#LISA: The Painful
+335670
+#METAL GEAR SOLID V: THE PHANTOM PAIN
+287700
+#Minit
+609490
+#Misao - 2024 HD Remaster
+691450
+#No Man's Sky
+275850
+#Nobody Wants to Die
+1939970
+#Not The Robots
+257120
+#Of Ash and Steel Playtest
+3708300
+#OPUS: Echo of Starsong - Full Bloom Edition
+1504500
+#POSTAL 2
+223470
+#Pyre
+462770
+#Rakuen
+559210
+#Reassembly
+329130
+#RPG Maker MV
+363890
+#S.T.A.L.K.E.R.: Call of Pripyat
+41700
+#Space Pirates and Zombies
+107200
+#Star Valor
+833360
+#Stardew Valley
+413150
+#Starpoint Gemini 2
+236150
+#SUNLESS SEA
+304650
+#Sword Art Online Re: Hollow Fragment
+638650
+#Terraria
+105600
+#TERRORHYTHM (TRRT) - Rhythm driven action beat 'em up!
+752380
+#The Cat Lady
+253110
+#The Chosen RPG
+434420
+#The Count Lucanor
+440880
+#The Crooked Man
+736570
+#The Flame in the Flood
+318600
+#The Hanged Man
+749890
+#The Red Strings Club
+589780
+#The Sand Man
+741250
+#This War of Mine
+282070
+#Tokyo Dark
+687260
+#We Happy Few
+320240
+#WORLD OF HORROR
+913740

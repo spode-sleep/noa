@@ -1,0 +1,40 @@
+# Исключённые игры: 18
+# Причина: для основного геймплея нужен интернет
+# Создан: 2026-02-19 01:59:57
+#
+#Among Us
+945360
+#Azulgar: Star Commanders
+503010
+#Black Desert
+582660
+#Black Desert (Retired)
+836620
+#Blade Symphony
+225600
+#Chivalry: Medieval Warfare
+219640
+#Comedy Night
+665360
+#Deadlock
+1422450
+#Dota 2
+570
+#DSX
+1812620
+#Otherland MMO
+376310
+#Secret World Legends
+215280
+#Team Fortress 2
+440
+#The Elder Scrolls® Online
+306130
+#Throne of Lies®: Medieval Politics
+595280
+#Wayfinder
+1171690
+#Witch It
+559650
+#Worms Rumble
+1186040
