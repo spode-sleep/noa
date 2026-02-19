@@ -51,8 +51,6 @@
 42910
 #MarionetteAI
 652520
-#Minecraft Dungeons
-1672970
 #Mister Furry: Hot Muscles
 1578220
 #Murderous Pursuits
@@ -63,8 +61,6 @@
 238320
 #PAYDAY 2
 218620
-#Prey: Typhon Hunter
-741820
 #Sacred 3
 247950
 #Sacred Citadel

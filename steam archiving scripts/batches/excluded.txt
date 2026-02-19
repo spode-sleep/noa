@@ -58,3 +58,7 @@
 102500
 #Borderlands Game of the Year
 8980
+#Minecraft Dungeons
+1672970
+#Prey: Typhon Hunter
+741820
