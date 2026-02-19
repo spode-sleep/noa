@@ -29,9 +29,9 @@
 225260
 #Cash_Out
 372970
-#Dark Messiah of Might & Magic
+#Dark Messiah of Might & Magic (2100)
 2100
-#Dark Messiah of Might & Magic
+#Dark Messiah of Might & Magic (2130)
 2130
 #Deus Ex: Game of the Year Edition
 6910
@@ -77,9 +77,9 @@
 235460
 #Metro 2033 Redux
 286690
-#Metro Exodus
+#Metro Exodus (412020)
 412020
-#Metro Exodus
+#Metro Exodus (1449560)
 1449560
 #Metro: Last Light Redux
 287390
