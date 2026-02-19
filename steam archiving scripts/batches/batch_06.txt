@@ -43,8 +43,6 @@
 265890
 #Hexcells Plus
 271900
-#Kingdoms of Amalur: Reckoning™
-102500
 #Left 4 Dead 2
 550
 #Mafia II (Classic)

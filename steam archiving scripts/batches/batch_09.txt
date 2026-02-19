@@ -19,8 +19,6 @@
 409710
 #Borderlands 2
 49520
-#Borderlands Game of the Year
-8980
 #Borderlands Game of the Year Enhanced
 729040
 #Borderlands: The Pre-Sequel

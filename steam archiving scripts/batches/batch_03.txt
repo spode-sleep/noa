@@ -1,8 +1,5 @@
 # Батч 3: 61 игр
 # Создан: 2026-02-19 01:59:57
-#
-#>observer_
-514900
 #[Chilla's Art] The Radio Station | 深夜放送
 1744910
 #A Bird Story
@@ -19,8 +16,6 @@
 247080
 #Disco Elysium - The Final Cut
 632470
-#Dragon Age: Origins
-17450
 #Enter The Backrooms
 1511670
 #Fable Anniversary
@@ -35,10 +30,6 @@
 39500
 #Grand Theft Auto IV: The Complete Edition
 12210
-#Grand Theft Auto V Enhanced
-3240220
-#Grand Theft Auto V Legacy
-271590
 #Gridworld
 396890
 #Hades

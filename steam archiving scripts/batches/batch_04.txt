@@ -59,14 +59,10 @@
 1042670
 #Prototype™
 10150
-#S.T.A.L.K.E.R.: Call of Prypiat - Enhanced Edition
-2427430
 #S.T.A.L.K.E.R.: Clear Sky
 20510
 #S.T.A.L.K.E.R.: Shadow of Chernobyl
 4500
-#S.T.A.L.K.E.R.: Shadow of Chornobyl - Enhanced Edition
-2427410
 #Satellite Odyssey: Prologue
 2579270
 #Shadwen

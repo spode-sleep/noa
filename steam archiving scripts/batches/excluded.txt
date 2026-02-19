@@ -1,5 +1,5 @@
 # Исключённые игры: 18
-# Причина: для основного геймплея нужен интернет
+# Причина: для основного геймплея нужен интернет + старые варианты игр + возможное вирусное содержимое
 # Создан: 2026-02-19 01:59:57
 #
 #Among Us
@@ -38,3 +38,23 @@
 559650
 #Worms Rumble
 1186040
+#>observer_
+514900
+#Dragon Age: Origins
+17450
+#Grand Theft Auto V Enhanced
+3240220
+#Grand Theft Auto V Legacy
+271590
+#S.T.A.L.K.E.R.: Call of Prypiat - Enhanced Edition
+2427430
+#S.T.A.L.K.E.R.: Shadow of Chornobyl - Enhanced Edition
+2427410
+#S.T.A.L.K.E.R.: Clear Sky - Enhanced Edition
+2427420
+#Break the Game
+739540
+#Kingdoms of Amalur: Reckoning™
+102500
+#Borderlands Game of the Year
+8980
