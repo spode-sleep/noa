@@ -502,13 +502,13 @@ onBeforeUnmount(() => {
   width: calc(100% - 16px);
   margin: 12px 8px;
   padding: 10px 14px;
-  border: 1px solid var(--askew-btn-border);
+  border: 1px solid var(--askew-tab-border);
   border-radius: 0px;
-  background: var(--askew-btn);
+  background: var(--askew-tab-active);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.9rem;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-container-light), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .new-chat-btn:hover {
@@ -529,19 +529,20 @@ onBeforeUnmount(() => {
   margin-bottom: 2px;
   border-radius: 0px;
   cursor: pointer;
-  background: var(--askew-tab-active);
-  border: 1px solid var(--askew-tab-border);
-  box-shadow: inset 1px 1px 0 var(--askew-container-light), inset -1px -1px 0 var(--askew-tab-border);
+  background: var(--askew-btn);
+  border: 1px solid var(--askew-btn-border);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .conversation-item:hover {
   background: var(--askew-btn-hover);
+  color: var(--bg-primary);
 }
 
 .conversation-item.active {
-  background: var(--askew-btn);
-  border: 1px solid var(--askew-btn-border);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  background: var(--askew-tab-active);
+  border: 1px solid var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-container-light), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .conversation-title-row {
