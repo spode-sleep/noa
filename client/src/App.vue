@@ -17,8 +17,7 @@
         <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
       </svg>
       <div class="mini-arc">
-        <Icon v-if="ttsActive && !!currentTrack" icon="mdi:music-note" />
-        <Icon v-else-if="!!currentTrack" icon="mdi:music-note" />
+        <Icon v-if="!!currentTrack" icon="mdi:music-note" />
         <Icon v-else icon="mdi:volume-high" />
       </div>
     </div>
