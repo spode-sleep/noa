@@ -1,17 +1,5 @@
 <template>
-  <!-- Mini mode: quarter-arc in bottom-right corner -->
-  <div v-if="currentTrack && minimized" class="mini-player" @click="minimized = false">
-    <svg v-if="isPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2"/>
-      <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
-      <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
-    </svg>
-    <div class="mini-arc">
-      <Icon icon="mdi:music-note" />
-    </div>
-  </div>
-  <!-- Full player bar -->
-  <div v-if="currentTrack && !minimized" class="player glass">
+  <div v-if="currentTrack && !isMinimized" class="player glass">
     <div class="player-info">
       <span class="player-title">{{ currentTrack.title }}</span>
       <span class="player-artist">{{ currentTrack.artist }}</span>
@@ -60,22 +48,22 @@
         />
       </div>
     </div>
-    <button class="ctrl-btn ctrl-minimize" @click="minimized = true" title="Minimize player">
+    <button class="ctrl-btn ctrl-minimize" @click="toggleMinimize" title="Minimize player">
       <Icon icon="mdi:chevron-down" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useMusicPlayer, type Track } from '../composables/useMusicPlayer'
+import { usePlayerStack } from '../composables/usePlayerStack'
 
 defineEmits<{
   'open-playlist-picker': [track: Track]
 }>()
 
-const minimized = ref(false)
+const { isMinimized, toggleMinimize } = usePlayerStack()
 
 const {
   currentTrack,
@@ -318,77 +306,4 @@ const {
   color: var(--accent-teal);
 }
 
-/* Mini player quarter-arc in bottom-right corner */
-.mini-player {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  z-index: 1000;
-  cursor: pointer;
-  width: 72px;
-  height: 72px;
-}
-
-.mini-arc {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 72px;
-  height: 72px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 72px 0 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 12px;
-  padding-left: 12px;
-  font-size: 1.5rem;
-  color: #fff;
-  box-shadow: -4px -4px 20px rgba(0, 232, 184, 0.35);
-  z-index: 2;
-  transition: transform 0.2s ease;
-}
-
-.mini-player:hover .mini-arc {
-  transform: scale(1.08);
-  transform-origin: bottom right;
-}
-
-.arc-waves {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 200px;
-  height: 200px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.arc-wave {
-  opacity: 0;
-  transform-origin: 200px 200px;
-}
-
-.arc-wave1 {
-  animation: arc-pulse 2.4s ease-out infinite;
-}
-
-.arc-wave2 {
-  animation: arc-pulse 2.4s ease-out 0.8s infinite;
-}
-
-.arc-wave3 {
-  animation: arc-pulse 2.4s ease-out 1.6s infinite;
-}
-
-@keyframes arc-pulse {
-  0% {
-    opacity: 0.7;
-    stroke-width: 3;
-  }
-  100% {
-    opacity: 0;
-    stroke-width: 1;
-  }
-}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isActive" class="tts-player glass">
+  <div v-if="isActive && !isMinimized" class="tts-player glass">
     <div class="tts-info">
       <span class="tts-label"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /> TTS</span>
       <span class="tts-text">{{ displayText }}</span>
@@ -45,6 +45,9 @@
         @input="setVolume($event)"
       />
     </div>
+    <button class="ctrl-btn ctrl-minimize" @click="toggleMinimize" title="Minimize player">
+      <Icon icon="mdi:chevron-down" />
+    </button>
     <div v-if="errorMessage" class="tts-error">{{ errorMessage }}</div>
   </div>
 </template>
@@ -52,8 +55,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useTtsPlayer } from '../composables/useTtsPlayer'
+import { usePlayerStack } from '../composables/usePlayerStack'
 
 const speeds = [0.75, 1, 1.25, 1.5]
+
+const { isMinimized, toggleMinimize } = usePlayerStack()
 
 const {
   isActive,
@@ -219,6 +225,15 @@ const {
 .tts-error {
   font-size: 0.75rem;
   color: #e74c3c;
+}
+
+.ctrl-minimize {
+  margin-left: 4px;
+  font-size: 1.2rem;
+}
+
+.ctrl-minimize:hover {
+  color: var(--accent-teal);
 }
 
 .tts-volume {
