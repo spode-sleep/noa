@@ -652,7 +652,7 @@ onUnmounted(() => {
 
 .archive-path {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   opacity: 0.5;
   margin-bottom: 20px;
   display: flex;
