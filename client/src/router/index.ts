@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import MainPage from '../pages/MainPage.vue'
 import GamesPage from '../pages/GamesPage.vue'
 import MusicPage from '../pages/MusicPage.vue'
 import FictionPage from '../pages/FictionPage.vue'
@@ -7,7 +8,8 @@ import WarezPage from '../pages/WarezPage.vue'
 import AiPage from '../pages/AiPage.vue'
 
 const routes = [
-  { path: '/', redirect: '/games' },
+  { path: '/', redirect: '/main' },
+  { path: '/main', name: 'Main', component: MainPage },
   { path: '/games', name: 'Games', component: GamesPage },
   { path: '/games/:id', name: 'GameDetail', component: () => import('../pages/GameDetailPage.vue') },
   { path: '/music', name: 'Music', component: MusicPage },
