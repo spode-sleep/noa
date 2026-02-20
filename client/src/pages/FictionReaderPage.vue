@@ -245,11 +245,11 @@ function getBookmarkPercent(page: any): number {
 const { speak, getSelectedText } = useTtsPlayer()
 
 async function readAloud() {
-  const text = getSelectedText()
+  const text = await getSelectedText()
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text, then press 🔊'
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press 🔊'
     showTtsMessage.value = true
   }
 }

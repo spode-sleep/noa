@@ -140,8 +140,8 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-/** Get selected text from page, trying iframes too */
-function getSelectedText(): string {
+/** Get selected text from page, trying iframes and clipboard as fallback */
+async function getSelectedText(): Promise<string> {
   // First check main document selection
   const mainSelection = window.getSelection()?.toString()?.trim()
   if (mainSelection) return mainSelection
@@ -153,8 +153,16 @@ function getSelectedText(): string {
       const iframeSelection = iframe.contentWindow?.getSelection()?.toString()?.trim()
       if (iframeSelection) return iframeSelection
     } catch {
-      // Cross-origin iframe — skip
+      // Cross-origin iframe — skip, fall through to clipboard
     }
+  }
+
+  // Fallback: read from clipboard (works for cross-origin iframes, PDF viewer, etc.)
+  try {
+    const clipboardText = await navigator.clipboard.readText()
+    if (clipboardText?.trim()) return clipboardText.trim()
+  } catch {
+    // Clipboard permission denied or unavailable
   }
 
   return ''
