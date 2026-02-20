@@ -53,8 +53,9 @@ app.use('/kiwix', (req, res) => {
     res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
     proxyRes.pipe(res, { end: true });
   });
-  proxyReq.on('error', () => {
-    res.status(502).send('Kiwix-serve unavailable');
+  proxyReq.on('error', (err) => {
+    console.error(`[kiwix-proxy] ${err.message}`);
+    if (!res.headersSent) res.status(502).send('Kiwix-serve unavailable');
   });
   req.pipe(proxyReq, { end: true });
 });
