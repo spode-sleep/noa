@@ -98,7 +98,7 @@
               class="tts-btn"
               @click="readAloud(msg.content)"
             >
-              Read Aloud <Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" />
+              Read Aloud <Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" />
             </button>
             <div v-if="msg.sources?.length" class="sources-list">
               <span class="sources-label">Sources:</span>
@@ -508,8 +508,7 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.9rem;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
-  transition: background 0.15s;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .new-chat-btn:hover {
@@ -531,7 +530,6 @@ onBeforeUnmount(() => {
   margin-bottom: 2px;
   border-radius: 0px;
   cursor: pointer;
-  transition: background 0.15s;
 }
 
 .conversation-item:hover {
@@ -589,7 +587,6 @@ onBeforeUnmount(() => {
   gap: 2px;
   flex-shrink: 0;
   opacity: 0;
-  transition: opacity 0.15s;
 }
 
 .conversation-item:hover .conversation-actions,
@@ -610,7 +607,6 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.9rem;
-  transition: color 0.15s, background 0.15s;
 }
 
 .icon-btn:hover {
@@ -669,7 +665,7 @@ onBeforeUnmount(() => {
   background: var(--askew-btn);
   color: var(--text-primary);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .new-dialog-btn {
@@ -680,8 +676,7 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.85rem;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
-  transition: background 0.15s;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .new-dialog-btn:hover {
@@ -754,7 +749,6 @@ onBeforeUnmount(() => {
   border-radius: 0px;
   border: 1px solid #000000;
   position: relative;
-  transition: background 0.15s;
   flex-shrink: 0;
 }
 
@@ -805,7 +799,6 @@ onBeforeUnmount(() => {
   font-size: 0.85rem;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.15s;
 }
 
 .model-dropdown:hover,
@@ -886,8 +879,7 @@ onBeforeUnmount(() => {
   border-radius: 0px;
   color: var(--text-primary);
   cursor: pointer;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
-  transition: background 0.15s;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .tts-btn:hover {
@@ -928,8 +920,7 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.8rem;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
-  transition: background 0.15s;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .index-btn:hover:not(:disabled) {
@@ -1011,8 +1002,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
-  transition: background 0.15s;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   flex-shrink: 0;
 }
 
@@ -1059,8 +1049,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 0px;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
-  transition: background 0.15s;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 :deep(.code-copy-btn:hover) {

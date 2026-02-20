@@ -3,7 +3,7 @@
     <div class="viewer-header">
       <a class="btn btn-back" @click="router.push('/reference')" style="cursor:pointer">← Reference</a>
       <h1>{{ displayName }}</h1>
-      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
+      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" /></button>
     </div>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
@@ -94,12 +94,11 @@ onUnmounted(() => {
 .ctrl-btn {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   padding: 6px 12px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -120,13 +119,12 @@ onUnmounted(() => {
   font-size: 0.9rem;
   text-decoration: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .btn-back:hover {
   background: var(--askew-btn);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
 }
 

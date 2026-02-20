@@ -20,9 +20,9 @@
     <!-- Shared mini expand button when players are minimized -->
     <div v-if="isMinimized && (!!currentTrack || ttsActive)" class="mini-player" @click="toggleMinimize">
       <svg v-if="isPlaying || ttsPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2"/>
-        <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
-        <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
+        <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
+        <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--askew-tab-inactive)" stroke-width="2"/>
+        <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--askew-btn-disabled)" stroke-width="2"/>
       </svg>
       <div class="mini-arc">
         <Icon v-if="!!currentTrack" icon="mdi:music-note" />
@@ -176,11 +176,10 @@ main.has-player {
   justify-content: center;
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   font-size: 1.1rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .stack-minimize-btn:hover {
@@ -217,7 +216,6 @@ main.has-player {
   font-size: 1.5rem;
   color: var(--text-primary);
   z-index: 2;
-  transition: background 0.15s ease;
 }
 
 .mini-player:hover .mini-arc {
@@ -299,7 +297,7 @@ main.has-player {
 .picker-close {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   width: 28px;
   height: 28px;
@@ -308,7 +306,6 @@ main.has-player {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .picker-close:hover {
@@ -348,7 +345,6 @@ main.has-player {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background var(--transition-fast);
   text-align: left;
   color: var(--text-primary);
 }
@@ -381,7 +377,6 @@ main.has-player {
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .picker-input:focus {
@@ -392,12 +387,11 @@ main.has-player {
 .btn {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   padding: 10px 20px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;

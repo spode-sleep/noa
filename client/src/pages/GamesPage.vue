@@ -293,7 +293,7 @@ h1 {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 0px;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .search-input,
@@ -305,7 +305,6 @@ h1 {
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .search-input {
@@ -334,9 +333,8 @@ h1 {
   padding: 10px 16px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
   white-space: nowrap;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .tags-btn:hover {
@@ -380,7 +378,6 @@ h1 {
   padding: 4px 12px;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .selected-tag-pill:hover {
@@ -396,7 +393,6 @@ h1 {
   font-size: 0.8rem;
   cursor: pointer;
   padding: 4px 8px;
-  transition: color var(--transition-fast);
 }
 
 .clear-tags-btn:hover {
@@ -424,7 +420,7 @@ h1 {
   background: var(--bg-secondary);
   border: 1px solid var(--glass-border);
   border-radius: 0px;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-header {
@@ -452,8 +448,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-close:hover {
@@ -472,7 +467,6 @@ h1 {
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -498,7 +492,6 @@ h1 {
   padding: 6px 14px;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .tag-pill:hover {
@@ -544,8 +537,7 @@ h1 {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-done-btn:hover {
@@ -574,11 +566,10 @@ h1 {
   overflow: hidden;
   text-decoration: none;
   color: var(--text-primary);
-  transition: border-color var(--transition-fast);
   position: relative;
   border: 1px solid var(--glass-border);
   border-radius: 0px;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   background: var(--glass-bg);
 }
 
@@ -622,7 +613,6 @@ h1 {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.3s ease;
 }
 
 .game-image.loaded {
@@ -657,11 +647,11 @@ h1 {
 }
 
 .steam-icon {
-  color: #66c0f4;
+  color: var(--askew-cyan);
 }
 
 .rawg-icon {
-  color: #8b6cee;
+  color: var(--askew-salmon);
 }
 
 .game-tags {

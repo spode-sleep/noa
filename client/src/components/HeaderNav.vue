@@ -24,13 +24,13 @@ import { Icon } from '@iconify/vue'
 const route = useRoute()
 
 const links = [
-  { to: '/main', label: 'Main', color: '#c072f4' },
-  { to: '/games', label: 'Games', color: '#4cc9f0' },
-  { to: '/music', label: 'Music', color: '#8b6cee' },
-  { to: '/fiction', label: 'Fiction', color: '#7ec8e3' },
-  { to: '/reference', label: 'Reference', color: '#34d399' },
-  { to: '/warez', label: 'Warez', color: '#f59e0b' },
-  { to: '/ai', label: 'AI Librarian', color: '#a855f7' },
+  { to: '/main', label: 'Main', color: '#da9067' },
+  { to: '/games', label: 'Games', color: '#00ecff' },
+  { to: '/music', label: 'Music', color: '#ecb16e' },
+  { to: '/fiction', label: 'Fiction', color: '#82cab1' },
+  { to: '/reference', label: 'Reference', color: '#04a935' },
+  { to: '/warez', label: 'Warez', color: '#ecb16e' },
+  { to: '/ai', label: 'AI Librarian', color: '#9f5348' },
 ]
 
 function isActive(to: string): boolean {
@@ -82,7 +82,6 @@ function isActive(to: string): boolean {
 .nav-link {
   padding: 6px 14px;
   color: var(--askew-cream);
-  transition: all var(--transition-fast);
   font-weight: 500;
   font-size: 0.92rem;
   display: inline-flex;

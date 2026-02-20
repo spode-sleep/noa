@@ -151,7 +151,6 @@ h1 {
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
   flex: 1;
   min-width: 200px;
 }
@@ -239,7 +238,6 @@ h1 {
   border: 1px solid var(--glass-border);
   border-radius: 0px;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
-  transition: background var(--transition-fast);
 }
 
 .repo-card:hover {

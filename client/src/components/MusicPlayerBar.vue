@@ -130,12 +130,11 @@ const {
 .ctrl-btn {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   font-size: 1.4rem;
   cursor: pointer;
   padding: 6px;
-  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;

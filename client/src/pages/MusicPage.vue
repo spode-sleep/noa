@@ -631,7 +631,6 @@ h1 {
   font-size: 0.95rem;
   cursor: pointer;
   border-radius: 0;
-  transition: all var(--transition-fast);
 }
 
 .tab-btn:hover {
@@ -669,7 +668,6 @@ h1 {
   outline: none;
   flex: 1;
   min-width: 200px;
-  transition: border-color var(--transition-fast);
 }
 
 .search-input:focus {
@@ -679,13 +677,12 @@ h1 {
 .btn {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary, #fdfbef);
   padding: 10px 20px;
   border-radius: 0;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -726,7 +723,7 @@ h1 {
 
 .btn-back:hover {
   background: var(--askew-btn, #1b8285);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary, #fdfbef);
 }
 
@@ -738,8 +735,8 @@ h1 {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--askew-btn-disabled);
+  border-top-color: var(--askew-gold);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -787,7 +784,6 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   text-align: left;
-  transition: background var(--transition-fast);
 }
 
 .artist-header:hover {
@@ -851,7 +847,6 @@ h1 {
   gap: 12px;
   padding: 8px 8px 8px 24px;
   border-radius: 0;
-  transition: background var(--transition-fast);
 }
 
 .track-row:hover {
@@ -865,7 +860,7 @@ h1 {
 .play-btn {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary, #fdfbef);
   width: 32px;
   height: 32px;
@@ -875,7 +870,6 @@ h1 {
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -922,7 +916,6 @@ h1 {
   justify-content: space-between;
   padding: 16px;
   cursor: pointer;
-  transition: background var(--transition-fast);
   border-radius: 0;
 }
 
@@ -986,7 +979,6 @@ h1 {
   font-size: 0.85rem;
   cursor: pointer;
   border-radius: 0;
-  transition: all var(--transition-fast);
 }
 
 .search-tab:hover {
@@ -1051,7 +1043,7 @@ h1 {
 .add-to-playlist-btn {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary, #fdfbef);
   width: 28px;
   height: 28px;
@@ -1061,7 +1053,6 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .add-to-playlist-btn:hover {
@@ -1109,7 +1100,7 @@ h1 {
 .picker-close {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary, #fdfbef);
   width: 28px;
   height: 28px;
@@ -1119,7 +1110,6 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .picker-close:hover {
@@ -1159,7 +1149,6 @@ h1 {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background var(--transition-fast);
   text-align: left;
   color: var(--text-primary, #fdfbef);
 }
@@ -1193,7 +1182,6 @@ h1 {
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .picker-input:focus {

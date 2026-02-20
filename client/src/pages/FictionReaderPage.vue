@@ -7,10 +7,10 @@
         <span class="header-author">{{ book.author }}</span>
       </div>
       <div class="header-controls">
-        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
+        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" /></button>
         <template v-if="book?.format !== 'pdf'">
           <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
-            <Icon icon="mdi:star" width="20" height="20" style="color: #f59e0b; vertical-align: middle" />
+            <Icon icon="mdi:star" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" />
           </button>
         </template>
       </div>
@@ -32,7 +32,7 @@
             class="bookmark-input"
             @keyup.enter="addBookmark"
           />
-          <button class="btn btn-sm" @click="addBookmark"><Icon icon="mdi:star" style="color: #f59e0b; vertical-align: -2px;" /> Add</button>
+          <button class="btn btn-sm" @click="addBookmark"><Icon icon="mdi:star" style="color: var(--askew-gold); vertical-align: -2px;" /> Add</button>
         </div>
         <div v-if="manualBookmarks.length === 0" class="bookmark-empty">No bookmarks yet.</div>
         <div v-else class="bookmark-list">
@@ -505,13 +505,12 @@ onUnmounted(() => {
 .ctrl-btn {
   background: var(--bg-secondary);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-secondary);
   padding: 6px 12px;
   border-radius: 0px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background var(--transition-fast);
 }
 
 .ctrl-btn:hover {
@@ -528,13 +527,12 @@ onUnmounted(() => {
 .btn {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   padding: 10px 20px;
   border-radius: 0px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -630,7 +628,6 @@ onUnmounted(() => {
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .bookmark-input:focus {
@@ -660,7 +657,6 @@ onUnmounted(() => {
   background: var(--bg-tertiary);
   border: 1px solid var(--glass-border);
   cursor: pointer;
-  transition: background var(--transition-fast);
   overflow: hidden;
   max-width: 100%;
 }
@@ -710,7 +706,6 @@ onUnmounted(() => {
   justify-content: center;
   font-size: 0.7rem;
   flex-shrink: 0;
-  transition: background var(--transition-fast);
 }
 
 .btn-delete:hover {

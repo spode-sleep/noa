@@ -246,7 +246,6 @@ h1 {
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .search-input {
@@ -266,13 +265,12 @@ h1 {
 .btn {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   padding: 10px 20px;
   border-radius: 0px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -291,8 +289,8 @@ h1 {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--askew-btn-disabled);
+  border-top-color: var(--askew-gold);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -330,7 +328,6 @@ h1 {
   border: 1px solid var(--glass-border);
   border-radius: 0px;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
-  transition: background var(--transition-fast);
 }
 
 .book-card:hover {

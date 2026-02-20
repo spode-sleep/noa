@@ -541,7 +541,6 @@ onUnmounted(() => {
   font-size: 0.8rem;
   color: var(--text-muted);
   border-radius: 0px;
-  transition: all var(--transition-fast);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -582,12 +581,11 @@ onUnmounted(() => {
   border-radius: 0px;
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   font-size: 0.9rem;
   margin-bottom: 20px;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .btn-back:hover {
@@ -680,7 +678,6 @@ onUnmounted(() => {
   padding: 2px;
   font-size: 0.9rem;
   opacity: 0.6;
-  transition: opacity 0.2s, color 0.2s;
   margin-top: 2px;
 }
 .copy-btn:hover {
@@ -704,11 +701,11 @@ h1 {
 }
 
 .source-icon.steam {
-  color: #66c0f4;
+  color: var(--askew-cyan);
 }
 
 .source-icon.rawg {
-  color: var(--accent-purple);
+  color: var(--askew-salmon);
 }
 
 .hero-image {
@@ -749,7 +746,6 @@ h1 {
   padding: 2px 0;
   margin: 4px auto 0;
   opacity: 0.7;
-  transition: opacity 0.2s;
 }
 
 .expand-btn:hover {
@@ -777,7 +773,6 @@ h1 {
 
 .clickable-tag {
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
 }
 .clickable-tag:hover {
   border-color: var(--askew-cyan);
@@ -816,33 +811,33 @@ h2 {
 }
 
 .rating-badge.platinum {
-  background: rgba(0, 200, 83, 0.15);
-  color: #00c853;
-  border: 1px solid #00c853;
+  background: #0a2e14;
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
 }
 
 .rating-badge.gold {
-  background: rgba(255, 215, 0, 0.15);
-  color: #ffd700;
-  border: 1px solid #ffd700;
+  background: #2e2408;
+  color: var(--askew-gold);
+  border: 1px solid var(--askew-gold);
 }
 
 .rating-badge.silver {
-  background: rgba(180, 180, 180, 0.15);
+  background: #1a1a1a;
   color: #b4b4b4;
   border: 1px solid #b4b4b4;
 }
 
 .rating-badge.bronze {
-  background: rgba(255, 152, 0, 0.15);
-  color: #ff9800;
-  border: 1px solid #ff9800;
+  background: #2e1a08;
+  color: var(--askew-container-light);
+  border: 1px solid var(--askew-container-light);
 }
 
 .rating-badge.borked {
-  background: rgba(244, 67, 54, 0.15);
-  color: #f44336;
-  border: 1px solid #f44336;
+  background: #2e0808;
+  color: var(--askew-red);
+  border: 1px solid var(--askew-red);
 }
 
 .review-date {
@@ -880,9 +875,8 @@ h2 {
   border: 1px solid #000000;
   border-radius: 0px;
   background: var(--askew-btn);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .btn-tips:hover {
@@ -932,7 +926,6 @@ h2 {
   font-size: 1.4rem;
   cursor: pointer;
   padding: 4px;
-  transition: color var(--transition-fast);
 }
 
 .modal-close:hover {
@@ -1061,23 +1054,23 @@ h2 {
 }
 
 :deep(.emoji-folder) {
-  color: #f0c040;
+  color: var(--askew-gold);
 }
 
 :deep(.emoji-like) {
-  color: #34d399;
+  color: var(--accent-green);
 }
 
 :deep(.emoji-dislike) {
-  color: #f44336;
+  color: var(--askew-red);
 }
 
 :deep(.emoji-info) {
-  color: var(--accent-blue);
+  color: var(--askew-cyan);
 }
 
 :deep(.emoji-wrench) {
-  color: #f0a030;
+  color: var(--askew-gold);
 }
 
 :deep(.emoji-file) {
@@ -1085,7 +1078,7 @@ h2 {
 }
 
 :deep(.emoji-blue) {
-  color: var(--accent-blue);
+  color: var(--askew-cyan);
 }
 
 /* Data tables */
@@ -1141,11 +1134,11 @@ h2 {
 }
 
 .arch-native {
-  color: #34d399;
+  color: var(--accent-green);
 }
 
 .arch-none {
-  color: #f44336;
+  color: var(--askew-red);
 }
 
 .arch-na {
@@ -1153,7 +1146,7 @@ h2 {
 }
 
 .arch-hackable {
-  color: #f0a030;
+  color: var(--askew-salmon);
 }
 
 .arch-unknown {

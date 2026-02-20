@@ -141,7 +141,6 @@ h1 {
   padding: 20px;
   text-decoration: none;
   color: var(--text-primary);
-  transition: background var(--transition-fast);
 }
 
 .archive-card:hover {
@@ -172,7 +171,7 @@ h1 {
   background: var(--askew-btn);
   color: var(--text-primary);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 @media (max-width: 560px) {

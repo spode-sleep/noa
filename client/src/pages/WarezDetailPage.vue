@@ -180,12 +180,11 @@ onUnmounted(() => {
   border-radius: 0px;
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   font-size: 0.9rem;
   margin-bottom: 20px;
   cursor: pointer;
-  transition: background var(--transition-fast);
 }
 
 .btn-back:hover {

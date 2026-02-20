@@ -1,7 +1,7 @@
 <template>
   <div v-if="isActive && !isMinimized" class="player glass">
     <div class="player-info">
-      <span class="player-title"><Icon icon="mdi:microphone" style="color: var(--accent-teal); vertical-align: middle" /> TTS</span>
+      <span class="player-title"><Icon icon="mdi:microphone" style="color: var(--askew-gold); vertical-align: middle" /> TTS</span>
       <span class="player-artist">{{ displayText }}</span>
     </div>
     <div class="player-controls">
@@ -127,12 +127,11 @@ const {
 .ctrl-btn {
   background: var(--askew-btn);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
   font-size: 1.4rem;
   cursor: pointer;
   padding: 6px;
-  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -210,12 +209,11 @@ const {
   padding: 2px 8px;
   font-size: 0.7rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .speed-btn:hover {
   background: var(--askew-btn);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
 }
 
