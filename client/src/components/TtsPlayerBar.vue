@@ -45,9 +45,6 @@
         @input="setVolume($event)"
       />
     </div>
-    <button class="ctrl-btn ctrl-minimize" @click="toggleMinimize" title="Minimize player">
-      <Icon icon="mdi:chevron-down" />
-    </button>
     <div v-if="errorMessage" class="tts-error">{{ errorMessage }}</div>
   </div>
 </template>
@@ -59,7 +56,7 @@ import { usePlayerStack } from '../composables/usePlayerStack'
 
 const speeds = [0.75, 1, 1.25, 1.5]
 
-const { isMinimized, toggleMinimize } = usePlayerStack()
+const { isMinimized } = usePlayerStack()
 
 const {
   isActive,
@@ -225,15 +222,6 @@ const {
 .tts-error {
   font-size: 0.75rem;
   color: #e74c3c;
-}
-
-.ctrl-minimize {
-  margin-left: 4px;
-  font-size: 1.2rem;
-}
-
-.ctrl-minimize:hover {
-  color: var(--accent-teal);
 }
 
 .tts-volume {

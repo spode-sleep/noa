@@ -82,6 +82,17 @@ function cycleRepeat() {
   else repeatMode.value = 'off'
 }
 
+function stop() {
+  if (audio) {
+    audio.pause()
+    audio.currentTime = 0
+  }
+  isPlaying.value = false
+  currentTrack.value = null
+  currentTime.value = 0
+  duration.value = 0
+}
+
 function setFlatList(list: Track[]) {
   flatList = list
 }
@@ -161,6 +172,7 @@ export function useMusicPlayer() {
     togglePlay,
     prevTrack,
     nextTrack,
+    stop,
     seek,
     setVolume,
     setFlatList,

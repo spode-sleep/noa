@@ -4,7 +4,15 @@
     <main class="container" :class="{ 'has-player': !!currentTrack || ttsActive }">
       <router-view />
     </main>
-    <div class="player-stack">
+    <div class="player-stack" @mouseenter="stackHover = true" @mouseleave="stackHover = false">
+      <button
+        v-if="stackHover && !isMinimized && (!!currentTrack || ttsActive)"
+        class="stack-minimize-btn"
+        @click="toggleMinimize"
+        title="Minimize players"
+      >
+        <Icon icon="mdi:chevron-down" />
+      </button>
       <TtsPlayerBar />
       <MusicPlayerBar @open-playlist-picker="openPicker" />
     </div>
@@ -77,6 +85,7 @@ const { currentTrack, isPlaying } = useMusicPlayer()
 const { isActive: ttsActive } = useTtsPlayer()
 const { isMinimized, toggleMinimize } = usePlayerStack()
 
+const stackHover = ref(false)
 const showPlaylistPicker = ref(false)
 const pickerTrack = ref<Track | null>(null)
 const pickerNewName = ref('')
@@ -153,6 +162,30 @@ main.has-player {
   z-index: 1000;
   display: flex;
   flex-direction: column;
+}
+
+.stack-minimize-btn {
+  position: absolute;
+  top: -32px;
+  right: 16px;
+  z-index: 1002;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 26, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.stack-minimize-btn:hover {
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
 }
 
 /* Shared mini player quarter-arc in bottom-right corner */

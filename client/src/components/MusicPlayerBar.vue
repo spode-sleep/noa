@@ -14,6 +14,9 @@
       <button class="ctrl-btn" @click="nextTrack">
         <Icon icon="mdi:skip-next" />
       </button>
+      <button class="ctrl-btn" @click="stop" title="Stop">
+        <Icon icon="mdi:stop" />
+      </button>
       <button
         class="ctrl-btn"
         :class="{ 'ctrl-active': repeatMode !== 'off' }"
@@ -48,9 +51,6 @@
         />
       </div>
     </div>
-    <button class="ctrl-btn ctrl-minimize" @click="toggleMinimize" title="Minimize player">
-      <Icon icon="mdi:chevron-down" />
-    </button>
   </div>
 </template>
 
@@ -63,7 +63,7 @@ defineEmits<{
   'open-playlist-picker': [track: Track]
 }>()
 
-const { isMinimized, toggleMinimize } = usePlayerStack()
+const { isMinimized } = usePlayerStack()
 
 const {
   currentTrack,
@@ -76,6 +76,7 @@ const {
   togglePlay,
   prevTrack,
   nextTrack,
+  stop,
   seek,
   setVolume,
   formatDuration,
@@ -220,7 +221,7 @@ const {
 }
 
 .volume-icon {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--text-secondary);
 }
 
@@ -295,15 +296,6 @@ const {
   .player-volume {
     min-width: unset;
   }
-}
-
-.ctrl-minimize {
-  margin-left: 4px;
-  font-size: 1.2rem;
-}
-
-.ctrl-minimize:hover {
-  color: var(--accent-teal);
 }
 
 </style>
