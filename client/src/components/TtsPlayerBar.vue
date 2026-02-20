@@ -129,9 +129,11 @@ const {
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   cursor: pointer;
   padding: 6px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,8 +154,8 @@ const {
 }
 
 .ctrl-play {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   font-size: 1.3rem;
 }
 

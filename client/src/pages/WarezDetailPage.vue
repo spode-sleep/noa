@@ -177,7 +177,6 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   padding: 6px 14px;
-  border-radius: 0px;
   background: var(--askew-btn);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
@@ -185,6 +184,8 @@ onUnmounted(() => {
   font-size: 0.9rem;
   margin-bottom: 20px;
   cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
 }
 
 .btn-back:hover {

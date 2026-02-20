@@ -19,12 +19,12 @@
 
     <!-- Shared mini expand button when players are minimized -->
     <div v-if="isMinimized && (!!currentTrack || ttsActive)" class="mini-player" @click="toggleMinimize">
-      <svg v-if="isPlaying || ttsPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
-        <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--askew-tab-inactive)" stroke-width="2"/>
-        <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--askew-btn-disabled)" stroke-width="2"/>
+      <svg v-if="isPlaying || ttsPlaying" class="sq-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <rect class="sq-wave sq-wave1" x="128" y="128" width="72" height="72" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
+        <rect class="sq-wave sq-wave2" x="100" y="100" width="100" height="100" fill="none" stroke="var(--askew-tab-inactive)" stroke-width="2"/>
+        <rect class="sq-wave sq-wave3" x="68" y="68" width="132" height="132" fill="none" stroke="var(--askew-btn-disabled)" stroke-width="2"/>
       </svg>
-      <div class="mini-arc">
+      <div class="mini-sq">
         <Icon v-if="!!currentTrack" icon="mdi:music-note" />
         <Icon v-else icon="mdi:volume-high" />
       </div>
@@ -188,7 +188,7 @@ main.has-player {
   color: var(--bg-primary);
 }
 
-/* Shared mini player quarter-arc in bottom-right corner */
+/* Shared mini player square button in bottom-right corner */
 .mini-player {
   position: fixed;
   bottom: 0;
@@ -199,7 +199,7 @@ main.has-player {
   height: 72px;
 }
 
-.mini-arc {
+.mini-sq {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -208,22 +208,21 @@ main.has-player {
   background: var(--askew-btn);
   border-top: 1px solid #000000;
   border-left: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 12px;
-  padding-left: 12px;
   font-size: 1.5rem;
   color: var(--text-primary);
   z-index: 2;
 }
 
-.mini-player:hover .mini-arc {
+.mini-player:hover .mini-sq {
   background: var(--askew-btn-hover);
   color: var(--bg-primary);
 }
 
-.arc-waves {
+.sq-waves {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -233,24 +232,23 @@ main.has-player {
   pointer-events: none;
 }
 
-.arc-wave {
+.sq-wave {
   opacity: 0;
-  transform-origin: 200px 200px;
 }
 
-.arc-wave1 {
-  animation: arc-pulse 2.4s ease-out infinite;
+.sq-wave1 {
+  animation: sq-pulse 2.4s ease-out infinite;
 }
 
-.arc-wave2 {
-  animation: arc-pulse 2.4s ease-out 0.8s infinite;
+.sq-wave2 {
+  animation: sq-pulse 2.4s ease-out 0.8s infinite;
 }
 
-.arc-wave3 {
-  animation: arc-pulse 2.4s ease-out 1.6s infinite;
+.sq-wave3 {
+  animation: sq-pulse 2.4s ease-out 1.6s infinite;
 }
 
-@keyframes arc-pulse {
+@keyframes sq-pulse {
   0% {
     opacity: 0.5;
     stroke-width: 3;

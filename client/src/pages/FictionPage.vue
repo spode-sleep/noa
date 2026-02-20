@@ -358,29 +358,55 @@ h1 {
 
 .format-badge {
   padding: 2px 8px;
-  border-radius: 0px;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.5px;
-  background: var(--askew-btn-disabled);
-  border: 1px solid #000000;
+  background: var(--askew-btn);
   color: var(--text-primary);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .format-pdf {
-  color: var(--askew-red);
+  background: var(--askew-red);
+  box-shadow: inset 1px 1px 0 #eb6666, inset -1px -1px 0 #6a0b13;
+  color: var(--text-primary);
 }
 
 .format-epub {
+  background: var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--askew-mint);
 }
 
 .format-fb2 {
-  color: var(--askew-salmon);
+  background: var(--askew-tab-inactive);
+  box-shadow: inset 1px 1px 0 var(--askew-salmon), inset -1px -1px 0 var(--askew-tab-border);
+  color: var(--text-primary);
 }
 
 .format-zim {
+  background: var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn), inset -1px -1px 0 var(--askew-dark-border);
   color: var(--askew-cyan);
+}
+
+.format-mobi {
+  background: var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-tab-inactive), inset -1px -1px 0 var(--askew-dark-border);
+  color: var(--askew-gold);
+}
+
+.format-txt {
+  background: var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn), inset -1px -1px 0 var(--askew-dark-border);
+  color: var(--askew-cream);
+}
+
+.format-djvu {
+  background: var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--askew-gold);
 }
 
 .progress-badge {

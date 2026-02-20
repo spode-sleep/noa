@@ -1004,10 +1004,11 @@ h2 {
 
 /* Fixbox styling */
 .fixbox {
-  border: 1px solid #000000;
+  border: 2px solid var(--askew-btn);
   border-radius: 0px;
   overflow: hidden;
-  box-shadow: inset 1px 1px 0 var(--glass-border), inset -1px -1px 0 var(--askew-dark-border);
+  background: var(--bg-tertiary);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .fixbox-row {
@@ -1015,7 +1016,7 @@ h2 {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.6;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--askew-btn);
   word-break: break-word;
 }
 
@@ -1086,16 +1087,17 @@ h2 {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
-  border: 1px solid #000000;
+  border: 2px solid var(--askew-btn);
   border-radius: 0px;
   overflow: hidden;
+  background: var(--bg-tertiary);
 }
 
 .info-table th,
 .info-table td {
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--askew-btn);
   word-break: break-word;
 }
 
@@ -1155,7 +1157,7 @@ h2 {
 }
 
 .info-table th {
-  background: var(--bg-tertiary);
+  background: var(--askew-btn-disabled);
   color: var(--text-primary);
   font-weight: 600;
   font-size: 0.8rem;

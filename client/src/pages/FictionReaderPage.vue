@@ -552,10 +552,12 @@ onUnmounted(() => {
 }
 
 .btn-back {
-  background: var(--bg-secondary);
+  background: var(--askew-btn-disabled);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
   color: var(--text-secondary);
+  text-decoration: none;
+  line-height: 1;
 }
 
 .btn-back:hover {

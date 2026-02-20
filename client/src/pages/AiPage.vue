@@ -965,9 +965,9 @@ onBeforeUnmount(() => {
 /* Input area */
 .input-area {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 12px 16px;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
   margin: 0;
   flex-shrink: 0;
   border-radius: 0px;
@@ -987,6 +987,7 @@ onBeforeUnmount(() => {
   font-size: 0.95rem;
   line-height: 1.5;
   max-height: 160px;
+  padding: 10px 14px;
 }
 
 .input-area textarea::placeholder {
@@ -994,9 +995,10 @@ onBeforeUnmount(() => {
 }
 
 .send-btn {
-  padding: 8px 20px;
+  padding: 10px 20px;
   background: var(--askew-btn);
-  border: 1px solid var(--askew-btn-border);
+  border: none;
+  border-left: 1px solid #000000;
   border-radius: 0px;
   color: var(--text-primary);
   font-weight: 600;
@@ -1004,6 +1006,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   flex-shrink: 0;
+  align-self: stretch;
 }
 
 .send-btn:disabled {

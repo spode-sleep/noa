@@ -120,6 +120,7 @@ onUnmounted(() => {
   text-decoration: none;
   cursor: pointer;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .btn-back:hover {

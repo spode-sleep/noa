@@ -582,7 +582,7 @@ h1 {
 }
 
 .game-card:hover {
-  border-color: var(--askew-salmon);
+  box-shadow: inset 2px 2px 0 var(--askew-btn), inset -2px -2px 0 var(--askew-dark-border);
 }
 
 .game-image-wrap {
@@ -661,11 +661,11 @@ h1 {
 }
 
 .game-tag {
-  font-size: 0.65rem;
-  padding: 2px 8px;
+  font-size: 0.75rem;
+  padding: 4px 12px;
   border-radius: 0px;
-  border: 1px solid var(--askew-input-border);
-  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
   background: var(--bg-tertiary);
 }
 
