@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import HeaderNav from './components/HeaderNav.vue'
 import MusicPlayerBar from './components/MusicPlayerBar.vue'
 import TtsPlayerBar from './components/TtsPlayerBar.vue'
@@ -58,24 +58,7 @@ import { useMusicPlayer, type Track, type Playlist } from './composables/useMusi
 import { useTtsPlayer } from './composables/useTtsPlayer'
 
 const { currentTrack } = useMusicPlayer()
-const { speak, getSelectedText, isActive: ttsActive } = useTtsPlayer()
-
-function onGlobalKeydown(e: KeyboardEvent) {
-  // Ctrl+Shift+S — speak selected text
-  if (e.ctrlKey && e.shiftKey && e.key === 'S') {
-    e.preventDefault()
-    const text = getSelectedText()
-    if (text) speak(text)
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', onGlobalKeydown)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', onGlobalKeydown)
-})
+const { isActive: ttsActive } = useTtsPlayer()
 
 const showPlaylistPicker = ref(false)
 const pickerTrack = ref<Track | null>(null)
