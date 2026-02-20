@@ -27,23 +27,22 @@ onMounted(async () => {
 <style scoped>
 .main-content {
   padding: 2rem;
-  border-radius: var(--radius-lg);
   line-height: 1.7;
 }
 
 .main-content :deep(a) {
-  color: var(--accent-teal);
+  color: var(--askew-cyan);
 }
 
 .main-content :deep(code) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--askew-btn-disabled);
   padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  border: 1px solid #000000;
   font-size: 0.9em;
 }
 
 .error {
-  color: #ef4444;
+  color: var(--askew-red);
   margin-top: 1rem;
 }
 </style>

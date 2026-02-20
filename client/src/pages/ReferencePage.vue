@@ -79,10 +79,7 @@ onMounted(async () => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #34d399, var(--accent-teal));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .loading {
@@ -118,16 +115,16 @@ h1 {
 }
 
 .empty-state a {
-  color: var(--accent-teal);
+  color: var(--askew-cyan);
   text-decoration: underline;
 }
 
 .empty-state code {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--askew-btn-disabled);
   padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  color: var(--accent-teal);
+  border: 1px solid #000000;
+  color: var(--askew-gold);
   font-size: 0.85rem;
   word-break: break-all;
 }
@@ -144,12 +141,11 @@ h1 {
   padding: 20px;
   text-decoration: none;
   color: var(--text-primary);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
 .archive-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  background: var(--askew-btn-disabled);
 }
 
 .archive-title {
@@ -170,13 +166,13 @@ h1 {
 
 .format-badge {
   padding: 2px 8px;
-  border-radius: 10px;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.5px;
-  background: rgba(76, 201, 240, 0.2);
-  color: #4cc9f0;
-  border: 1px solid rgba(76, 201, 240, 0.3);
+  background: var(--askew-btn);
+  color: var(--text-primary);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
 }
 
 @media (max-width: 560px) {
