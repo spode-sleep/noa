@@ -1,16 +1,16 @@
 <template>
   <div class="reader-page">
     <div class="reader-header glass">
-      <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Library</a>
+      <a class="btn btn-back" @click="router.push('/fiction')" style="cursor:pointer">← Library</a>
       <div v-if="book" class="header-info">
         <span class="header-title">{{ book.title }}</span>
         <span class="header-author">{{ book.author }}</span>
       </div>
       <div class="header-controls">
-        <button class="ctrl-btn" @click="readAloud" title="Read Aloud">🔊</button>
+        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
         <template v-if="book?.format !== 'pdf'">
           <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
-            ⭐
+            <Icon icon="mdi:star" width="20" height="20" style="color: #f59e0b; vertical-align: middle" />
           </button>
         </template>
       </div>
@@ -32,7 +32,7 @@
             class="bookmark-input"
             @keyup.enter="addBookmark"
           />
-          <button class="btn btn-sm" @click="addBookmark">⭐ Add</button>
+          <button class="btn btn-sm" @click="addBookmark"><Icon icon="mdi:star" style="color: #f59e0b; vertical-align: -2px;" /> Add</button>
         </div>
         <div v-if="manualBookmarks.length === 0" class="bookmark-empty">No bookmarks yet.</div>
         <div v-else class="bookmark-list">
@@ -119,6 +119,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { VueReader } from 'vue-book-reader'
+import { Icon } from '@iconify/vue'
+import { useTtsPlayer } from '../composables/useTtsPlayer'
 
 interface Book {
   id: string
@@ -158,7 +160,6 @@ const fb2Chapters = ref<Fb2Chapter[]>([])
 const fb2Loading = ref(false)
 const showTtsMessage = ref(false)
 const ttsMessage = ref('')
-const kiwixPort = 9454
 
 // ZIM state
 const zimIframeRef = ref<HTMLIFrameElement | null>(null)
@@ -167,8 +168,8 @@ let zimUrlTimer: ReturnType<typeof setInterval> | null = null
 
 const zimUrl = computed(() => {
   if (!book.value || book.value.format !== 'zim') return ''
-  const port = (book.value as any).kiwixPort || kiwixPort
   const name = (book.value as any).zimName || book.value.title.replace(/\.zim$/i, '').replace(/ /g, '_')
+  const port = (book.value as any).kiwixPort || 9454
   return `http://localhost:${port}/${name}`
 })
 
@@ -241,19 +242,16 @@ function getBookmarkPercent(page: any): number {
   return Math.round(Number(page) * 100)
 }
 
+const { speak, getSelectedText } = useTtsPlayer()
+
 async function readAloud() {
-  try {
-    const res = await fetch('/api/tts/status')
-    const data = await res.json()
-    if (data.available) {
-      ttsMessage.value = 'TTS is available. Feature coming soon.'
-    } else {
-      ttsMessage.value = 'TTS not configured. Please set up a TTS service in settings.'
-    }
-  } catch {
-    ttsMessage.value = 'TTS not configured. Please set up a TTS service in settings.'
+  const text = await getSelectedText()
+  if (text) {
+    speak(text)
+  } else {
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press the speaker button'
+    showTtsMessage.value = true
   }
-  showTtsMessage.value = true
 }
 
 function addBookmark() {

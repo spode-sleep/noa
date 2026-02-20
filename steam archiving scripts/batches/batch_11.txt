@@ -1,0 +1,119 @@
+# Батч 11: 60 игр
+# Создан: 2026-02-19 01:59:57
+#
+#Anarcute
+390720
+#Apsulov: End of Gods
+960980
+#Beyond Divinity
+219760
+#BioShock™
+7670
+#Blair Witch
+1092660
+#Borderless Gaming
+388080
+#Bright Lights of Svetlov
+1630920
+#Code 7: A Story-Driven Hacking Adventure
+650570
+#Controller Companion
+367670
+#Dark SASI
+856130
+#Dark Sector
+29900
+#Darksiders II
+50650
+#Dead Space (2008)
+17470
+#Dungeon Siege II
+39200
+#Dungeon Siege III
+39160
+#F.E.A.R. (21090)
+21090
+#F.E.A.R. (21110)
+21110
+#F.E.A.R. (21120)
+21120
+#FOR HONOR™
+304390
+#Half-Life Deathmatch: Source
+360
+#Journey To The Savage Planet
+973810
+#KnightShift
+254060
+#Live2DViewerEX
+616720
+#Magicka
+42910
+#MarionetteAI
+652520
+#Mister Furry: Hot Muscles
+1578220
+#Murderous Pursuits
+638070
+#Outland
+305050
+#Outlast
+238320
+#PAYDAY 2
+218620
+#Sacred 3
+247950
+#Sacred Citadel
+207930
+#Shadowrun: Hong Kong - Extended Edition
+346940
+#Space Rangers: Quest
+503450
+#Spec Ops: The Line
+50300
+#Subverse
+1034140
+#Supreme Commander
+9350
+#Sword of the Stars: Complete Collection
+42890
+#The Incredible Adventures of Van Helsing II
+272470
+#The Incredible Adventures of Van Helsing: Final Cut
+400170
+#The Longest Journey
+6310
+#The Vanishing of Ethan Carter Redux
+400430
+#The Witcher Adventure Game
+303800
+#Thief II: The Metal Age
+211740
+#Tiny Tina's Assault on Dragon Keep: A Wonderlands One-shot Adventure
+1712840
+#Tom Clancy's Splinter Cell Chaos Theory®
+13570
+#Tsugunohi
+1322300
+#Vampire: The Masquerade - Bloodlines
+2600
+#Victor Vran ARPG
+345180
+#Warhammer 40,000: Space Marine - Anniversary Edition
+55150
+#Werewolf: The Apocalypse - Heart of the Forest Demo
+1384410
+#Worms Armageddon
+217200
+#Worms Revolution
+200170
+#XWidget
+967130
+#Yasuke Simulator
+3272300
+#ВЗЛОМ ЖОПЫ
+1206700
+#ШХД: ЗИМА / IT'S WINTER
+1003360
+#廃村巡り | Haisonmeguri
+2020630

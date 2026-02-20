@@ -1,0 +1,123 @@
+# Батч 2: 61 игр
+# Создан: 2026-02-19 01:59:57
+#
+#---Red---Tether-->
+1714080
+#2064: Read Only Memories
+330820
+#AKIBA'S TRIP: Undead ＆ Undressed
+333980
+#Alicemare
+524850
+#All Walls Must Fall - A Tech-Noir Tactics Game
+628290
+#Angels of Death Episode.Eddie
+1321230
+#Anima: Gate of Memories
+380750
+#Antichamber
+219890
+#Audiosurf 2
+235800
+#Balatro
+2379780
+#Besiege
+346010
+#Black Skylands
+1143810
+#Caves of Qud
+333640
+#Dragon Age: Origins - Ultimate Edition
+47810
+#Dungeon of the ENDLESS™
+249050
+#Dwarf Fortress
+975370
+#Elin
+2135150
+#Forager
+751780
+#Goat Simulator
+265930
+#Haven
+983970
+#Hello Charlotte EP2: Requiem Aeternam Deo
+557630
+#Hello Charlotte EP3: Childhood's End
+760890
+#Labyronia RPG
+391260
+#Legend of Mysteria RPG
+407230
+#LiEat
+373770
+#Milk outside a bag of milk outside a bag of milk
+1604000
+#Mount & Blade
+22100
+#Mr. Rainer's Solve-It Service
+1780370
+#My Lovely Daughter
+580170
+#NEEDY STREAMER OVERLOAD
+1451940
+#Niche - a genetics survival game
+440650
+#Noel the Mortal Fate Complete Edition
+850000
+#OMORI
+1150690
+#OneShot
+420530
+#PANELKI
+1836160
+#Papers, Please
+239030
+#Replica
+496890
+#RimWorld
+294100
+#Saints Row 2
+9480
+#Scribblenauts Unlimited
+218680
+#Sins Of The Demon RPG
+461640
+#Space Rangers HD: A War Apart
+214730
+#STAY
+753230
+#Sword Art Online: Hollow Realization Deluxe Edition
+607890
+#The Age of Decadence
+230070
+#The Forgotten City
+874260
+#The Stanley Parable
+221910
+#The Void
+37000
+#The Witcher 2: Assassins of Kings Enhanced Edition
+20920
+#The Witcher 3: Wild Hunt
+292030
+#TOMORROW DON'T COME - Puzzling Depression
+758570
+#tomorrow won't come for those without ██████
+1334700
+#Townscaper
+1291340
+#Tunnet
+2286390
+#Undertale
+391540
+#Virgo Versus The Zodiac
+920320
+#VoidExpanse
+324260
+#Warsim: The Realm of Aslona
+659540
+#Who's Lila?
+1697700
+#Yuppie Psycho: Executive Edition
+597760

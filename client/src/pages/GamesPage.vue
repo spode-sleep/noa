@@ -7,7 +7,7 @@
         <input
           v-model="search"
           type="text"
-          placeholder="Search games..."
+          placeholder="Search by name or AppID..."
           class="search-input"
         />
         <button v-if="search" class="search-clear" @click="search = ''">
@@ -79,23 +79,27 @@
 
     <div v-else class="game-grid">
       <router-link
-        v-for="game in filteredGames"
+        v-for="game in displayedGames"
         :key="game.appId"
         :to="`/games/${game.appId}`"
         class="game-card glass"
       >
-        <img
-          :src="game.imageUrl"
-          :alt="game.name"
-          class="game-image"
-          loading="lazy"
-        />
+        <div class="game-image-wrap">
+          <div class="game-image-skeleton"></div>
+          <img
+            :src="game.imageUrl"
+            :alt="game.name"
+            class="game-image"
+            loading="lazy"
+            @load="($event.target as HTMLImageElement).classList.add('loaded')"
+          />
+        </div>
         <div class="game-info">
           <div class="game-name">
-            <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam">
+            <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam" aria-label="Steam">
               <Icon icon="mdi:steam" width="22" height="22" />
             </span>
-            <span class="source-icon rawg-icon" v-else title="RAWG">
+            <span class="source-icon rawg-icon" v-else title="RAWG" aria-label="RAWG">
               <Icon icon="mdi:gamepad-variant" width="22" height="22" />
             </span>
             {{ game.name }}
@@ -106,7 +110,13 @@
             </span>
           </div>
         </div>
+        <span v-if="!game.isArchived" class="not-archived-badge" title="Not Archived" aria-label="Not Archived">
+          <Icon icon="mdi:alert-circle" width="20" height="20" />
+        </span>
       </router-link>
+
+      <!-- Infinite scroll sentinel -->
+      <div ref="sentinelRef" class="scroll-sentinel" v-if="displayedCount < filteredGames.length"></div>
     </div>
 
     <div v-if="!loading && filteredGames.length === 0" class="empty">
@@ -128,6 +138,8 @@ interface Game {
   source: string
   imageUrl: string
   protondb_reports?: any[]
+  isArchived?: boolean
+  archivePath?: string
 }
 
 const route = useRoute()
@@ -147,6 +159,13 @@ const showTagModal = ref(false)
 const tagSearch = ref('')
 const tagSearchRef = ref<HTMLInputElement | null>(null)
 
+const PAGE_SIZE = 48
+const displayedCount = ref(PAGE_SIZE)
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+const displayedGames = computed(() => filteredGames.value.slice(0, displayedCount.value))
+
 const filteredTags = computed(() => {
   if (!tagSearch.value) return allTags.value
   const lower = tagSearch.value.toLowerCase()
@@ -158,7 +177,7 @@ const filteredGames = computed(() => {
 
   if (search.value) {
     const lower = search.value.toLowerCase()
-    result = result.filter(g => g.name.toLowerCase().includes(lower))
+    result = result.filter(g => g.name.toLowerCase().includes(lower) || g.appId.toLowerCase().includes(lower))
   }
 
   if (sourceFilter.value) {
@@ -204,9 +223,9 @@ function syncQuery() {
   router.replace({ query })
 }
 
-watch(search, syncQuery)
-watch(sourceFilter, syncQuery)
-watch(selectedTags, syncQuery)
+watch(search, () => { displayedCount.value = PAGE_SIZE; syncQuery() })
+watch(sourceFilter, () => { displayedCount.value = PAGE_SIZE; syncQuery() })
+watch(selectedTags, () => { displayedCount.value = PAGE_SIZE; syncQuery() })
 
 watch(() => route.query, (q) => {
   search.value = (q.q as string) || ''
@@ -233,10 +252,23 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  await nextTick()
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0]?.isIntersecting && displayedCount.value < filteredGames.value.length) {
+      displayedCount.value += PAGE_SIZE
+    }
+  }, { rootMargin: '200px' })
+
+  watch(sentinelRef, (el) => {
+    observer?.disconnect()
+    if (el) observer?.observe(el)
+  }, { immediate: true })
 })
 
 onUnmounted(() => {
   document.body.style.overflow = ''
+  observer?.disconnect()
 })
 </script>
 
@@ -534,6 +566,16 @@ h1 {
   text-decoration: none;
   color: var(--text-primary);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+}
+
+.not-archived-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  color: #e74c3c;
+  filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.5));
+  line-height: 1;
 }
 
 .game-card:hover {
@@ -541,12 +583,45 @@ h1 {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
-.game-image {
+.game-image-wrap {
+  position: relative;
   width: 230px;
   min-width: 230px;
   aspect-ratio: 460 / 215;
-  object-fit: cover;
   border-radius: var(--radius-md) 0 0 var(--radius-md);
+  overflow: hidden;
+}
+
+.game-image-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #1a1a2e 25%, #2a2a3e 50%, #1a1a2e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.game-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.game-image.loaded {
+  opacity: 1;
+}
+
+.scroll-sentinel {
+  height: 1px;
+  grid-column: 1 / -1;
 }
 
 .game-info {
@@ -605,7 +680,7 @@ h1 {
     flex-direction: column;
   }
 
-  .game-image {
+  .game-image-wrap {
     width: 100%;
     min-width: unset;
     border-radius: var(--radius-md) var(--radius-md) 0 0;

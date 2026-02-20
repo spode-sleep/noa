@@ -1,0 +1,121 @@
+# Батч 4: 61 игр
+# Создан: 2026-02-19 01:59:57
+#
+#3030 Deathwar Redux - A Space Odyssey
+464360
+#[Chilla's Art] Missing Children | 行方不明
+1306620
+#[Chilla's Art] Parasocial | パラソーシャル
+2314720
+#[Chilla's Art] The Convenience Store | 夜勤事件
+1228520
+#A Story About My Uncle
+278360
+#Amnesia: The Dark Descent
+57300
+#Beat Cop
+461950
+#Citizen Sleeper
+1578650
+#Craftopia
+1307550
+#Cyberpunk 2077
+1091500
+#Death Trash
+941460
+#DR LIVESEY ROM AND DEATH EDITION
+2181930
+#Event[0]
+470260
+#Fairy Fencer F Advent Dark Force
+524580
+#Fate/EXTELLA
+511680
+#Finding Paradise
+337340
+#Garry's Mod
+4000
+#GreedFall
+606880
+#GRIS
+683320
+#Just Ignore Them
+561770
+#Kraken Academy!!
+1158220
+#Learn Japanese To Survive! Hiragana Battle
+438270
+#Life is Strange: True Colors
+936790
+#Little Racers STREET
+262690
+#Mars: War Logs
+232750
+#Melody's Escape
+270210
+#Neyasnoe
+2435180
+#Orangeblood
+1042670
+#Prototype™
+10150
+#S.T.A.L.K.E.R.: Clear Sky
+20510
+#S.T.A.L.K.E.R.: Shadow of Chernobyl
+4500
+#Satellite Odyssey: Prologue
+2579270
+#Shadwen
+425210
+#Skyborn
+278460
+#Starbound
+211820
+#Storm Of Spears RPG
+463350
+#Sword Art Online: Fatal Bullet
+626690
+#The Bathhouse | 地獄銭湯 Restored Edition
+2989950
+#The Boogie Man
+749840
+#The Elder Scrolls III: Morrowind® Game of the Year Edition
+22320
+#The Elder Scrolls IV: Oblivion® Game of the Year Edition (2009)
+22330
+#The Elder Scrolls V: Skyrim
+72850
+#The Forest of Drizzling Rain
+2106810
+#The Technomancer
+338390
+#The Witch's House MV
+885810
+#The Witcher: Enhanced Edition Director's Cut
+20900
+#The World Next Door
+755470
+#Tiny and Big: Grandpa's Leftovers
+205910
+#To the Moon
+206440
+#Trailmakers
+585420
+#UnderRail
+250520
+#Undungeon
+928990
+#UNREAL LIFE
+1335560
+#Uplink
+1510
+#Vangers
+264080
+#X3: Albion Prelude
+201310
+#X3: Terran Conflict
+2820
+#Yakuza 0
+638970
+#Zup! X
+508900

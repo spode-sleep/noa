@@ -1,52 +1,72 @@
-# 🎮 БЫСТРЫЙ СТАРТ - Установка игр Steam
+# 🎮 БЫСТРЫЙ СТАРТ - Архивирование игр Steam
 
 ## 📦 Что у вас есть:
 
-1. **install_games.sh** - главный установщик (ИСПОЛЬЗУЙТЕ ЕГО!)
+1. **install_games.sh** - главный установщик (использует DepotDownloader)
 2. **extract_appids.py** - извлечение AppID из существующих игр
 3. **view_games.sh** - просмотр установленных игр
 4. **kill_stuck.sh** - убийство зависших процессов
+5. **install_games_steamcmd.sh** - старая версия на SteamCMD (не рекомендуется)
 
 ---
 
-## 🚀 УСТАНОВКА ИГР (4 шага):
+## 🔧 ПОЧЕМУ DEPOTDOWNLOADER:
 
-### Шаг 0: Настройка постоянного монтирования (ОДИН РАЗ)
+SteamCMD постоянно зависает при пакетном скачивании — подхватывает
+чужие обновления из библиотеки, застревает на случайных играх,
+крашится с segfault на внешних дисках.
 
-**Это нужно сделать только один раз, чтобы диск всегда монтировался в одно место:**
+**DepotDownloader** (https://github.com/SteamRE/DepotDownloader):
+- ✅ Не зависает — нет проблем с очередью обновлений
+- ✅ 64-bit нативный — не нужны 32-bit библиотеки
+- ✅ Показывает прогресс скачивания
+- ✅ Запоминает авторизацию (`-remember-password`)
+- ✅ 3000+ звёзд на GitHub, активно поддерживается
+- ✅ Работает на Linux, macOS, Windows
+
+---
+
+## 🔧 УСТАНОВКА DEPOTDOWNLOADER (ОДИН РАЗ):
+
+```bash
+# 1. Скачать и распаковать
+mkdir -p ~/depotdownloader && cd ~/depotdownloader
+curl -sqL https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_3.4.0/DepotDownloader-linux-x64.zip -o dd.zip
+unzip dd.zip && chmod +x DepotDownloader && rm dd.zip
+
+# 2. Проверить
+./DepotDownloader --version
+```
+
+**Готово!** DepotDownloader установлен в `~/depotdownloader/DepotDownloader`.
+
+---
+
+
+## 🚀 УСТАНОВКА ИГР (3 шага):
+
+### Шаг 0: Настройка постоянного монтирования HDD (ОДИН РАЗ)
 
 ```bash
 # 1. Узнать UUID вашего внешнего HDD
 lsblk -o NAME,UUID,SIZE,MOUNTPOINT | grep sdb1
 
-# Пример вывода:
-# sdb1   abc123-def456-...  1.8T  /media/repeater/ARCHIVE11
-
-# 2. Создать постоянную точку монтирования
+# 2. Создать точку монтирования
 sudo mkdir -p /mnt/ARCHIVE1
 
 # 3. Размонтировать текущее
 sudo umount /media/repeater/ARCHIVE11
 
-# 4. Добавить в /etc/fstab (замените YOUR_UUID на реальный!)
+# 4. Добавить в /etc/fstab (замените YOUR_UUID!)
 echo "UUID=YOUR_UUID /mnt/ARCHIVE1 auto defaults,nofail 0 0" | sudo tee -a /etc/fstab
 
-# 5. Смонтировать
+# 5. Смонтировать и дать права
 sudo mount -a
-
-# 6. Проверить
-df -h | grep ARCHIVE1
-# Должно показать: /dev/sdb1  1.8T  ... /mnt/ARCHIVE1
-
-# 7. Дать права
 sudo chown -R $USER:$USER /mnt/ARCHIVE1
 ```
 
-**Теперь диск ВСЕГДА будет в `/mnt/ARCHIVE1` при загрузке!**
-
 ### Шаг 1: Создайте список игр
 
-**Вариант А - вручную:**
 ```bash
 nano my_games.txt
 ```
@@ -57,158 +77,114 @@ nano my_games.txt
 570
 ```
 
-**Вариант Б - извлечь из существующих:**
+Или извлеките из существующих:
 ```bash
 python3 extract_appids.py ~/.steam/steam/steamapps
-# Создаст файл extracted_appids.txt
 ```
 
 ### Шаг 2: Запустите установку
 
 ```bash
-# Если настроили постоянное монтирование (Шаг 0)
 ./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
-
-# Или укажите текущий путь
-./install_games.sh my_games.txt /media/repeater/ARCHIVE11/steam
-
-# Без второго параметра использует /media/repeater/ARCHIVE11/steam по умолчанию
-./install_games.sh my_games.txt
 ```
 
-### Шаг 3: Введите данные Steam
+Скрипт попросит логин Steam и авторизацию через мобильное приложение (один раз).
 
-```
-Логин: ваш_логин
-Пароль: ваш_пароль
-Steam Guard код: (если попросит)
-```
-
-**ВСЁ!** Скрипт установит все игры автоматически.
+**ВСЁ!** Скрипт скачает все игры автоматически.
 
 ---
 
 ## ⚙️ КАК ЭТО РАБОТАЕТ:
 
 ```
-У вас есть: 99 игр
+Скрипт делает (для каждой игры):
+├─ 1. DepotDownloader скачивает в ~/steam_downloads/APPID
+├─ 2. rsync копирует на HDD: /mnt/ARCHIVE1/steam/APPID
+├─ 3. Верифицирует копирование (сравнивает размеры)
+├─ 4. Удаляет локальную копию + чистит кэш .steam
+└─ Повторяет для следующей игры
 
-Скрипт делает:
-├─ Делит на батчи по 3 игры
-├─ Батч 1: логин → игры 1-3 → пауза 30с
-├─ Батч 2: игры 4-6 → пауза 30с
-├─ Батч 3: игры 7-9 → пауза 30с
-└─ ...
+Результаты сохраняются в: results/TIMESTAMP/
+├─ install.log       — полный лог
+├─ installed.txt     — AppID успешных (формат как my_games.txt)
+└─ failed.txt        — AppID неудачных
 
-Результат:
-✓ Только ОДИН Steam Guard запрос!
-✓ Игры в: /mnt/ARCHIVE1/steam/XXXXX
-✓ Список установленных: installed_TIMESTAMP.txt
+✓ Авторизация один раз, запоминается
+✓ Не зависает (DepotDownloader стабильнее SteamCMD)
+✓ Автофоллбэк: linux → windows, russian → english
+✓ Чанки скачиваются с автоматическим ретраем
+✓ Ctrl+C безопасно прерывает и чистит за собой
 ```
+
+> **Почему не напрямую на HDD?** Скачивание на основной диск и копирование
+> надёжнее чем прямая запись на внешний USB HDD.
 
 ---
 
 ## 📊 ПРОСМОТР РЕЗУЛЬТАТОВ:
 
 ```bash
-# Посмотреть что установлено
+# Посмотреть результаты последнего запуска
+ls results/
+
+# Успешно скачанные AppID (можно использовать как входной файл)
+cat results/*/installed.txt
+
+# Не скачанные AppID (можно перезапустить для них)
+cat results/*/failed.txt
+
+# Перезапустить для неудачных
+./install_games.sh results/20260218_041500/failed.txt /mnt/ARCHIVE1/steam
+
+# Посмотреть что на HDD
 ./view_games.sh
-
-# Проверить директорию
-ls /media/repeater/ARCHIVE1/steam/
-
-# Проверить размер
-du -sh /media/repeater/ARCHIVE1/steam/game_*
+du -sh /mnt/ARCHIVE1/steam/*
 ```
 
 ---
 
 ## 🆘 ПРОБЛЕМЫ:
 
-### Segmentation Fault
-
-Если видите `Segmentation fault (core dumped)`:
+### DepotDownloader не запускается
 
 ```bash
-# 1. Обновите SteamCMD
-cd ~/steamcmd
-./steamcmd.sh +quit
+# Проверьте что файл исполняемый
+chmod +x ~/depotdownloader/DepotDownloader
 
-# 2. Установите 32-bit библиотеки
-sudo dpkg --add-architecture i386
-sudo apt update
-sudo apt install lib32gcc-s1 lib32stdc++6
-
-# 3. Перезапустите установку
-./install_games.sh my_games.txt
+# Проверьте версию
+~/depotdownloader/DepotDownloader --version
 ```
 
-**Примечание:** Скрипт уже НЕ использует `validate` чтобы избежать крашей.
+### Ошибка авторизации
+
+```bash
+# Запустите с ручной авторизацией
+~/depotdownloader/DepotDownloader -app 730 -username ВАШ_ЛОГИН -remember-password
+# Подтвердите в мобильном приложении Steam
+```
 
 ### Процесс завис
 
 ```bash
-# Убить зависшие процессы
 ./kill_stuck.sh
-
-# Удалить частично установленные игры (скрипт предложит)
-
-# Запустить установку заново
-./install_games.sh my_games.txt
+./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
 ```
 
-### Нет папок с играми
+### Копирование на USB HDD зависает
 
-**Причины:**
-1. **Segmentation fault** - SteamCMD крашится до завершения загрузки
-2. **Частичная загрузка** - файлы скачиваются, но процесс прерывается
+Известная проблема Linux: при копировании с быстрого SSD на медленный USB HDD
+ядро накапливает гигабайты "грязных страниц" (dirty pages) в RAM и пытается
+сбросить их разом — USB контроллер не справляется и зависает.
 
-**Решение:**
+**Скрипт решает это автоматически:** перед каждым копированием ограничивает
+dirty pages до 48MB/16MB через `sysctl`, после копирования восстанавливает.
+Для этого нужен `sudo` без пароля для sysctl (или просто запустите скрипт с sudo).
+
+Для постоянного исправления (без sudo в скрипте):
 ```bash
-# Проверьте что действительно есть файлы
-ls -lah /media/repeater/ARCHIVE1/steam/game_*/
-
-# Проверьте размеры (должны быть сотни MB - десятки GB)
-du -sh /media/repeater/ARCHIVE1/steam/game_*
-
-# Если папки пустые или очень маленькие - удалите их
-rm -rf /media/repeater/ARCHIVE1/steam/game_*
-
-# Обновите SteamCMD и перезапустите
-cd ~/steamcmd
-./steamcmd.sh +quit
-cd ~/steam-installer
-./install_games.sh my_games.txt
-```
-
-### Игры показываются как установленные, но их нет
-
-```bash
-# Проверьте лог
-cat install_*.log | tail -50
-
-# Проверьте ошибки авторизации
-grep -i "logged in\|error\|fail" install_*.log
-
-# Проверьте где на самом деле установились игры
-find /media -name "game_*" -type d 2>/dev/null
-```
-
-### Steam Guard не работает
-
-```bash
-# Сначала авторизуйтесь вручную
-~/steamcmd/steamcmd.sh
-
-# В консоли SteamCMD:
-Steam> login ваш_логин
-Password: (пароль)
-Steam Guard: (код)
-# Дождитесь "Logged in OK"
-Steam> quit
-
-# Теперь запускайте установку
-./install_games.sh my_games.txt
+# Создать файл с настройками
+echo -e "vm.dirty_bytes=50331648\nvm.dirty_background_bytes=16777216" | sudo tee /etc/sysctl.d/99-usb-hdd.conf
+sudo sysctl -p /etc/sysctl.d/99-usb-hdd.conf
 ```
 
 ---
@@ -218,91 +194,30 @@ Steam> quit
 Откройте `install_games.sh` в начале файла:
 
 ```bash
-BATCH_SIZE=3                      # Игр в батче (1-10)
-PAUSE_BETWEEN_BATCHES=30          # Пауза между батчами (секунды)
-GAME_LANGUAGE="russian"           # Язык (english, german, и т.д.)
-INSTALL_DIR="/media/repeater/ARCHIVE1/steam"  # Куда ставить
-```
-
----
-
-## 📝 ПРИМЕРЫ:
-
-### Установить 5 бесплатных игр для теста
-
-```bash
-# Создать список
-cat > test.txt << EOF
-730
-440
-570
-4000
-413150
-EOF
-
-# Установить (укажите свой путь!)
-./install_games.sh test.txt /mnt/ARCHIVE1/steam
-```
-
-### Скопировать игры с другого диска
-
-```bash
-# Извлечь AppID
-python3 extract_appids.py /media/old_disk/steamapps -o old_games.txt
-
-# Установить на новый диск
-./install_games.sh old_games.txt /mnt/ARCHIVE1/steam
-```
-
-### Установить одну игру
-
-```bash
-echo "730" > one_game.txt
-./install_games.sh one_game.txt /mnt/ARCHIVE1/steam
-```
-
-### Установить на разные диски
-
-```bash
-# Первая партия игр на HDD 1
-./install_games.sh games1.txt /mnt/hdd1/steam
-
-# Вторая партия на HDD 2
-./install_games.sh games2.txt /mnt/hdd2/steam
+GAME_LANG="russian"                          # Язык контента
+GAME_OS="linux"                              # Платформа (linux, windows, macos)
+LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"   # Куда скачивать
 ```
 
 ---
 
 ## ✅ ЧЕКЛИСТ ПЕРЕД ЗАПУСКОМ:
 
-- [ ] SteamCMD установлен и обновлен (`cd ~/steamcmd && ./steamcmd.sh +quit`)
-- [ ] 32-bit библиотеки установлены (`sudo apt install lib32gcc-s1 lib32stdc++6`)
-- [ ] Диск подключен (`/media/repeater/ARCHIVE1` доступен)
+- [ ] DepotDownloader установлен (см. раздел установки выше)
+- [ ] HDD подключен и смонтирован
+- [ ] Достаточно места на основном диске (~15+ ГБ)
 - [ ] Есть список игр (файл .txt с AppID)
 - [ ] Скрипты исполняемые (`chmod +x *.sh`)
 - [ ] Интернет работает
-- [ ] Знаете логин и пароль Steam
+- [ ] Знаете логин Steam
 - [ ] Можете подтвердить вход в мобильном приложении
 
 ---
 
-## ⚙️ ЧТО ИСПРАВЛЕНО В ПОСЛЕДНЕЙ ВЕРСИИ:
-
-✅ **force_install_dir ДО login** - правильный порядок команд
-✅ **Убран validate** - предотвращает segmentation fault на внешних дисках
-✅ **Одна сессия SteamCMD** - без повторных Steam Guard запросов
-✅ **Проверка реальных файлов** - не только папок, но и содержимого
-
----
-
-## 🎯 ОДНА КОМАНДА ДЛЯ ВСЕГО:
+## 🎯 ОДНА КОМАНДА:
 
 ```bash
-# Если настроили UUID монтирование
 ./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
-
-# Или с текущим путем
-./install_games.sh my_games.txt /media/repeater/ARCHIVE11/steam
 ```
 
 **Готово!** 🚀

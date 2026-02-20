@@ -98,7 +98,7 @@
               class="tts-btn"
               @click="readAloud(msg.content)"
             >
-              Read Aloud 🔊
+              Read Aloud <Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" />
             </button>
             <div v-if="msg.sources?.length" class="sources-list">
               <span class="sources-label">Sources:</span>
@@ -136,6 +136,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } 
 import { Icon } from '@iconify/vue'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
+import { useTtsPlayer } from '../composables/useTtsPlayer'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -150,6 +151,8 @@ interface Conversation {
   createdAt: string
   model?: string
 }
+
+const { speak } = useTtsPlayer()
 
 const STORAGE_KEY = 'box-ai-conversations'
 
@@ -395,24 +398,7 @@ async function sendMessage() {
 }
 
 async function readAloud(text: string) {
-  try {
-    const res = await fetch('/api/tts/synthesize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    })
-    if (!res.ok) {
-      const data = await res.json().catch(() => null)
-      alert(data?.error || 'TTS not configured. Set PIPER_PATH and TTS_MODEL_PATH in .env')
-      return
-    }
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const audio = new Audio(url)
-    audio.play()
-  } catch {
-    alert('TTS not configured. Set PIPER_PATH and TTS_MODEL_PATH in .env')
-  }
+  speak(text)
 }
 
 function clearChat() {

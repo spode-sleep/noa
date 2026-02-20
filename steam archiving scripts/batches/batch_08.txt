@@ -1,0 +1,123 @@
+# Батч 8: 60 игр
+# Создан: 2026-02-19 01:59:57
+#
+#[Chilla's Art] Inunaki Tunnel | 犬鳴トンネル
+1185160
+#A Rose in the Twilight
+548840
+#A=B
+1720850
+#Amnesia: A Machine for Pigs
+239200
+#Among the Sleep - Enhanced Edition
+250620
+#Assault Spy
+767930
+#Bastion
+107100
+#Black Mesa
+362890
+#Chorus
+1153640
+#Disillusion
+1490060
+#Divinity: Original Sin (Classic)
+230230
+#Divinity: Original Sin - Enhanced Edition
+373420
+#DREAMWILD
+2168450
+#Easy Delivery Co.
+3293010
+#Equilinox
+853550
+#Galaxy on Fire 2™ Full HD
+212010
+#Gish
+9500
+#Hacker Evolution
+70100
+#Hotline Miami
+219150
+#Hypnospace Outlaw
+844590
+#Impostor Factory
+1182620
+#Killer is Dead - Nightmare Edition
+261110
+#Lichdom: Battlemage
+261760
+#Little Nightmares
+424840
+#Little Nightmares Enhanced Edition
+2149010
+#Lossless Scaling
+993090
+#Lunacid
+1745510
+#Mainlining
+454950
+#Marginal act
+823330
+#Mirror's Edge™
+17410
+#Never Again
+430070
+#NieR Replicant™ ver.1.22474487139...
+1113560
+#Observation
+906100
+#PHOGS!
+850320
+#Pillars of Eternity
+291650
+#Princess Remedy 2: In A Heap of Trouble
+522040
+#Psychopomp GOLD
+3243190
+#Reigns
+474750
+#Rogue Bit
+949790
+#Sally Face - Episode One
+541570
+#Satellite Reign
+268870
+#Seven: Enhanced Edition
+471010
+#Shadowrun Returns
+234650
+#Shadowrun: Dragonfall - Director's Cut
+300550
+#Soul Searching
+586240
+#Squidlit
+799510
+#Starcom: Nexus
+863590
+#State of Mind
+437630
+#Stone Story RPG
+603390
+#Technobabylon
+307580
+#The 25th Ward: The Silver Case
+697650
+#The Life Of Greather
+503830
+#Thorne - Death Merchants
+451920
+#Torchlight
+41500
+#Touhou: Scarlet Curiosity
+845880
+#Transistor
+237930
+#Underworld Ascendant
+692840
+#Welcome to the Game
+485380
+#永远消失的幻想乡 ～ The Disappearing of Gensokyo
+776490
+#港詭實錄ParanormalHK
+1178490

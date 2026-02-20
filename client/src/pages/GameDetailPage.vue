@@ -2,8 +2,8 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <a class="sidebar-link" @click="router.back()" style="cursor:pointer">
-        <Icon icon="mdi:arrow-left" /> Games
+      <a class="sidebar-link" @click="router.push('/games')" style="cursor:pointer">
+        <Icon icon="mdi:arrow-left" class="back-icon" /> Games
       </a>
       <div class="sidebar-divider"></div>
       <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">{{ game.name || 'Top' }}</a>
@@ -17,7 +17,7 @@
     </nav>
 
     <div class="page">
-      <a v-if="!game" class="btn btn-back" @click="router.back()" style="cursor:pointer">← Games</a>
+      <a v-if="!game" class="btn btn-back" @click="router.push('/games')" style="cursor:pointer">← Games</a>
 
       <div v-if="loading" class="loading">Loading game...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
@@ -27,11 +27,12 @@
           <div class="game-header">
             <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
             <h1>{{ game.name }}</h1>
+            <span v-if="!game.isArchived" class="archive-chip not-archived">Not Archived</span>
           </div>
-          <span class="app-id">
-            {{ game.appId || game.id }}
-            <button class="copy-btn" @click="copyAppId" :title="copied ? 'Copied!' : 'Copy App ID'">
-              <Icon :icon="copied ? 'mdi:check' : 'mdi:content-copy'" />
+          <span v-if="game.isArchived && game.archivePath" class="archive-path">
+            {{ game.archivePath }}
+            <button class="copy-btn" @click="copyPath" :title="pathCopied ? 'Copied!' : 'Copy path'">
+              <Icon :icon="pathCopied ? 'mdi:check' : 'mdi:content-copy'" />
             </button>
           </span>
         </div>
@@ -107,7 +108,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -136,7 +137,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -167,7 +168,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -206,7 +207,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -235,7 +236,7 @@
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
                       <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
-                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" :title="typeof cell === 'string' ? cell : ''" :aria-label="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
                         <span v-else v-html="formatContent(cell)"></span>
                       </td>
                     </tr>
@@ -339,6 +340,8 @@ interface Game {
   modifications?: InfoEntry[]
   game_data?: InfoEntry[]
   other_information?: InfoEntry[]
+  isArchived?: boolean
+  archivePath?: string
 }
 
 const route = useRoute()
@@ -350,6 +353,7 @@ const descExpanded = ref(false)
 const descRef = ref<HTMLElement | null>(null)
 const descOverflows = ref(false)
 const copied = ref(false)
+const pathCopied = ref(false)
 const showTipsModal = ref(false)
 
 function escapeHtml(str: string): string {
@@ -436,6 +440,15 @@ function copyAppId() {
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
   })
+}
+
+function copyPath() {
+  const path = game.value?.archivePath || ''
+  if (!path) return
+  navigator.clipboard.writeText(path).then(() => {
+    pathCopied.value = true
+    setTimeout(() => { pathCopied.value = false }, 1500)
+  }).catch(() => {})
 }
 
 function checkOverflow() {
@@ -541,6 +554,10 @@ onUnmounted(() => {
   text-shadow: none;
 }
 
+.back-icon {
+  vertical-align: -2px;
+}
+
 .sidebar-divider {
   height: 1px;
   background: var(--glass-border);
@@ -619,6 +636,31 @@ onUnmounted(() => {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 4px;
+}
+
+.archive-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.archive-chip.not-archived {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+}
+
+.archive-path {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .app-id {

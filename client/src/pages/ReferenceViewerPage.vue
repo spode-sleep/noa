@@ -1,7 +1,10 @@
 <template>
   <div class="page">
-    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Reference</a>
-    <h1>{{ displayName }}</h1>
+    <div class="viewer-header">
+      <a class="btn btn-back" @click="router.push('/reference')" style="cursor:pointer">← Reference</a>
+      <h1>{{ displayName }}</h1>
+      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
+    </div>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
 
@@ -14,12 +17,18 @@
     <div v-else class="viewer-container">
       <iframe :src="kiwixUrl" class="zim-viewer"></iframe>
     </div>
+
+    <div v-if="showTtsMessage" class="tts-modal glass" @click="showTtsMessage = false">
+      <p>{{ ttsMessage }}</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
+import { useTtsPlayer } from '../composables/useTtsPlayer'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +36,20 @@ const archiveId = computed(() => route.params.id as string)
 const displayName = computed(() => archiveId.value.replace(/_/g, ' '))
 const kiwixUrl = ref('')
 const loading = ref(true)
+const showTtsMessage = ref(false)
+const ttsMessage = ref('')
+
+const { speak, getSelectedText } = useTtsPlayer()
+
+async function readAloud() {
+  const text = await getSelectedText()
+  if (text) {
+    speak(text)
+  } else {
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press the speaker button'
+    showTtsMessage.value = true
+  }
+}
 
 onMounted(async () => {
   document.title = `${displayName.value} - BOX`
@@ -54,6 +77,40 @@ onUnmounted(() => {
   padding: 24px 0;
 }
 
+.viewer-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.viewer-header h1 {
+  flex: 1;
+  font-size: 2rem;
+  margin: 0;
+  background: linear-gradient(135deg, #34d399, var(--accent-teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ctrl-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.ctrl-btn:hover {
+  border-color: var(--accent-teal);
+  color: var(--text-primary);
+}
+
 .btn-back {
   display: inline-flex;
   align-items: center;
@@ -64,23 +121,14 @@ onUnmounted(() => {
   color: var(--text-secondary);
   font-size: 0.9rem;
   text-decoration: none;
-  margin-bottom: 12px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .btn-back:hover {
   color: var(--text-primary);
   border-color: var(--accent-teal);
-}
-
-h1 {
-  font-size: 2rem;
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, #34d399, var(--accent-teal));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .loading {
@@ -124,5 +172,21 @@ h1 {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   background: #fff;
+}
+
+.tts-modal {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  padding: 16px 24px;
+  z-index: 200;
+  cursor: pointer;
+  max-width: 320px;
+}
+
+.tts-modal p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
 }
 </style>

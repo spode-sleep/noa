@@ -1,10 +1,34 @@
 <template>
   <div id="app">
     <HeaderNav />
-    <main class="container" :class="{ 'has-player': !!currentTrack }">
+    <main class="container" :class="{ 'has-player': !!currentTrack || ttsActive }">
       <router-view />
     </main>
-    <MusicPlayerBar @open-playlist-picker="openPicker" />
+    <div class="player-stack">
+      <button
+        v-if="!isMinimized && (!!currentTrack || ttsActive)"
+        class="stack-minimize-btn"
+        @click="toggleMinimize"
+        title="Minimize players"
+      >
+        <Icon icon="mdi:chevron-down" />
+      </button>
+      <TtsPlayerBar />
+      <MusicPlayerBar @open-playlist-picker="openPicker" />
+    </div>
+
+    <!-- Shared mini expand button when players are minimized -->
+    <div v-if="isMinimized && (!!currentTrack || ttsActive)" class="mini-player" @click="toggleMinimize">
+      <svg v-if="isPlaying || ttsPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2"/>
+        <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
+        <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
+      </svg>
+      <div class="mini-arc">
+        <Icon v-if="!!currentTrack" icon="mdi:music-note" />
+        <Icon v-else icon="mdi:volume-high" />
+      </div>
+    </div>
 
     <!-- Playlist picker modal (global) -->
     <Teleport to="body">
@@ -51,10 +75,15 @@
 import { ref } from 'vue'
 import HeaderNav from './components/HeaderNav.vue'
 import MusicPlayerBar from './components/MusicPlayerBar.vue'
+import TtsPlayerBar from './components/TtsPlayerBar.vue'
 import { Icon } from '@iconify/vue'
 import { useMusicPlayer, type Track, type Playlist } from './composables/useMusicPlayer'
+import { useTtsPlayer } from './composables/useTtsPlayer'
+import { usePlayerStack } from './composables/usePlayerStack'
 
-const { currentTrack } = useMusicPlayer()
+const { currentTrack, isPlaying } = useMusicPlayer()
+const { isActive: ttsActive, isPlaying: ttsPlaying } = useTtsPlayer()
+const { isMinimized, toggleMinimize } = usePlayerStack()
 
 const showPlaylistPicker = ref(false)
 const pickerTrack = ref<Track | null>(null)
@@ -122,6 +151,115 @@ main {
 
 main.has-player {
   padding-bottom: 120px;
+}
+
+.player-stack {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-minimize-btn {
+  position: absolute;
+  top: 0;
+  right: 16px;
+  transform: translateY(-50%);
+  z-index: 1002;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 26, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.stack-minimize-btn:hover {
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+
+/* Shared mini player quarter-arc in bottom-right corner */
+.mini-player {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  z-index: 1001;
+  cursor: pointer;
+  width: 72px;
+  height: 72px;
+}
+
+.mini-arc {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  border-radius: 72px 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 12px;
+  padding-left: 12px;
+  font-size: 1.5rem;
+  color: #fff;
+  box-shadow: -4px -4px 20px rgba(0, 232, 184, 0.35);
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+.mini-player:hover .mini-arc {
+  transform: scale(1.08);
+  transform-origin: bottom right;
+}
+
+.arc-waves {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.arc-wave {
+  opacity: 0;
+  transform-origin: 200px 200px;
+}
+
+.arc-wave1 {
+  animation: arc-pulse 2.4s ease-out infinite;
+}
+
+.arc-wave2 {
+  animation: arc-pulse 2.4s ease-out 0.8s infinite;
+}
+
+.arc-wave3 {
+  animation: arc-pulse 2.4s ease-out 1.6s infinite;
+}
+
+@keyframes arc-pulse {
+  0% {
+    opacity: 0.7;
+    stroke-width: 3;
+  }
+  100% {
+    opacity: 0;
+    stroke-width: 1;
+  }
 }
 
 /* Playlist picker modal */

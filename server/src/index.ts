@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import gamesRouter from './routes/games';
+import mainRouter from './routes/main';
 import musicRouter from './routes/music';
 import fictionRouter from './routes/fiction';
 import referenceRouter from './routes/reference';
@@ -29,6 +30,7 @@ const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', 'data
 app.use('/data/games/header_images', express.static(path.join(dataPath, 'games', 'header_images')));
 
 // Routes
+app.use('/api/main', mainRouter);
 app.use('/api/games', gamesRouter);
 app.use('/api/music', musicRouter);
 app.use('/api/fiction', fictionRouter);
