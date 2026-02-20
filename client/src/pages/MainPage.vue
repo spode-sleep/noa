@@ -12,6 +12,7 @@ const content = ref('')
 const error = ref('')
 
 onMounted(async () => {
+  document.title = 'BOX'
   try {
     const res = await fetch('/api/main/content')
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
