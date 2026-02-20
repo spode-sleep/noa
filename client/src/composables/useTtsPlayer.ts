@@ -140,41 +140,13 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-/** foliate-view element from vue-book-reader (getRendition callback) */
-interface FoliateView {
-  renderer: {
-    getContents(): Array<{ doc?: Document; index?: number }>
-  }
-}
-
-/** Get selected text from page, trying EPUB shadow DOM, iframes, and clipboard */
-async function getSelectedText(epubView?: FoliateView): Promise<string> {
-  // First check main document selection (works for FB2, plain HTML)
+/** Get selected text from page, falling back to clipboard for cross-origin iframes */
+async function getSelectedText(): Promise<string> {
+  // Try main document selection (works for FB2, plain HTML)
   const mainSelection = window.getSelection()?.toString()?.trim()
   if (mainSelection) return mainSelection
 
-  // Try EPUB foliate-view internal documents (closed shadow DOM)
-  if (epubView?.renderer?.getContents) {
-    try {
-      for (const content of epubView.renderer.getContents()) {
-        const sel = content.doc?.defaultView?.getSelection?.()?.toString()?.trim()
-        if (sel) return sel
-      }
-    } catch { /* ignore */ }
-  }
-
-  // Try same-origin iframes (works for ZIM via kiwix proxy)
-  const iframes = document.querySelectorAll('iframe')
-  for (const iframe of iframes) {
-    try {
-      const iframeSelection = iframe.contentWindow?.getSelection()?.toString()?.trim()
-      if (iframeSelection) return iframeSelection
-    } catch {
-      // Cross-origin iframe — skip
-    }
-  }
-
-  // Fallback: try clipboard (for PDF where browser viewer doesn't expose selection)
+  // Fallback: try clipboard (for cross-origin iframes like ZIM, PDF, EPUB)
   try {
     const clipText = await navigator.clipboard.readText()
     if (clipText?.trim()) return clipText.trim()

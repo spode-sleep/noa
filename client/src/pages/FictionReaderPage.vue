@@ -168,7 +168,8 @@ let zimUrlTimer: ReturnType<typeof setInterval> | null = null
 const zimUrl = computed(() => {
   if (!book.value || book.value.format !== 'zim') return ''
   const name = (book.value as any).zimName || book.value.title.replace(/\.zim$/i, '').replace(/ /g, '_')
-  return `/kiwix/${name}`
+  const port = (book.value as any).kiwixPort || 9454
+  return `http://localhost:${port}/${name}`
 })
 
 // EPUB state
@@ -243,13 +244,11 @@ function getBookmarkPercent(page: any): number {
 const { speak, getSelectedText } = useTtsPlayer()
 
 async function readAloud() {
-  const text = await getSelectedText(epubView.value)
+  const text = await getSelectedText()
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = book.value?.format === 'pdf'
-      ? 'Select text, copy (Ctrl+C), then press 🔊'
-      : 'Select text, then press 🔊'
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press 🔊'
     showTtsMessage.value = true
   }
 }

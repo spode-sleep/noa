@@ -56,8 +56,7 @@ router.get('/status', (_req: Request, res: Response) => {
   }
 
   if (hasZim) {
-    // Proxy through main server for same-origin iframe access (enables TTS text selection)
-    res.json({ kiwixUrl: `/kiwix/` });
+    res.json({ kiwixUrl: `http://localhost:${KIWIX_PORT}/` });
   } else {
     res.json({ kiwixUrl: null });
   }

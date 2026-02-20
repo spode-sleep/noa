@@ -45,7 +45,7 @@ async function readAloud() {
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text, then press 🔊'
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press 🔊'
     showTtsMessage.value = true
   }
 }
