@@ -140,8 +140,15 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+/** foliate-view element from vue-book-reader (getRendition callback) */
+interface FoliateView {
+  renderer: {
+    getContents(): Array<{ doc?: Document; index?: number }>
+  }
+}
+
 /** Get selected text from page, trying EPUB shadow DOM, iframes, and clipboard */
-async function getSelectedText(epubView?: any): Promise<string> {
+async function getSelectedText(epubView?: FoliateView): Promise<string> {
   // First check main document selection (works for FB2, plain HTML)
   const mainSelection = window.getSelection()?.toString()?.trim()
   if (mainSelection) return mainSelection
@@ -149,8 +156,8 @@ async function getSelectedText(epubView?: any): Promise<string> {
   // Try EPUB foliate-view internal documents (closed shadow DOM)
   if (epubView?.renderer?.getContents) {
     try {
-      for (const { doc } of epubView.renderer.getContents()) {
-        const sel = doc?.defaultView?.getSelection?.()?.toString()?.trim()
+      for (const content of epubView.renderer.getContents()) {
+        const sel = content.doc?.defaultView?.getSelection?.()?.toString()?.trim()
         if (sel) return sel
       }
     } catch { /* ignore */ }
