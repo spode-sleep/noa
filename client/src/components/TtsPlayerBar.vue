@@ -111,7 +111,7 @@ const {
 
 .player-artist {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--askew-cream);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
