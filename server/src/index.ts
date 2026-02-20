@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import http from 'http';
 import dotenv from 'dotenv';
 
 // Load .env BEFORE importing routes so env vars are available at module init
@@ -37,6 +38,26 @@ app.use('/api/warez', warezRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/tts', ttsRouter);
 app.use('/api/bookmarks', bookmarksRouter);
+
+// Kiwix proxy — serve kiwix-serve content through same origin for iframe access
+const KIWIX_PORT = parseInt(process.env.KIWIX_PORT || '9454', 10);
+app.use('/kiwix', (req, res) => {
+  const options: http.RequestOptions = {
+    hostname: 'localhost',
+    port: KIWIX_PORT,
+    path: req.url,
+    method: req.method,
+    headers: { ...req.headers, host: `localhost:${KIWIX_PORT}` },
+  };
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+    proxyRes.pipe(res, { end: true });
+  });
+  proxyReq.on('error', () => {
+    res.status(502).send('Kiwix-serve unavailable');
+  });
+  req.pipe(proxyReq, { end: true });
+});
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

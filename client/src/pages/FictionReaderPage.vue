@@ -159,7 +159,6 @@ const fb2Chapters = ref<Fb2Chapter[]>([])
 const fb2Loading = ref(false)
 const showTtsMessage = ref(false)
 const ttsMessage = ref('')
-const kiwixPort = 9454
 
 // ZIM state
 const zimIframeRef = ref<HTMLIFrameElement | null>(null)
@@ -168,9 +167,8 @@ let zimUrlTimer: ReturnType<typeof setInterval> | null = null
 
 const zimUrl = computed(() => {
   if (!book.value || book.value.format !== 'zim') return ''
-  const port = (book.value as any).kiwixPort || kiwixPort
   const name = (book.value as any).zimName || book.value.title.replace(/\.zim$/i, '').replace(/ /g, '_')
-  return `http://localhost:${port}/${name}`
+  return `/kiwix/${name}`
 })
 
 // EPUB state
@@ -244,12 +242,12 @@ function getBookmarkPercent(page: any): number {
 
 const { speak, getSelectedText } = useTtsPlayer()
 
-async function readAloud() {
-  const text = await getSelectedText()
+function readAloud() {
+  const text = getSelectedText()
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text and copy (Ctrl+C), then press 🔊'
+    ttsMessage.value = 'Select text, then press 🔊'
     showTtsMessage.value = true
   }
 }

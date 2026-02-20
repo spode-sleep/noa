@@ -40,12 +40,12 @@ const ttsMessage = ref('')
 
 const { speak, getSelectedText } = useTtsPlayer()
 
-async function readAloud() {
-  const text = await getSelectedText()
+function readAloud() {
+  const text = getSelectedText()
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text and copy (Ctrl+C), then press 🔊'
+    ttsMessage.value = 'Select text, then press 🔊'
     showTtsMessage.value = true
   }
 }

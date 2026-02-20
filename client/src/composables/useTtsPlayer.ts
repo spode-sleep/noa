@@ -140,29 +140,21 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-/** Get selected text from page, trying iframes and clipboard as fallback */
-async function getSelectedText(): Promise<string> {
+/** Get selected text from page, trying iframes too */
+function getSelectedText(): string {
   // First check main document selection
   const mainSelection = window.getSelection()?.toString()?.trim()
   if (mainSelection) return mainSelection
 
-  // Try same-origin iframes
+  // Try same-origin iframes (works now that kiwix is proxied through main server)
   const iframes = document.querySelectorAll('iframe')
   for (const iframe of iframes) {
     try {
       const iframeSelection = iframe.contentWindow?.getSelection()?.toString()?.trim()
       if (iframeSelection) return iframeSelection
     } catch {
-      // Cross-origin iframe — skip, fall through to clipboard
+      // Cross-origin iframe — skip
     }
-  }
-
-  // Fallback: read from clipboard (works for cross-origin iframes, PDF viewer, etc.)
-  try {
-    const clipboardText = await navigator.clipboard.readText()
-    if (clipboardText?.trim()) return clipboardText.trim()
-  } catch {
-    // Clipboard permission denied or unavailable
   }
 
   return ''

@@ -56,8 +56,8 @@ router.get('/status', (_req: Request, res: Response) => {
   }
 
   if (hasZim) {
-    // Point directly to kiwix-serve (no proxy to avoid encoding issues)
-    res.json({ kiwixUrl: `http://localhost:${KIWIX_PORT}/` });
+    // Proxy through main server for same-origin iframe access (enables TTS text selection)
+    res.json({ kiwixUrl: `/kiwix/` });
   } else {
     res.json({ kiwixUrl: null });
   }
