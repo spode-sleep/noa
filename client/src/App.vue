@@ -1,10 +1,11 @@
 <template>
   <div id="app">
     <HeaderNav />
-    <main class="container" :class="{ 'has-player': !!currentTrack }">
+    <main class="container" :class="{ 'has-player': !!currentTrack || ttsActive }">
       <router-view />
     </main>
     <MusicPlayerBar @open-playlist-picker="openPicker" />
+    <TtsPlayerBar />
 
     <!-- Playlist picker modal (global) -->
     <Teleport to="body">
@@ -48,13 +49,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import HeaderNav from './components/HeaderNav.vue'
 import MusicPlayerBar from './components/MusicPlayerBar.vue'
+import TtsPlayerBar from './components/TtsPlayerBar.vue'
 import { Icon } from '@iconify/vue'
 import { useMusicPlayer, type Track, type Playlist } from './composables/useMusicPlayer'
+import { useTtsPlayer } from './composables/useTtsPlayer'
 
 const { currentTrack } = useMusicPlayer()
+const { speak, getSelectedText, isActive: ttsActive } = useTtsPlayer()
+
+function onGlobalKeydown(e: KeyboardEvent) {
+  // Ctrl+Shift+S — speak selected text
+  if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+    e.preventDefault()
+    const text = getSelectedText()
+    if (text) speak(text)
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onGlobalKeydown)
+})
 
 const showPlaylistPicker = ref(false)
 const pickerTrack = ref<Track | null>(null)

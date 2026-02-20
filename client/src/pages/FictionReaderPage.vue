@@ -119,6 +119,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { VueReader } from 'vue-book-reader'
+import { useTtsPlayer } from '../composables/useTtsPlayer'
 
 interface Book {
   id: string
@@ -241,19 +242,16 @@ function getBookmarkPercent(page: any): number {
   return Math.round(Number(page) * 100)
 }
 
+const { speak, getSelectedText } = useTtsPlayer()
+
 async function readAloud() {
-  try {
-    const res = await fetch('/api/tts/status')
-    const data = await res.json()
-    if (data.available) {
-      ttsMessage.value = 'TTS is available. Feature coming soon.'
-    } else {
-      ttsMessage.value = 'TTS not configured. Please set up a TTS service in settings.'
-    }
-  } catch {
-    ttsMessage.value = 'TTS not configured. Please set up a TTS service in settings.'
+  const text = getSelectedText()
+  if (text) {
+    speak(text)
+  } else {
+    ttsMessage.value = 'Выделите текст, затем нажмите 🔊 или Ctrl+Shift+S'
+    showTtsMessage.value = true
   }
-  showTtsMessage.value = true
 }
 
 function addBookmark() {
