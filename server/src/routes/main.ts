@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 const router = Router();
@@ -8,15 +8,15 @@ const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..',
 const contentFile = path.join(dataPath, 'main', 'content.html');
 
 // GET /api/main/content — serve custom HTML content
-router.get('/content', (_req: Request, res: Response) => {
+router.get('/content', async (_req: Request, res: Response) => {
   try {
-    if (!fs.existsSync(contentFile)) {
+    const html = await fs.readFile(contentFile, 'utf-8');
+    res.type('html').send(html);
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
       res.type('html').send('<p>No content yet. Create <code>data/main/content.html</code>.</p>');
       return;
     }
-    const html = fs.readFileSync(contentFile, 'utf-8');
-    res.type('html').send(html);
-  } catch (err) {
     console.error('[Main] Error reading content:', err);
     res.status(500).json({ error: 'Failed to read content' });
   }
