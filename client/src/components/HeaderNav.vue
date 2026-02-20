@@ -102,7 +102,7 @@ function isActive(to: string): boolean {
 
 .nav-link.active {
   background: var(--askew-gold);
-  color: #000000;
+  color: var(--bg-primary);
   font-weight: 700;
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-gold-light), inset -1px -1px 0 var(--askew-tab-active);

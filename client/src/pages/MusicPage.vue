@@ -607,7 +607,7 @@ onMounted(() => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  color: var(--askew-gold);
+  color: var(--askew-gold, #ecb16e);
 }
 
 /* Tab Switcher */
@@ -626,7 +626,7 @@ h1 {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn-disabled, #155664);
-  color: var(--text-primary);
+  color: var(--text-primary, #ffffff);
   padding: 10px 24px;
   font-size: 0.95rem;
   cursor: pointer;
@@ -634,13 +634,13 @@ h1 {
 }
 
 .tab-btn:hover {
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .tab-btn.active {
   background: var(--askew-tab-active, #da9067);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 #9a5a3a;
+  box-shadow: inset 1px 1px 0 var(--askew-gold, #ecb16e), inset -1px -1px 0 #9a5a3a;
   color: #000000;
 }
 
@@ -662,7 +662,7 @@ h1 {
   background: var(--askew-input-bg, #000e14);
   border: 1px solid var(--askew-input-border, #005264);
   border-radius: 0;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
@@ -678,7 +678,7 @@ h1 {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   padding: 10px 20px;
   border-radius: 0;
   font-size: 0.9rem;
@@ -699,7 +699,7 @@ h1 {
 .btn:disabled {
   background: var(--askew-btn-disabled, #155664);
   box-shadow: inset 1px 1px 0 #1b6b6e, inset -1px -1px 0 #0d3a42;
-  color: #aaaaaa;
+  color: #5a8a8f;
   cursor: not-allowed;
 }
 
@@ -718,13 +718,13 @@ h1 {
   background: var(--askew-btn-disabled, #155664);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 #1b7b7e, inset -1px -1px 0 #0d3a42;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #e6d298);
 }
 
 .btn-back:hover {
   background: var(--askew-btn, #1b8285);
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .btn-sm {
@@ -746,7 +746,7 @@ h1 {
 }
 
 .scan-info {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.85rem;
   margin-bottom: 16px;
 }
@@ -754,7 +754,7 @@ h1 {
 .loading,
 .empty {
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   padding: 48px 0;
   font-size: 1.1rem;
 }
@@ -779,7 +779,7 @@ h1 {
   padding: 14px 16px;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
@@ -791,7 +791,7 @@ h1 {
 }
 
 .collapse-icon {
-  color: var(--askew-gold);
+  color: var(--askew-gold, #ecb16e);
   font-size: 0.9rem;
   width: 16px;
 }
@@ -801,7 +801,7 @@ h1 {
 }
 
 .artist-count {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.8rem;
   font-weight: 400;
 }
@@ -820,7 +820,7 @@ h1 {
   gap: 8px;
   padding: 8px 0;
   margin-bottom: 6px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #e6d298);
   font-size: 0.9rem;
   font-weight: 500;
   border-bottom: 1px solid var(--glass-border, #005264);
@@ -828,7 +828,7 @@ h1 {
 
 .album-icon {
   font-size: 1rem;
-  color: var(--askew-gold);
+  color: var(--askew-gold, #ecb16e);
 }
 
 .album-name {
@@ -861,7 +861,7 @@ h1 {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   width: 32px;
   height: 32px;
   border-radius: 0;
@@ -882,7 +882,7 @@ h1 {
 .track-title {
   flex: 1;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -890,13 +890,13 @@ h1 {
 }
 
 .track-artist {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
 
 .track-duration {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.85rem;
   flex-shrink: 0;
   min-width: 40px;
@@ -932,12 +932,12 @@ h1 {
 .playlist-name {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .playlist-count {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
 }
 
 .playlist-detail-header {
@@ -949,7 +949,7 @@ h1 {
 
 .playlist-detail-header h2 {
   font-size: 1.4rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   margin: 0;
 }
 
@@ -974,7 +974,7 @@ h1 {
 .search-tab {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #e6d298);
   padding: 6px 16px;
   font-size: 0.85rem;
   cursor: pointer;
@@ -982,7 +982,7 @@ h1 {
 }
 
 .search-tab:hover {
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .search-tab.active {
@@ -1027,12 +1027,12 @@ h1 {
 .album-card-name {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .album-card-artist {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
 }
 
 /* Track actions */
@@ -1044,7 +1044,7 @@ h1 {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   width: 28px;
   height: 28px;
   border-radius: 0;
@@ -1094,14 +1094,14 @@ h1 {
 
 .picker-header h3 {
   font-size: 1.1rem;
-  color: var(--askew-gold);
+  color: var(--askew-gold, #ecb16e);
 }
 
 .picker-close {
   background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   width: 28px;
   height: 28px;
   border-radius: 0;
@@ -1121,7 +1121,7 @@ h1 {
 .picker-track-info {
   padding: 4px 20px 12px;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1129,7 +1129,7 @@ h1 {
 
 .picker-empty {
   padding: 24px 20px;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -1150,7 +1150,7 @@ h1 {
   border: none;
   cursor: pointer;
   text-align: left;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .picker-item:hover {
@@ -1163,7 +1163,7 @@ h1 {
 
 .picker-item-count {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
 }
 
 .picker-create {
@@ -1178,7 +1178,7 @@ h1 {
   background: var(--askew-input-bg, #000e14);
   border: 1px solid var(--askew-input-border, #005264);
   border-radius: 0;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;

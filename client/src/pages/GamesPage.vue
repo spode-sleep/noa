@@ -354,7 +354,7 @@ h1 {
   font-size: 0.75rem;
   font-weight: 600;
   background: var(--askew-tab-active);
-  color: #ffffff;
+  color: #fff;
   padding: 0 6px;
 }
 
@@ -502,7 +502,7 @@ h1 {
 .tag-pill.active {
   background: var(--askew-tab-active);
   border: 1px solid var(--askew-btn-border);
-  color: #ffffff;
+  color: #fff;
   box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-tab-border);
 }
 

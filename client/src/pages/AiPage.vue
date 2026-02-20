@@ -513,7 +513,7 @@ onBeforeUnmount(() => {
 
 .new-chat-btn:hover {
   background: var(--askew-btn-hover);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .conversation-list {
@@ -557,7 +557,7 @@ onBeforeUnmount(() => {
 }
 
 .conversation-item.active .conversation-title {
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .conv-loading {
@@ -684,7 +684,7 @@ onBeforeUnmount(() => {
 
 .new-dialog-btn:hover {
   background: var(--askew-btn-hover);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .context-indicator {
@@ -890,7 +890,7 @@ onBeforeUnmount(() => {
 
 .tts-btn:hover {
   background: var(--askew-btn-hover);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .sources-list {
@@ -931,7 +931,7 @@ onBeforeUnmount(() => {
 
 .index-btn:hover:not(:disabled) {
   background: var(--askew-btn-hover);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .index-btn:disabled {
@@ -1024,7 +1024,7 @@ onBeforeUnmount(() => {
 
 .send-btn:not(:disabled):hover {
   background: var(--askew-btn-hover);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 /* Code blocks (v-html content needs :deep) */
@@ -1063,7 +1063,7 @@ onBeforeUnmount(() => {
 
 :deep(.code-copy-btn:hover) {
   background: var(--askew-btn-hover);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 :deep(.code-copy-btn.copied) {

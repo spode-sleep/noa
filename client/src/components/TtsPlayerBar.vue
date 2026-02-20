@@ -128,7 +128,7 @@ const {
   background: var(--askew-btn-hover);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
-  color: #000000;
+  color: var(--bg-primary);
   font-size: 1.3rem;
   cursor: pointer;
   padding: 6px;
@@ -236,7 +236,7 @@ const {
   background: var(--askew-tab-active);
   border-color: var(--askew-tab-border);
   box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-tab-inactive);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .tts-error {
