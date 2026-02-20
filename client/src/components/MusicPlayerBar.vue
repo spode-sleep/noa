@@ -131,7 +131,7 @@ const {
   background: var(--askew-btn-hover);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
-  color: var(--bg-primary);
+  color: #000000;
   font-size: 1.3rem;
   cursor: pointer;
   padding: 6px;

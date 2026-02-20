@@ -9,15 +9,15 @@
   --text-secondary: #aaaaaa; /* code.7 (gray) */
   --text-muted: #055999;     /* code.8 (Askew dark gray) */
 
-  /* Accent colors - Askew resource pack palette + text.code colors */
-  --accent-teal: #00aaaa;
-  --accent-purple: #491743;
-  --accent-blue: #055999;
-  --accent-pink: #793539;
-  --accent-green: #00aa00;
-  --accent-orange: #ffaa00;
+  /* Accent colors - exact Askew color.properties */
+  --accent-teal: #00aaaa;    /* code.3 */
+  --accent-purple: #491743;  /* code.4 */
+  --accent-blue: #055999;    /* code.8 */
+  --accent-pink: #491743;    /* code.4 */
+  --accent-green: #00aa00;   /* code.2 */
+  --accent-orange: #ffaa00;  /* code.6 */
 
-  /* Askew UI element colors */
+  /* Askew UI element colors (from GUI textures) */
   --askew-btn: #1b8285;
   --askew-btn-hover: #82cab1;
   --askew-btn-disabled: #155664;
@@ -26,19 +26,21 @@
   --askew-tab-inactive: #793539;
   --askew-tab-active: #da9067;
   --askew-tab-border: #491a2d;
-  --askew-gold: #ecb16e;
-  --askew-salmon: #da9067;
   --askew-container: #9f5348;
   --askew-container-light: #d98c63;
-  --askew-cyan: #00ecff;
-  --askew-red: #d22323;
-  --askew-cream: #e6d298;
   --askew-input-bg: #000e14;
   --askew-input-border: #005264;
-  --askew-mint: #82cab1;
   --askew-dark-border: #000d12;
-  --askew-link-green: #58eab2;
-  --askew-gold-light: #f5d4a0;
+
+  /* Askew text/accent colors (exact from color.properties) */
+  --askew-gold: #ffaa00;       /* code.6 gold */
+  --askew-gold-light: #ffff55; /* code.14 yellow */
+  --askew-salmon: #ffaa00;     /* code.6 gold */
+  --askew-cyan: #55ffff;       /* code.11 aqua */
+  --askew-red: #ff5555;        /* code.12 red */
+  --askew-cream: #ffaa00;      /* code.6 gold */
+  --askew-mint: #00aaaa;       /* code.3 dark aqua */
+  --askew-link-green: #55ff55; /* code.10 green */
 
   /* Panel styling - no glass, solid borders */
   --glass-bg: #0b0c32;

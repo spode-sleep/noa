@@ -823,13 +823,13 @@ h2 {
 
 .rating-badge.silver {
   background: #1a1a1a;
-  color: #b4b4b4;
+  color: #aaaaaa;
   border: 1px solid #b4b4b4;
 }
 
 .rating-badge.bronze {
   background: #2e1a08;
-  color: var(--askew-container-light);
+  color: var(--askew-gold);
   border: 1px solid var(--askew-container-light);
 }
 

@@ -177,7 +177,7 @@ main.has-player {
   background: var(--askew-tab-active);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-container);
-  color: var(--bg-primary);
+  color: #000000;
   font-size: 1.1rem;
   cursor: pointer;
 }
@@ -185,7 +185,7 @@ main.has-player {
 .stack-minimize-btn:hover {
   background: var(--askew-gold);
   border-color: var(--askew-dark-border);
-  color: var(--bg-primary);
+  color: #000000;
 }
 
 /* Shared mini player square button in bottom-right corner */
@@ -219,7 +219,7 @@ main.has-player {
 
 .mini-player:hover .mini-sq {
   background: var(--askew-btn-hover);
-  color: var(--bg-primary);
+  color: #000000;
 }
 
 .sq-waves {
@@ -309,7 +309,7 @@ main.has-player {
 .picker-close:hover {
   background: var(--askew-btn-hover);
   border-color: var(--askew-dark-border);
-  color: var(--bg-primary);
+  color: #000000;
 }
 
 .picker-track-info {
@@ -400,7 +400,7 @@ main.has-player {
   background: var(--askew-btn-hover);
   border-color: var(--askew-dark-border);
   box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
-  color: var(--bg-primary);
+  color: #000000;
 }
 
 .btn:disabled {
