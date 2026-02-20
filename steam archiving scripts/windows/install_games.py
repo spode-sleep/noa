@@ -300,6 +300,15 @@ def main() -> None:
         sys.exit(1)
 
     install_dir = Path(args.install_dir)
+
+    # Проверка: буфер и целевой диск не должны совпадать
+    buf_drive = LOCAL_DOWNLOAD_DIR.resolve().drive.upper()
+    hdd_drive = install_dir.resolve().drive.upper()
+    if buf_drive and hdd_drive and buf_drive == hdd_drive:
+        err(f"Диск буфера ({LOCAL_DOWNLOAD_DIR}) и диск HDD ({install_dir}) совпадают: {buf_drive}")
+        err("Копирование на тот же диск бессмысленно. Измените LOCAL_DOWNLOAD_DIR или install_dir.")
+        sys.exit(1)
+
     install_dir.mkdir(parents=True, exist_ok=True)
     LOCAL_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
