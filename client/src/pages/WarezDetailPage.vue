@@ -169,9 +169,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page {
-  padding: 24px 0;
-}
 
 .btn-back {
   display: inline-flex;
