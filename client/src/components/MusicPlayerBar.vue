@@ -91,10 +91,9 @@ const {
   align-items: center;
   gap: 20px;
   padding: 12px 24px;
-  background: rgba(10, 10, 26, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
+  background: var(--askew-tab-border);
+  border-top: 1px solid #000000;
+  box-shadow: inset 0 1px 0 var(--askew-tab-inactive);
   z-index: 1000;
 }
 
@@ -129,53 +128,56 @@ const {
 }
 
 .ctrl-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  color: var(--text-primary);
   font-size: 1.4rem;
   cursor: pointer;
   padding: 6px;
-  border-radius: 50%;
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ctrl-btn:hover {
-  color: var(--text-primary);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  color: var(--bg-primary);
 }
 
 .ctrl-play {
   width: 40px;
   height: 40px;
-  border: 1px solid var(--glass-border);
   font-size: 1.3rem;
 }
 
 .ctrl-play:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  color: var(--bg-primary);
 }
 
 .ctrl-add {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--glass-border);
   font-size: 1.2rem;
 }
 
 .ctrl-active {
-  color: var(--accent-teal);
+  color: var(--askew-gold);
 }
 
 .ctrl-active:hover {
-  color: var(--accent-teal);
+  color: var(--bg-primary);
 }
 
 .ctrl-add:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  color: var(--bg-primary);
 }
 
 .player-progress {
@@ -187,7 +189,7 @@ const {
 
 .time {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--askew-cream);
   min-width: 36px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -196,8 +198,8 @@ const {
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
   cursor: pointer;
   position: relative;
 }
@@ -208,8 +210,7 @@ const {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 3px;
+  background: var(--askew-btn);
   transition: width 0.1s linear;
 }
 
@@ -222,7 +223,7 @@ const {
 
 .volume-icon {
   font-size: 1.1rem;
-  color: var(--text-secondary);
+  color: var(--askew-cream);
 }
 
 .volume-bar-wrapper {
@@ -237,14 +238,14 @@ const {
   appearance: none;
   width: 80px;
   height: 6px;
-  border-radius: 3px;
   background: linear-gradient(
     to right,
-    var(--accent-teal) 0%,
-    var(--accent-teal) var(--volume-pct, 100%),
-    rgba(255, 255, 255, 0.1) var(--volume-pct, 100%),
-    rgba(255, 255, 255, 0.1) 100%
+    var(--askew-btn) 0%,
+    var(--askew-btn) var(--volume-pct, 100%),
+    var(--askew-btn-disabled) var(--volume-pct, 100%),
+    var(--askew-btn-disabled) 100%
   );
+  border: 1px solid #000000;
   outline: none;
 }
 
@@ -253,25 +254,21 @@ const {
   appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: var(--accent-teal);
+  background: var(--askew-btn-hover);
+  border: 1px solid #000000;
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
 }
 
 .volume-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: var(--accent-teal);
+  background: var(--askew-btn-hover);
+  border: 1px solid #000000;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
 }
 
 .volume-slider::-moz-range-progress {
-  background: var(--accent-teal);
-  border-radius: 3px;
+  background: var(--askew-btn);
   height: 6px;
 }
 

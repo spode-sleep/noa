@@ -1,37 +1,58 @@
 :root {
-  /* Background colors */
-  --bg-primary: #070b1a;
-  --bg-secondary: #111833;
-  --bg-tertiary: #0d1a3a;
+  /* Background colors - Askew deep teal/navy */
+  --bg-primary: #000e14;
+  --bg-secondary: #0b0c32;
+  --bg-tertiary: #001219;
 
-  /* Text colors */
-  --text-primary: #e8ecf4;
-  --text-secondary: #a8b4cc;
-  --text-muted: #6b7a96;
+  /* Text colors - Askew warm cream & mint */
+  --text-primary: #fdfbef;
+  --text-secondary: #e6d298;
+  --text-muted: #1b8285;
 
-  /* Accent colors - Aurora inspired */
-  --accent-teal: #00e8b8;
-  --accent-purple: #8b6cee;
-  --accent-blue: #4cc9f0;
-  --accent-pink: #f472b6;
-  --accent-green: #34d399;
+  /* Accent colors - Askew resource pack palette */
+  --accent-teal: #0a9396;
+  --accent-purple: #491a2d;
+  --accent-blue: #005f73;
+  --accent-pink: #793539;
+  --accent-green: #04a935;
 
-  /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  /* Askew UI element colors */
+  --askew-btn: #1b8285;
+  --askew-btn-hover: #82cab1;
+  --askew-btn-disabled: #155664;
+  --askew-btn-border: #000000;
+  --askew-btn-highlight: #84cbb2;
+  --askew-tab-inactive: #793539;
+  --askew-tab-active: #da9067;
+  --askew-tab-border: #491a2d;
+  --askew-gold: #ecb16e;
+  --askew-salmon: #da9067;
+  --askew-container: #9f5348;
+  --askew-container-light: #d98c63;
+  --askew-cyan: #00ecff;
+  --askew-red: #d22323;
+  --askew-cream: #e6d298;
+  --askew-input-bg: #000e14;
+  --askew-input-border: #005264;
+  --askew-mint: #82cab1;
+  --askew-dark-border: #000d12;
+
+  /* Panel styling - no glass, solid borders */
+  --glass-bg: #0b0c32;
+  --glass-border: #005264;
+  --glass-shadow: none;
 
   /* Transitions */
-  --transition-fast: 0.2s ease;
-  --transition-normal: 0.3s ease;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
 
-  /* Border radius */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 28px;
+  /* Border radius - ZERO for 2007 aesthetic */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
   line-height: 1.6;
   color: var(--text-primary);
 }
@@ -53,48 +74,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Aurora animated background */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0, 232, 184, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(139, 108, 238, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 40% at 50% 80%, rgba(76, 201, 240, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 30% at 10% 70%, rgba(244, 114, 182, 0.04) 0%, transparent 60%),
-    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
-  animation: aurora-shift 20s ease-in-out infinite alternate;
-}
-
-@keyframes aurora-shift {
-  0% {
-    background-position: 0% 0%, 100% 0%, 50% 100%, 0% 100%, 0% 0%;
-  }
-  100% {
-    background-position: 30% 10%, 70% 30%, 40% 90%, 20% 60%, 0% 0%;
-  }
-}
-
 a {
-  color: var(--accent-teal);
-  text-decoration: none;
+  color: var(--askew-cyan);
+  text-decoration: underline;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--accent-blue);
-  text-shadow: 0 0 12px rgba(76, 201, 240, 0.3);
+  color: var(--askew-gold);
 }
 
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .container {
@@ -105,42 +98,38 @@ a:hover {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: var(--askew-btn);
+  border: 1px solid var(--askew-dark-border);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--askew-btn-hover);
 }
 
 /* floating-vue tooltip overrides */
 .v-popper--theme-tooltip .v-popper__inner {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  border: 2px outset var(--askew-btn);
   font-size: 0.85rem;
-  padding: 6px 12px;
-  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 4px 10px;
 }
 
 .v-popper--theme-tooltip .v-popper__arrow-outer {
-  border-color: var(--glass-border);
+  border-color: var(--askew-btn);
 }
 
 .v-popper--theme-tooltip .v-popper__arrow-inner {
   visibility: visible;
-  border-color: var(--glass-bg);
+  border-color: var(--bg-secondary);
 }
 
 .v-popper--theme-tooltip {

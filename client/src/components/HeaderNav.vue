@@ -8,7 +8,6 @@
             :to="link.to"
             class="nav-link"
             :class="{ active: isActive(link.to) }"
-            :style="isActive(link.to) ? { color: link.color, background: link.color + '14', boxShadow: '0 0 16px ' + link.color + '14' } : {}"
           >
             {{ link.label }}
           </router-link>
@@ -44,70 +43,67 @@ function isActive(to: string): boolean {
   position: sticky;
   top: 0;
   z-index: 100;
-  border-radius: 0;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  background: rgba(7, 11, 26, 0.75);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--askew-tab-border);
+  border: none;
+  border-bottom: 1px solid #000000;
+  box-shadow: inset 0 1px 0 var(--askew-tab-inactive);
 }
 
 .nav-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .nav-logo {
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple), var(--accent-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 12px rgba(0, 232, 184, 0.3));
+  color: var(--askew-gold);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   text-decoration: none;
-  color: inherit;
 }
 
 .nav-logo-icon {
   font-size: 1.4rem;
-  color: var(--accent-purple);
-  filter: drop-shadow(0 0 6px rgba(139, 108, 238, 0.5));
+  color: var(--askew-salmon);
 }
 
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 4px;
+  gap: 2px;
 }
 
 .nav-link {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  padding: 6px 14px;
+  color: var(--askew-cream);
   transition: all var(--transition-fast);
   font-weight: 500;
   font-size: 0.92rem;
   display: inline-flex;
   justify-content: center;
   min-width: max-content;
+  border: 1px solid transparent;
+  text-decoration: none;
 }
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
-  text-shadow: 0 0 10px rgba(0, 232, 184, 0.15);
+  background: var(--askew-tab-inactive);
+  border: 1px solid var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-salmon), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .nav-link.active {
-  /* Use text-shadow to simulate bold instead of font-weight to avoid layout shift */
-  text-shadow: 0 0 0.5px currentColor, 0 0 0.5px currentColor;
+  background: var(--askew-tab-active);
+  color: var(--bg-primary);
+  font-weight: 700;
+  border: 1px solid var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-tab-inactive);
 }
 </style>

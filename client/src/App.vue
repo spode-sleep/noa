@@ -174,18 +174,19 @@ main.has-player {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.9);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  color: var(--text-primary);
   font-size: 1.1rem;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .stack-minimize-btn:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  color: var(--bg-primary);
 }
 
 /* Shared mini player quarter-arc in bottom-right corner */
@@ -205,23 +206,23 @@ main.has-player {
   right: 0;
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 72px 0 0 0;
+  background: var(--askew-btn);
+  border-top: 1px solid #000000;
+  border-left: 1px solid #000000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding-top: 12px;
   padding-left: 12px;
   font-size: 1.5rem;
-  color: #fff;
-  box-shadow: -4px -4px 20px rgba(0, 232, 184, 0.35);
+  color: var(--text-primary);
   z-index: 2;
-  transition: transform 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .mini-player:hover .mini-arc {
-  transform: scale(1.08);
-  transform-origin: bottom right;
+  background: var(--askew-btn-hover);
+  color: var(--bg-primary);
 }
 
 .arc-waves {
@@ -253,7 +254,7 @@ main.has-player {
 
 @keyframes arc-pulse {
   0% {
-    opacity: 0.7;
+    opacity: 0.5;
     stroke-width: 3;
   }
   100% {
@@ -266,9 +267,7 @@ main.has-player {
 .playlist-picker-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -294,19 +293,16 @@ main.has-player {
 
 .picker-header h3 {
   font-size: 1.1rem;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .picker-close {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  color: var(--text-primary);
   width: 28px;
   height: 28px;
-  border-radius: 50%;
   cursor: pointer;
   font-size: 0.8rem;
   display: flex;
@@ -316,8 +312,9 @@ main.has-player {
 }
 
 .picker-close:hover {
-  border-color: var(--accent-teal);
-  color: var(--text-primary);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  color: var(--bg-primary);
 }
 
 .picker-track-info {
@@ -357,7 +354,7 @@ main.has-player {
 }
 
 .picker-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--askew-btn-disabled);
 }
 
 .picker-item-name {
@@ -378,9 +375,8 @@ main.has-player {
 
 .picker-input {
   flex: 1;
-  background: var(--bg-primary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
   color: var(--text-primary);
   padding: 8px 12px;
   font-size: 0.85rem;
@@ -389,18 +385,19 @@ main.has-player {
 }
 
 .picker-input:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover);
+  box-shadow: inset 1px 1px 0 var(--askew-dark-border);
 }
 
 .btn {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-  border: none;
-  color: #fff;
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 #155461;
+  color: var(--text-primary);
   padding: 10px 20px;
-  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: all var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -408,10 +405,15 @@ main.has-player {
 }
 
 .btn:hover {
-  opacity: 0.85;
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  color: var(--bg-primary);
 }
 
 .btn:disabled {
+  background: var(--askew-btn-disabled);
+  box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
 }
