@@ -7,10 +7,10 @@
         <span class="header-author">{{ book.author }}</span>
       </div>
       <div class="header-controls">
-        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" style="color: var(--accent-teal)" /></button>
+        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
         <template v-if="book?.format !== 'pdf'">
           <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
-            <Icon icon="mdi:star" style="color: #f59e0b" />
+            <Icon icon="mdi:star" width="20" height="20" style="color: #f59e0b; vertical-align: middle" />
           </button>
         </template>
       </div>
@@ -244,12 +244,12 @@ function getBookmarkPercent(page: any): number {
 
 const { speak, getSelectedText } = useTtsPlayer()
 
-function readAloud() {
-  const text = getSelectedText()
+async function readAloud() {
+  const text = await getSelectedText()
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text, then press the speaker button'
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press the speaker button'
     showTtsMessage.value = true
   }
 }

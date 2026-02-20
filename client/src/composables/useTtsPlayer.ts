@@ -140,10 +140,14 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-/** Get selected text from page */
-function getSelectedText(): string {
-  const sel = window.getSelection()?.toString()?.trim()
-  return sel || ''
+/** Get selected text from clipboard (works across all formats including iframes) */
+async function getSelectedText(): Promise<string> {
+  try {
+    const text = await navigator.clipboard.readText()
+    return text?.trim() || ''
+  } catch {
+    return ''
+  }
 }
 
 export function useTtsPlayer() {

@@ -98,7 +98,7 @@
               class="tts-btn"
               @click="readAloud(msg.content)"
             >
-              Read Aloud <Icon icon="mdi:volume-high" style="color: var(--accent-teal); vertical-align: -2px;" />
+              Read Aloud <Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" />
             </button>
             <div v-if="msg.sources?.length" class="sources-list">
               <span class="sources-label">Sources:</span>

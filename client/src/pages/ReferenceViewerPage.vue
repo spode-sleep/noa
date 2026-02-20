@@ -3,7 +3,7 @@
     <div class="viewer-header">
       <a class="btn btn-back" @click="router.push('/reference')" style="cursor:pointer">← Reference</a>
       <h1>{{ displayName }}</h1>
-      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" style="color: var(--accent-teal)" /></button>
+      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
     </div>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
@@ -41,12 +41,12 @@ const ttsMessage = ref('')
 
 const { speak, getSelectedText } = useTtsPlayer()
 
-function readAloud() {
-  const text = getSelectedText()
+async function readAloud() {
+  const text = await getSelectedText()
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text, then press the speaker button'
+    ttsMessage.value = 'Select text and copy (Ctrl+C), then press the speaker button'
     showTtsMessage.value = true
   }
 }
