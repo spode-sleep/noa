@@ -8,6 +8,7 @@ const currentText = ref('')
 const currentTime = ref(0)
 const duration = ref(0)
 const speed = ref(1)
+const volume = ref(1)
 const errorMessage = ref('')
 
 let audio: HTMLAudioElement | null = null
@@ -86,6 +87,7 @@ async function speak(text: string) {
     audio!.src = url
     if (oldSrc) URL.revokeObjectURL(oldSrc)
     audio!.playbackRate = speed.value
+    audio!.volume = volume.value
     await audio!.play()
   } catch {
     errorMessage.value = 'Failed to connect to TTS service'
@@ -133,6 +135,12 @@ function setSpeed(newSpeed: number) {
   if (audio) audio.playbackRate = newSpeed
 }
 
+function setVolume(e: Event) {
+  const val = parseFloat((e.target as HTMLInputElement).value)
+  volume.value = val
+  if (audio) audio.volume = val
+}
+
 function formatDuration(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
   const m = Math.floor(seconds / 60)
@@ -160,6 +168,7 @@ export function useTtsPlayer() {
     currentTime,
     duration,
     speed,
+    volume,
     errorMessage,
     progressPercent,
     speak,
@@ -167,6 +176,7 @@ export function useTtsPlayer() {
     stop,
     seek,
     setSpeed,
+    setVolume,
     formatDuration,
     getSelectedText,
   }

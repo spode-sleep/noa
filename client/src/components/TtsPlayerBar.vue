@@ -32,6 +32,19 @@
         {{ s }}x
       </button>
     </div>
+    <div class="tts-volume">
+      <Icon icon="mdi:volume-high" class="volume-icon" />
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        :value="volume"
+        class="volume-slider"
+        :style="{ '--volume-pct': (volume * 100) + '%' }"
+        @input="setVolume($event)"
+      />
+    </div>
     <div v-if="errorMessage" class="tts-error">{{ errorMessage }}</div>
   </div>
 </template>
@@ -50,12 +63,14 @@ const {
   currentTime,
   duration,
   speed,
+  volume,
   errorMessage,
   progressPercent,
   togglePlay,
   stop,
   seek,
   setSpeed,
+  setVolume,
   formatDuration,
 } = useTtsPlayer()
 </script>
@@ -204,6 +219,58 @@ const {
 .tts-error {
   font-size: 0.75rem;
   color: #e74c3c;
+}
+
+.tts-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.volume-icon {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    var(--accent-teal) var(--volume-pct, 100%),
+    rgba(255, 255, 255, 0.1) var(--volume-pct, 100%),
+  );
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  border: none;
+  cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  border: none;
+  cursor: pointer;
+}
+
+.volume-slider::-moz-range-progress {
+  background: var(--accent-teal);
+  border-radius: 2px;
+  height: 4px;
 }
 
 .spin {
