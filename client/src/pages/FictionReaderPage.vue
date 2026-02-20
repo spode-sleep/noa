@@ -242,12 +242,14 @@ function getBookmarkPercent(page: any): number {
 
 const { speak, getSelectedText } = useTtsPlayer()
 
-function readAloud() {
-  const text = getSelectedText()
+async function readAloud() {
+  const text = await getSelectedText(epubView.value)
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Select text, then press 🔊'
+    ttsMessage.value = book.value?.format === 'pdf'
+      ? 'Select text, copy (Ctrl+C), then press 🔊'
+      : 'Select text, then press 🔊'
     showTtsMessage.value = true
   }
 }
