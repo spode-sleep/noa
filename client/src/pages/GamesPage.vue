@@ -79,17 +79,21 @@
 
     <div v-else class="game-grid">
       <router-link
-        v-for="game in filteredGames"
+        v-for="game in displayedGames"
         :key="game.appId"
         :to="`/games/${game.appId}`"
         class="game-card glass"
       >
-        <img
-          :src="game.imageUrl"
-          :alt="game.name"
-          class="game-image"
-          loading="lazy"
-        />
+        <div class="game-image-wrap">
+          <div class="game-image-skeleton"></div>
+          <img
+            :src="game.imageUrl"
+            :alt="game.name"
+            class="game-image"
+            loading="lazy"
+            @load="($event.target as HTMLImageElement).classList.add('loaded')"
+          />
+        </div>
         <div class="game-info">
           <div class="game-name">
             <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam" aria-label="Steam">
@@ -110,6 +114,9 @@
           <Icon icon="mdi:alert-circle" width="20" height="20" />
         </span>
       </router-link>
+
+      <!-- Infinite scroll sentinel -->
+      <div ref="sentinelRef" class="scroll-sentinel" v-if="displayedCount < filteredGames.length"></div>
     </div>
 
     <div v-if="!loading && filteredGames.length === 0" class="empty">
@@ -151,6 +158,13 @@ const loading = ref(true)
 const showTagModal = ref(false)
 const tagSearch = ref('')
 const tagSearchRef = ref<HTMLInputElement | null>(null)
+
+const PAGE_SIZE = 48
+const displayedCount = ref(PAGE_SIZE)
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+const displayedGames = computed(() => filteredGames.value.slice(0, displayedCount.value))
 
 const filteredTags = computed(() => {
   if (!tagSearch.value) return allTags.value
@@ -209,9 +223,9 @@ function syncQuery() {
   router.replace({ query })
 }
 
-watch(search, syncQuery)
-watch(sourceFilter, syncQuery)
-watch(selectedTags, syncQuery)
+watch(search, () => { displayedCount.value = PAGE_SIZE; syncQuery() })
+watch(sourceFilter, () => { displayedCount.value = PAGE_SIZE; syncQuery() })
+watch(selectedTags, () => { displayedCount.value = PAGE_SIZE; syncQuery() })
 
 watch(() => route.query, (q) => {
   search.value = (q.q as string) || ''
@@ -238,10 +252,23 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  await nextTick()
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0]?.isIntersecting && displayedCount.value < filteredGames.value.length) {
+      displayedCount.value += PAGE_SIZE
+    }
+  }, { rootMargin: '200px' })
+
+  watch(sentinelRef, (el) => {
+    observer?.disconnect()
+    if (el) observer?.observe(el)
+  }, { immediate: true })
 })
 
 onUnmounted(() => {
   document.body.style.overflow = ''
+  observer?.disconnect()
 })
 </script>
 
@@ -556,12 +583,45 @@ h1 {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
-.game-image {
+.game-image-wrap {
+  position: relative;
   width: 230px;
   min-width: 230px;
   aspect-ratio: 460 / 215;
-  object-fit: cover;
   border-radius: var(--radius-md) 0 0 var(--radius-md);
+  overflow: hidden;
+}
+
+.game-image-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #1a1a2e 25%, #2a2a3e 50%, #1a1a2e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.game-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.game-image.loaded {
+  opacity: 1;
+}
+
+.scroll-sentinel {
+  height: 1px;
+  grid-column: 1 / -1;
 }
 
 .game-info {
@@ -620,7 +680,7 @@ h1 {
     flex-direction: column;
   }
 
-  .game-image {
+  .game-image-wrap {
     width: 100%;
     min-width: unset;
     border-radius: var(--radius-md) var(--radius-md) 0 0;

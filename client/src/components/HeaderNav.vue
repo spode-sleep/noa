@@ -25,7 +25,7 @@ import { Icon } from '@iconify/vue'
 const route = useRoute()
 
 const links = [
-  { to: '/main', label: 'Main', color: '#e0e0e0' },
+  { to: '/main', label: 'Main', color: '#4dd0e1' },
   { to: '/games', label: 'Games', color: '#4cc9f0' },
   { to: '/music', label: 'Music', color: '#8b6cee' },
   { to: '/fiction', label: 'Fiction', color: '#7ec8e3' },
