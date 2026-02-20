@@ -1,0 +1,185 @@
+{
+	"credit": "Made with Blockbench",
+	"textureSize": [64, 64],
+	"models": [
+		{
+			"part": "head",
+			"id": "head",
+			"invertAxis": "xy",
+			"translate": [0, -6, 5],
+			"boxes": [
+				{
+					"coordinates": [-4, 4, -10, 8, 5, 5],
+					"uvNorth": [4, 7, 11, 11],
+					"uvEast": [0, 7, 4, 11],
+					"uvSouth": [15, 7, 22, 11],
+					"uvWest": [11, 7, 15, 11],
+					"uvUp": [11, 7, 4, 3],
+					"uvDown": [18, 3, 11, 7]
+				}
+			]
+		},
+		{
+			"part": "top_gills",
+			"id": "top_gills",
+			"invertAxis": "xy",
+			"translate": [0, -9, 6],
+			"boxes": [
+				{
+					"coordinates": [-4, 9, -6, 8, 3, 0],
+					"uvNorth": [3, 37, 11, 40],
+					"uvEast": [3, 37, 3, 40],
+					"uvSouth": [11, 37, 19, 40],
+					"uvWest": [11, 37, 11, 40],
+					"uvUp": [11, 37, 3, 37],
+					"uvDown": [19, 37, 11, 37]
+				}
+			]
+		},
+		{
+			"part": "left_gills",
+			"id": "left_gills",
+			"invertAxis": "xy",
+			"translate": [-4, -6, 6],
+			"boxes": [
+				{
+					"coordinates": [4, 4, -6, 3, 7, 0],
+					"uvNorth": [0, 40, 3, 47],
+					"uvEast": [0, 40, 0, 47],
+					"uvSouth": [3, 40, 6, 47],
+					"uvWest": [3, 40, 3, 47],
+					"uvUp": [3, 40, 0, 40],
+					"uvDown": [6, 40, 3, 40]
+				}
+			]
+		},
+		{
+			"part": "right_gills",
+			"id": "right_gills",
+			"invertAxis": "xy",
+			"translate": [4, -6, 6],
+			"boxes": [
+				{
+					"coordinates": [-7, 4, -6, 3, 7, 0],
+					"uvNorth": [11, 40, 14, 47],
+					"uvEast": [11, 40, 11, 47],
+					"uvSouth": [14, 40, 17, 47],
+					"uvWest": [14, 40, 14, 47],
+					"uvUp": [14, 40, 11, 40],
+					"uvDown": [17, 40, 14, 40]
+				}
+			]
+		},
+		{
+			"part": "body",
+			"id": "body",
+			"invertAxis": "xy",
+			"translate": [0, -6, -4],
+			"boxes": [
+				{
+					"coordinates": [-4, 4, -5, 8, 4, 10],
+					"uvNorth": [9, 21, 16, 24],
+					"uvEast": [0, 21, 9, 24],
+					"uvSouth": [25, 21, 32, 24],
+					"uvWest": [16, 21, 25, 24],
+					"uvUp": [16, 21, 9, 12],
+					"uvDown": [23, 12, 16, 21]
+				},
+				{
+					"coordinates": [0, 4, -4, 0, 5, 9],
+					"uvNorth": [11, 26, 11, 31],
+					"uvEast": [2, 26, 11, 31],
+					"uvSouth": [20, 26, 20, 31],
+					"uvWest": [11, 26, 20, 31],
+					"uvUp": [11, 26, 11, 17],
+					"uvDown": [11, 17, 11, 26]
+				}
+			]
+		},
+		{
+			"part": "leg4",
+			"id": "leg4",
+			"invertAxis": "xy",
+			"translate": [3.5, -5, 4],
+			"boxes": [
+				{
+					"coordinates": [-5.5, 0, -4, 3, 5, 0],
+					"uvNorth": [11, 24, 14, 29],
+					"uvEast": [2, 13, 5, 18],
+					"uvSouth": [2, 13, 5, 18],
+					"uvWest": [5, 13, 2, 18],
+					"uvUp": [5, 13, 2, 18],
+					"uvDown": [5, 13, 2, 18]
+				}
+			]
+		},
+		{
+			"part": "leg2",
+			"id": "leg2",
+			"invertAxis": "xy",
+			"translate": [3.5, -5, -3],
+			"boxes": [
+				{
+					"coordinates": [-5.5, 0, 3, 3, 5, 0],
+					"uvNorth": [11, 24, 14, 29],
+					"uvEast": [2, 13, 5, 18],
+					"uvSouth": [2, 13, 5, 18],
+					"uvWest": [5, 13, 2, 18],
+					"uvUp": [5, 13, 2, 18],
+					"uvDown": [5, 13, 2, 18]
+				}
+			]
+		},
+		{
+			"part": "leg3",
+			"id": "leg3",
+			"invertAxis": "xy",
+			"translate": [-3.5, -5, 4],
+			"boxes": [
+				{
+					"coordinates": [2.5, 0, -4, 3, 5, 0],
+					"uvNorth": [11, 24, 14, 29],
+					"uvEast": [2, 13, 5, 18],
+					"uvSouth": [2, 13, 5, 18],
+					"uvWest": [5, 13, 2, 18],
+					"uvUp": [5, 13, 2, 18],
+					"uvDown": [5, 13, 2, 18]
+				}
+			]
+		},
+		{
+			"part": "leg1",
+			"id": "leg1",
+			"invertAxis": "xy",
+			"translate": [-3.5, -5, -3],
+			"boxes": [
+				{
+					"coordinates": [2.5, 0, 3, 3, 5, 0],
+					"uvNorth": [11, 24, 14, 29],
+					"uvEast": [2, 13, 5, 18],
+					"uvSouth": [2, 13, 5, 18],
+					"uvWest": [5, 13, 2, 18],
+					"uvUp": [5, 13, 2, 18],
+					"uvDown": [5, 13, 2, 18]
+				}
+			]
+		},
+		{
+			"part": "tail",
+			"id": "tail",
+			"invertAxis": "xy",
+			"translate": [0, -6, -5],
+			"boxes": [
+				{
+					"coordinates": [0, 4, 5, 0, 5, 12],
+					"uvNorth": [14, 31, 14, 36],
+					"uvEast": [2, 31, 14, 36],
+					"uvSouth": [26, 31, 26, 36],
+					"uvWest": [14, 31, 26, 36],
+					"uvUp": [14, 31, 14, 19],
+					"uvDown": [14, 19, 14, 31]
+				}
+			]
+		}
+	]
+}

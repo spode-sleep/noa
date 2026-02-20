@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "pack_format": 46,
+    "description": "A default look and feel of Minecraft (built-out)!"
+  },
+  "language": {
+    "en_va": {
+      "name": "English",
+      "region": "Vanilla",
+      "bidirectional": false
+    }
+  }
+}

@@ -1,0 +1,188 @@
+Happy 1 year anniversary to Askew!
+
+I am extremely grateful to everyone sharing their love for this silly project, and I've got some treats to show my gratitude!
+
+I've begun adding names to the credits sequence if you've supported me on Ko-fi or Bandcamp! Your support means I get to make more cool stuff for you :D! If you've already donated (and made your name public) don't worry, you're already included :D!
+Future donation names will also be added to the credits!
+
+1.21.4 stuff!
+
+-Pale Garden Imagery
+-Pale Garden Audio
+
+-Creaking Imagery
+-Creaking Audio
+
+-Resin Imagery
+-Resin Audio
+
+If it's a part of the most recent updates, I've got it Askewed!
+
+This includes all the dyable bundles! Feel free to know in your brain that they have an open texture, you likely will never see it :D!!
+
+Also had some fun with the new GUI features, so now like, hovering over stuff & whatnot get that signature blue/orange palette, and I'm quite happy with it!
+
+Fixed Horse, Donkey, & Mule models, really not sure why they were.......like that.......
+
+Fixed Skybox stars being green sometimes, the skybox stars being green made people envious, due to it being green. Now that they are normal and yellow again they will feel...cowardly??
+
+Fixed Enchantment Table Lapis FALSEHOODS
+
+Fixed Spears! "spear" geometry was all in the "body" folder, but the "left spike", "right spike", "middle spike" files were just left out instead of being replaced with nothingness ((that's why just those parts were blacked out))
+
+Fixed "Hills", It's like, the third track on the original album, and I've had it spelled "hiils" in the files this entire time. So it's just never played, does this canonically make it part of "Addendum" now?? I may need to lie down.
+
+Fixed "Internal: Eternal", it had a similar issue! But I'm pretty sure it worked before, so idk what's up with that
+
+Fixed slim player models ! Something bad happened to them!
+
+Fixed all the Llama decor! I "forgot" about them because every time I would knit one my UNGRATEFUL llama would spit and bite me before I could put it on. Sad !
+
+Fixed new redstone torch models!
+
+Fixed Crimson Forest & Basalt Delta Ambient tracks!
+
+Fixed Elytra Flying loop!
+
+Fixed ALL the weird footstep subtitles, weird change for Mojang to make
+
+Shoutouts to @/V11111ka on YT, @TwoCoolio on PMC, & @/quietflowerss on YT for pointing out some bugs!
+
+Removed the extra "Sasha (My neighbor just talks like this sometimes)" Language file, not only was it incomplete (and kind of abandoned) but I also received one(1) emailer concerned that I was mocking their heritage. Which, I think is a little silly.
+But! The last thing I want is someone feeling unwelcome (plus, like I said, I dropped it as an idea and kind of forgot it was in the pack when I released it :D!) So that one(1) emailer may rejoice!
+
+Moved some songs around!
+
+"Cube^2" is now a Creative Mode exclusive! It got kind of distracting when it came on :)
+"Fish Mouse" is now an Underwater exclusive! It'd probably be fine as a standard overworld track, but putting it in the sea makes sense and catches us up to the Underwater output from Vanilla! 
+
+& Added 6 brand new songs!
+
+"Dithering" for the overworld, weird synths and orchestra! They don't like to mix but I wanted them to anyways :D!
+"Plateau Grids" for Creative! I've got a brain-eating worm that makes me love synthwave, so you'll have to be patient with my condition!
+"the other half" is a brand new Disc! Spooky! & Kinda sweet! If only I could find the rest........
+"Abacus" for the overworld! Again! Probably one of my favorites from this new album, does wailing electric guitar belong in the regular-ass overworld??? Probably not :D!!
+"It Will Not Be Forgiving" for the End. If my branches hadn't broken I'd try to offer some comforting words. But without time to sand away the cracks, any approach might give you splinters.
+"MELTDOWN" AAA!!! This song is for the Nether and is in all-caps!!!!! yipe!!!!!!!!! 
+
+Once again, thank you for your support! I'm so excited to show off STUFF soon! Even more STUFF! Than I've shown off before! I also appreciate the patience you've all given me on this new Album :)!
+
+If you're reading this day-one, just know Optifine is still catching up and some features may be undercooked for the time being, if a specific issue you're having persists after a full Optifine release lemme know and I'll see if I can handle it :)!!!
+--------------------------------------------------------------------------------------------
+Oops!!!! 
+
+Yknow how I was complaining that Optifine broke everything :)?
+
+It was actually: me <3!!!
+
+Shoutouts to AdminCat of OptiKai for actually helping me fix this issue, swell dude.
+
+One of the "Addendum" tracks had a "^" in it's file name for dramatic artsy reasons, it's actually a bug that Minecraft used to accept that character at all, so just swapping that out fixed everything.
+
+Askew is now compatible on newer Optifine versions for 1.21! Askew for everyone!!!
+
+So CIT (custom items, armors, shields) & all that crap works now too!
+
+As apologies for making you download two packs in one season I've added 2 brand new songs to this one, as a snack :)!
+
+See you around, FREAKAZOID
+
+--------------------------------------------------------------------------------------------
+
+15 BRAND NEW TRACKS :D!!!
+
+-11 Overworld!
+-2 Biome Specific! (sand & snow!)
+-2 Nether!
+
+This is about an hour's worth of sneak peaks for the "Addendum" album :)! One last mini-album to give the whole project a nice pretty bow :D!!
+
+& EVEN MORE Music on the way!!
+
+Once again, all Royalty Free, go nuts :)!!!
+
+In other news:
+
+1.21 support!! For now, I highly recommend "Optikai" for anything 1.21 related. Optifine is having some.......issues.......
+Things that don't work rn (just the CIT for the most part) have the code to make them work already. Just gotta wait for Optifine (or Optikai) to catch up :)
+
+This means:
+
+NEW PAINTINGS!!
+Special shoutouts to this one guy on Twitter for just putting my already completed renders for Askew on paintings!! I am stealing this idea :D!!
+((There are also new original paintings don't worry))
+
+Lang file changes! Advancement and Enchantments got some small tweaks in addition to the new 1.21 stuff! So if you've seen them! no you havent!!!
+
+Breeze Imagery
+Breeze Audio
+
+Bogged Imagery
+Bogged Audio
+
+Trial Chamber Imagery (Vaults, Spawners, the works)
+Trial Chamber Audio (Vaults, Spawners, the works)
+
+If it's new, I've probably got imagery and sounds done for them. (Mace, Wind charge, Special Limited Edition Hot Dog)
+
+Redid all the copper sounds! They were a bit annoying before, I didn't anticipate them making a big monument made of the one block I largely ignored!
+
+Redid all the copper imagery too!! Copper in Vanilla (and Askew, until now) just sorta had different opacities for their copper stages. So I've made them a bit more distinct!
+
+REMOVED Dog Breeds!!!!! >:(!!!!!!!
+
+ADDED Dog Breeds!! :)!!!!!
+
+Askew had dog breeds already! And then Mojang made their own! So I remade all the new breeds and axed the old ones! Very sorry if your beloved pooch was among those lost.
+They went to live on a farm....dog explosion farm....
+
+Non-1.21 stuff:
+
+Askew is now like, half the size it used to be! Lots of optimizations all over the place!
+
+& fixed a ton of sounds either not existing or not being assigned in the code properly:
+
+Shears
+Crossbows
+Flint & Steel
+Axe Strip
+Copper Scrape
+Exclusively the Mud break sounds?? got all the steps just forgot the breakage.
+The Warden has 86 sounds all to himself, so naturally I missed like 3, those are replaced now though :)
+& probably quite a few more
+
+Updated a couple textures too!
+
+Mangrove Leaves
+Moss/Azalea stuff
+Skyboxes have all been redone! Still looks nearly identical, just made them more spherical than cubical, looks a bit more natural and not so obviously a box around your vision
+ALL the wool textures (just didn't look right at all, i might be stupid)
+ALL the dyes (just didn't look right at all, i might be stupid)
+Pottery Sherds are now very honest about what they do
+Lilypads!!! Just didn't have a texture, like, all this time, now they do
+Frogs in general
+"Ashenberry" related stuff, mostly minor
+That weird dripstone tip bug?? It was just one texture assigned incorrectly, should be fine now :)
+Glass Bottle looking...not good
+Music Discs all got a small visual upgrade
+Certain villagers no longer have flesh headbands! 
+Swamp & Jungle villagers no longer resort to broken textures & just use Plains ones
+Leg textures are rotated correctly for Villagists!!
+Villager UI too, damn, these guys have been nothing but trouble, kill 3 of them on my behalf, thx <3
+Iron Golems are Robots now!!!!!!!!! It was the only way I could find to fix the jank head movement and makes their metallic sounds make more sense! Winner!!! Dinner!!!
+I finally caved, bats are now the new model with some 'skewage. They still have their   quirk, but are no longer broken hulking beasts!!
+& once again probably more I've forgotten about
+
+FINAL NOTE:
+
+Our friends at Mojang have introduced a really cool bug that ruins audio!
+Basically just keeping "directional audio" on no matter what you toggle it to.
+So on some systems (including mine) all the audio sounds really terrible!
+Audio's like this whole deal!!! dawg!!!
+
+If everything works as normal for your system, awesome!
+If not, vote for this bug and check out the workaround(s) and see if they help (they worked for me :)!)
+
+https://bugs.mojang.com/browse/MC-265514
+
+That's all for now! Like I said, expect some updates in the future adding more music!! I've got something else special cookin up for you Askew FREAKS!! I can't wait to show you ;)))!!!

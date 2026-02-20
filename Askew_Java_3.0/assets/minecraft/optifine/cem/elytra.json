@@ -1,0 +1,51 @@
+{
+	"credit": "Made with Blockbench",
+	"texture_size": [64, 32],
+	"textures": {
+		"0": "textures/entity/elytra"
+	},
+	"elements": [
+		{
+			"name": "left_wing",
+			"from": [-11, 0, -2],
+			"to": [-1, 20, 0],
+			"faces": {
+				"north": {"uv": [6, 1, 8.5, 11], "texture": "#0"},
+				"east": {"uv": [5.5, 1, 6, 11], "texture": "#0"},
+				"south": {"uv": [9, 1, 11.5, 11], "texture": "#0"},
+				"west": {"uv": [8.5, 1, 9, 11], "texture": "#0"},
+				"up": {"uv": [8.5, 1, 6, 0], "texture": "#0"},
+				"down": {"uv": [11, 0, 8.5, 1], "texture": "#0"}
+			}
+		},
+		{
+			"name": "right_wing",
+			"from": [1, 0, -2],
+			"to": [11, 20, 0],
+			"shade": false,
+			"faces": {
+				"north": {"uv": [8.5, 1, 6, 11], "texture": "#0"},
+				"east": {"uv": [9, 1, 8.5, 11], "texture": "#0"},
+				"south": {"uv": [11.5, 1, 9, 11], "texture": "#0"},
+				"west": {"uv": [6, 1, 5.5, 11], "texture": "#0"},
+				"up": {"uv": [6, 1, 8.5, 0], "texture": "#0"},
+				"down": {"uv": [8.5, 0, 11, 1], "texture": "#0"}
+			}
+		}
+	],
+	"groups": [
+		{
+			"name": "left_wing",
+			"origin": [0, 0, 0],
+			"color": 0,
+			"children": [0]
+		},
+		{
+			"name": "right_wing",
+			"origin": [0, 0, 0],
+			"color": 0,
+			"shade": false,
+			"children": [1]
+		}
+	]
+}

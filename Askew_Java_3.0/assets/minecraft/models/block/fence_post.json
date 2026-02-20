@@ -1,0 +1,30 @@
+{
+	"credit": "Made with Blockbench",
+	"texture_size": [14, 14],
+	"textures": {
+		"particle": "#texture"
+	},
+	"elements": [
+		{
+			"name": "Center post",
+			"from": [5.7, 0, 5.7],
+			"to": [10.3, 16, 10.3],
+			"faces": {
+				"north": {"uv": [5.71429, 0, 10.28571, 16], "texture": "#texture"},
+				"east": {"uv": [5.71429, 0, 10.28571, 16], "texture": "#texture"},
+				"south": {"uv": [5.71429, 0, 10.28571, 16], "texture": "#texture"},
+				"west": {"uv": [5.71429, 0, 10.28571, 16], "texture": "#texture"},
+				"up": {"uv": [5.71429, 5.71429, 10.28571, 10.28571], "texture": "#texture", "cullface": "up"},
+				"down": {"uv": [5.71429, 5.71429, 10.28571, 10.28571], "texture": "#texture", "cullface": "down"}
+			}
+		}
+	],
+	"groups": [
+		{
+			"name": "template_wall_post",
+			"origin": [8, 8, 8],
+			"color": 0,
+			"children": [0]
+		}
+	]
+}

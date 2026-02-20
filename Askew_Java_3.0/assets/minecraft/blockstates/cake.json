@@ -1,0 +1,61 @@
+{
+  "variants": {
+    "bites=0": [
+		{"model": "minecraft:block/cake", "weight": 5},
+		{"model": "minecraft:block/cake/cake1", "weight": 5},
+		{"model": "minecraft:block/cake/cake2", "weight": 5},
+		{"model": "minecraft:block/cake/cake3", "weight": 5},
+		{"model": "minecraft:block/cake/cake4", "weight": 5},
+		{"model": "minecraft:block/cake/cake5", "weight": 5}
+	],
+    "bites=1":[
+		{"model": "minecraft:block/cake_slice1", "weight": 5},
+		{"model": "minecraft:block/cake_slice1/cake_slice1_1", "weight": 5},
+		{"model": "minecraft:block/cake_slice1/cake_slice1_2", "weight": 5},
+		{"model": "minecraft:block/cake_slice1/cake_slice1_3", "weight": 5},
+		{"model": "minecraft:block/cake_slice1/cake_slice1_4", "weight": 5},
+		{"model": "minecraft:block/cake_slice1/cake_slice1_5", "weight": 5}
+	],
+    "bites=2": [
+		{"model": "minecraft:block/cake_slice2", "weight": 5},
+		{"model": "minecraft:block/cake_slice2/cake_slice2_1", "weight": 5},
+		{"model": "minecraft:block/cake_slice2/cake_slice2_2", "weight": 5},
+		{"model": "minecraft:block/cake_slice2/cake_slice2_3", "weight": 5},
+		{"model": "minecraft:block/cake_slice2/cake_slice2_4", "weight": 5},
+		{"model": "minecraft:block/cake_slice2/cake_slice2_5", "weight": 5}
+	],
+    "bites=3": [
+		{"model": "minecraft:block/cake_slice3", "weight": 5},
+		{"model": "minecraft:block/cake_slice3/cake_slice3_1", "weight": 5},
+		{"model": "minecraft:block/cake_slice3/cake_slice3_2", "weight": 5},
+		{"model": "minecraft:block/cake_slice3/cake_slice3_3", "weight": 5},
+		{"model": "minecraft:block/cake_slice3/cake_slice3_4", "weight": 5},
+		{"model": "minecraft:block/cake_slice3/cake_slice3_5", "weight": 5}
+	],
+    "bites=4": [
+		{"model": "minecraft:block/cake_slice4", "weight": 5},
+		{"model": "minecraft:block/cake_slice4/cake_slice4_1", "weight": 5},
+		{"model": "minecraft:block/cake_slice4/cake_slice4_2", "weight": 5},
+		{"model": "minecraft:block/cake_slice4/cake_slice4_3", "weight": 5},
+		{"model": "minecraft:block/cake_slice4/cake_slice4_4", "weight": 5},
+		{"model": "minecraft:block/cake_slice4/cake_slice4_5", "weight": 5}
+	],
+    "bites=5": [
+		{"model": "minecraft:block/cake_slice5", "weight": 5},
+		{"model": "minecraft:block/cake_slice5/cake_slice5_1", "weight": 5},
+		{"model": "minecraft:block/cake_slice5/cake_slice5_2", "weight": 5},
+		{"model": "minecraft:block/cake_slice5/cake_slice5_3", "weight": 5},
+		{"model": "minecraft:block/cake_slice5/cake_slice5_4", "weight": 5},
+		{"model": "minecraft:block/cake_slice5/cake_slice5_5", "weight": 5}
+	],
+    "bites=6": [
+		{"model": "minecraft:block/cake_slice6", "weight": 5},
+		{"model": "minecraft:block/cake_slice6/cake_slice6_1", "weight": 5},
+		{"model": "minecraft:block/cake_slice6/cake_slice6_2", "weight": 5},
+		{"model": "minecraft:block/cake_slice6/cake_slice6_3", "weight": 5},
+		{"model": "minecraft:block/cake_slice6/cake_slice6_4", "weight": 5},
+		{"model": "minecraft:block/cake_slice6/cake_slice6_5", "weight": 5}
+	
+	]
+  }
+}

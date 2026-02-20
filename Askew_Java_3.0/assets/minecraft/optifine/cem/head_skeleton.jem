@@ -1,0 +1,23 @@
+{
+	"credit": "Made with Blockbench",
+	"textureSize": [56, 42],
+	"models": [
+		{
+			"part": "head",
+			"id": "head",
+			"invertAxis": "xy",
+			"translate": [0, 0, 0],
+			"boxes": [
+				{
+					"coordinates": [-4, 0, -4, 8, 8, 8],
+					"uvNorth": [7, 7, 14, 14],
+					"uvEast": [0, 7, 7, 14],
+					"uvSouth": [21, 7, 28, 14],
+					"uvWest": [14, 7, 21, 14],
+					"uvUp": [14, 7, 7, 0],
+					"uvDown": [21, 0, 14, 7]
+				}
+			]
+		}
+	]
+}

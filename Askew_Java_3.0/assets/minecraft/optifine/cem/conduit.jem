@@ -1,0 +1,110 @@
+{
+	"credit": "Made with Blockbench",
+	"textureSize": [64, 32],
+	"models": [
+		{
+			"part": "eye",
+			"id": "eye",
+			"invertAxis": "xy",
+			"translate": [0, -8, 0],
+			"boxes": [
+				{
+					"coordinates": [-1, 8, -1, 2, 2, 2],
+					"uvNorth": [0, 0, 2, 2],
+					"uvEast": [0, 0, 2, 2],
+					"uvSouth": [0, 0, 2, 2],
+					"uvWest": [0, 0, 2, 2],
+					"uvUp": [0, 0, 2, 2],
+					"uvDown": [0, 0, 2, 2]
+				}
+			]
+		},
+		{
+			"part": "cage",
+			"id": "cage",
+			"invertAxis": "xy",
+			"translate": [0, -8, 0],
+			"boxes": [
+				{
+					"coordinates": [-4, 4, -4, 0, 0, 0],
+					"uvNorth": [48, 32, 40, 24],
+					"uvEast": [40, 32, 32, 24],
+					"uvSouth": [64, 32, 56, 24],
+					"uvWest": [56, 32, 48, 24],
+					"uvUp": [48, 24, 40, 16],
+					"uvDown": [56, 24, 48, 17]
+				}
+			],
+			"submodels": [
+				{
+					"id": "bone2",
+					"invertAxis": "xy",
+					"translate": [0, 16, 0],
+					"rotate": [-180, -180, 0],
+					"boxes": [
+						{"coordinates": [2.5, 4.5, -2, 1, 4, 5], "textureOffset": [25, 14], "sizeAdd": 0.5},
+						{"coordinates": [-1.5, 8, -4.5, 3, 5, 2], "textureOffset": [0, 1], "sizeAdd": 0.5},
+						{"coordinates": [-0.5, 12.6, -2.05, 1, 1, 1], "textureOffset": [38, 12]},
+						{"coordinates": [-0.5, 13.6, -3, 1, 1, 1], "textureOffset": [40, 10]},
+						{"coordinates": [-1.5, 8.75, -6.5, 3, 2, 1], "textureOffset": [15, 1], "sizeAdd": 0.5},
+						{"coordinates": [-1, 6.5, -6, 2, 2, 2], "textureOffset": [14, 4]},
+						{"coordinates": [-2.5, 3.75, -3, 5, 5, 7], "textureOffset": [1, 10], "sizeAdd": 0.5},
+						{"coordinates": [-3.5, 4.5, -2, 1, 4, 5], "textureOffset": [25, 14], "sizeAdd": 0.5}
+					]
+				}
+			]
+		},
+		{
+			"part": "base",
+			"id": "base",
+			"invertAxis": "xy",
+			"translate": [0, -8, 0],
+			"boxes": [
+				{
+					"coordinates": [-3, 5, -3, 0, 0, 0],
+					"uvNorth": [54.5, 10, 49.75, 5],
+					"uvEast": [49.75, 10, 45, 5],
+					"uvSouth": [64, 10, 59.25, 5],
+					"uvWest": [59.25, 10, 54.5, 5],
+					"uvUp": [54.5, 5, 49.75, 0],
+					"uvDown": [59.25, 5, 54.5, 0]
+				}
+			],
+			"submodels": [
+				{
+					"id": "bone",
+					"invertAxis": "xy",
+					"translate": [0, 16, 0],
+					"rotate": [-180, 0, 0],
+					"boxes": [
+						{"coordinates": [-1.5, 8, -4.5, 3, 5, 2], "textureOffset": [0, 1], "sizeAdd": 0.5},
+						{"coordinates": [-0.5, 12.6, -2.05, 1, 1, 1], "textureOffset": [38, 12]},
+						{"coordinates": [-0.5, 13.6, -3, 1, 1, 1], "textureOffset": [40, 10]},
+						{"coordinates": [-1.5, 8.5, -6.5, 3, 2, 1], "textureOffset": [15, 1], "sizeAdd": 0.5},
+						{"coordinates": [-1, 6.5, -6, 2, 2, 2], "textureOffset": [14, 4]},
+						{"coordinates": [-2.5, 3.75, -3, 5, 5, 7], "textureOffset": [1, 10], "sizeAdd": 0.5},
+						{"coordinates": [-3.5, 4.5, -2, 1, 4, 5], "textureOffset": [25, 14], "sizeAdd": 0.5},
+						{"coordinates": [2.5, 4.5, -2, 1, 4, 5], "textureOffset": [25, 14], "sizeAdd": 0.5}
+					]
+				}
+			]
+		},
+		{
+			"part": "wind",
+			"id": "wind",
+			"invertAxis": "xy",
+			"translate": [0, -8, 0],
+			"boxes": [
+				{
+					"coordinates": [-8, 0, -8, 16, 16, 16],
+					"uvNorth": [16, 16, 32, 32],
+					"uvEast": [0, 16, 16, 32],
+					"uvSouth": [48, 16, 64, 32],
+					"uvWest": [32, 16, 48, 32],
+					"uvUp": [32, 16, 16, 0],
+					"uvDown": [48, 0, 32, 16]
+				}
+			]
+		}
+	]
+}

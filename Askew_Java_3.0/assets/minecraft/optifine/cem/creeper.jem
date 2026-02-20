@@ -1,0 +1,108 @@
+{
+	"credit": "Made with Blockbench",
+	"textureSize": [56, 28],
+	"models": [
+		{
+			"part": "head",
+			"id": "head",
+			"invertAxis": "xy",
+			"translate": [0, -18, 0],
+			"boxes": [
+				{
+					"coordinates": [-4, 18, -4, 8, 8, 8],
+					"uvNorth": [7, 7, 14, 14],
+					"uvEast": [0, 7, 7, 14],
+					"uvSouth": [21, 7, 28, 14],
+					"uvWest": [14, 7, 21, 14],
+					"uvUp": [14, 7, 7, 0],
+					"uvDown": [21, 0, 14, 7]
+				}
+			]
+		},
+		{
+			"part": "body",
+			"id": "body",
+			"invertAxis": "xy",
+			"translate": [0, -18, 0],
+			"boxes": [
+				{
+					"coordinates": [-4, 6, -2, 8, 12, 4],
+					"uvNorth": [19, 19, 25, 28],
+					"uvEast": [16, 19, 19, 28],
+					"uvSouth": [28, 19, 34, 28],
+					"uvWest": [25, 19, 28, 28],
+					"uvUp": [25, 19, 19, 16],
+					"uvDown": [31, 16, 25, 19]
+				}
+			]
+		},
+		{
+			"part": "leg1",
+			"id": "leg1",
+			"invertAxis": "xy",
+			"translate": [-2, -6, -4],
+			"boxes": [
+				{
+					"coordinates": [0, 0, 2, 4, 6, 4],
+					"uvNorth": [7, 19, 4, 23],
+					"uvEast": [4, 19, 1, 23],
+					"uvSouth": [13, 19, 10, 23],
+					"uvWest": [10, 19, 7, 23],
+					"uvUp": [4, 19, 7, 16],
+					"uvDown": [7, 16, 10, 19]
+				}
+			]
+		},
+		{
+			"part": "leg2",
+			"id": "leg2",
+			"invertAxis": "xy",
+			"translate": [2, -6, -4],
+			"boxes": [
+				{
+					"coordinates": [-4, 0, 2, 4, 6, 4],
+					"uvNorth": [4, 19, 7, 23],
+					"uvEast": [1, 19, 4, 23],
+					"uvSouth": [10, 19, 13, 23],
+					"uvWest": [7, 19, 10, 23],
+					"uvUp": [7, 19, 4, 16],
+					"uvDown": [10, 16, 7, 19]
+				}
+			]
+		},
+		{
+			"part": "leg3",
+			"id": "leg3",
+			"invertAxis": "xy",
+			"translate": [-2, -6, 4],
+			"boxes": [
+				{
+					"coordinates": [0, 0, -6, 4, 6, 4],
+					"uvNorth": [4, 19, 7, 23],
+					"uvEast": [1, 19, 4, 23],
+					"uvSouth": [10, 19, 13, 23],
+					"uvWest": [7, 19, 10, 23],
+					"uvUp": [7, 19, 4, 16],
+					"uvDown": [10, 16, 7, 19]
+				}
+			]
+		},
+		{
+			"part": "leg4",
+			"id": "leg4",
+			"invertAxis": "xy",
+			"translate": [2, -6, 4],
+			"boxes": [
+				{
+					"coordinates": [-4, 0, -6, 4, 6, 4],
+					"uvNorth": [7, 19, 4, 23],
+					"uvEast": [4, 19, 1, 23],
+					"uvSouth": [13, 19, 10, 23],
+					"uvWest": [10, 19, 7, 23],
+					"uvUp": [4, 19, 7, 16],
+					"uvDown": [7, 16, 10, 19]
+				}
+			]
+		}
+	]
+}
