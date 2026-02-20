@@ -549,7 +549,6 @@ onUnmounted(() => {
 
 .sidebar-link:hover {
   color: var(--text-primary);
-  background: var(--bg-tertiary);
 }
 
 .back-icon {
