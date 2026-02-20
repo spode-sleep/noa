@@ -66,7 +66,7 @@ async function speak(text: string) {
     const res = await fetch('/api/tts/synthesize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: currentText.value, speed: speed.value }),
+      body: JSON.stringify({ text: currentText.value }),
     })
 
     if (!res.ok) {
@@ -81,12 +81,11 @@ async function speak(text: string) {
 
     initAudio()
     // Stop any previous playback
-    if (audio!.src) {
-      audio!.pause()
-      URL.revokeObjectURL(audio!.src)
-    }
+    const oldSrc = audio!.src
+    audio!.pause()
     audio!.src = url
-    audio!.playbackRate = 1 // speed is handled server-side via length_scale
+    if (oldSrc) URL.revokeObjectURL(oldSrc)
+    audio!.playbackRate = speed.value
     await audio!.play()
   } catch {
     errorMessage.value = 'Failed to connect to TTS service'
@@ -131,6 +130,7 @@ function seek(e: MouseEvent) {
 
 function setSpeed(newSpeed: number) {
   speed.value = newSpeed
+  if (audio) audio.playbackRate = newSpeed
 }
 
 function formatDuration(seconds: number): string {

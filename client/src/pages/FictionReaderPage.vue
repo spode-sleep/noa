@@ -249,7 +249,7 @@ async function readAloud() {
   if (text) {
     speak(text)
   } else {
-    ttsMessage.value = 'Выделите текст, затем нажмите 🔊 или Ctrl+Shift+S'
+    ttsMessage.value = 'Select text, then press 🔊 or Ctrl+Shift+S'
     showTtsMessage.value = true
   }
 }
