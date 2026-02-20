@@ -990,7 +990,7 @@ h2 {
 }
 
 .solution-note {
-  color: #aaaaaa;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.6;
   padding: 6px 0;
