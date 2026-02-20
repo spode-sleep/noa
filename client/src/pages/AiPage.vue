@@ -499,8 +499,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: calc(100% - 24px);
-  margin: 12px;
+  width: calc(100% - 16px);
+  margin: 12px 8px;
   padding: 10px 14px;
   border: 1px solid var(--askew-btn-border);
   border-radius: 0px;
@@ -659,6 +659,9 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-container-light), inset -1px -1px 0 var(--askew-tab-border);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
 }
 
 .ai-status.online {
@@ -707,6 +710,9 @@ onBeforeUnmount(() => {
   color: var(--askew-cream);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-container), inset -1px -1px 0 var(--askew-tab-border);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
 }
 
 .library-switches {

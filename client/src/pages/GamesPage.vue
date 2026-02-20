@@ -495,7 +495,7 @@ h1 {
 }
 
 .tag-pill:hover {
-  border-color: var(--askew-salmon);
+  border-color: var(--askew-cyan);
   color: var(--text-primary);
 }
 

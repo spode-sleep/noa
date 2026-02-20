@@ -21,7 +21,7 @@
     <div v-if="isMinimized && (!!currentTrack || ttsActive)" class="mini-player" @click="toggleMinimize">
       <svg v-if="isPlaying || ttsPlaying" class="sq-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <rect class="sq-wave sq-wave1" x="128" y="128" width="72" height="72" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
-        <rect class="sq-wave sq-wave2" x="100" y="100" width="100" height="100" fill="none" stroke="var(--askew-tab-inactive)" stroke-width="2"/>
+        <rect class="sq-wave sq-wave2" x="100" y="100" width="100" height="100" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
         <rect class="sq-wave sq-wave3" x="68" y="68" width="132" height="132" fill="none" stroke="var(--askew-btn-disabled)" stroke-width="2"/>
       </svg>
       <div class="mini-sq">

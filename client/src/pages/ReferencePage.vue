@@ -144,7 +144,7 @@ h1 {
 }
 
 .archive-card:hover {
-  background: var(--askew-btn-disabled);
+  box-shadow: inset 2px 2px 0 var(--askew-btn), inset -2px -2px 0 var(--askew-dark-border);
 }
 
 .archive-title {

@@ -43,10 +43,10 @@ function isActive(to: string): boolean {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--askew-tab-border);
+  background: var(--askew-btn-disabled);
   border: none;
   border-bottom: 1px solid #000000;
-  box-shadow: inset 0 1px 0 var(--askew-tab-inactive);
+  box-shadow: inset 0 1px 0 var(--askew-btn);
 }
 
 .nav-content {
@@ -70,7 +70,7 @@ function isActive(to: string): boolean {
 
 .nav-logo-icon {
   font-size: 1.4rem;
-  color: var(--askew-salmon);
+  color: var(--askew-btn-highlight);
 }
 
 .nav-links {
@@ -93,16 +93,16 @@ function isActive(to: string): boolean {
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: var(--askew-tab-inactive);
-  border: 1px solid var(--askew-tab-border);
-  box-shadow: inset 1px 1px 0 var(--askew-salmon), inset -1px -1px 0 var(--askew-tab-border);
+  background: var(--askew-btn);
+  border: 1px solid var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn-disabled);
 }
 
 .nav-link.active {
   background: var(--askew-tab-active);
   color: var(--bg-primary);
   font-weight: 700;
-  border: 1px solid var(--askew-tab-border);
-  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-tab-inactive);
+  border: 1px solid var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-btn);
 }
 </style>

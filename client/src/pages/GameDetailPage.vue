@@ -1008,7 +1008,6 @@ h2 {
   border-radius: 0px;
   overflow: hidden;
   background: var(--bg-tertiary);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .fixbox-row {

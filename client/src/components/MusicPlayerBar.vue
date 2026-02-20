@@ -91,9 +91,9 @@ const {
   align-items: center;
   gap: 20px;
   padding: 12px 24px;
-  background: var(--askew-tab-border);
+  background: var(--askew-btn-disabled);
   border-top: 1px solid #000000;
-  box-shadow: inset 0 1px 0 var(--askew-tab-inactive);
+  box-shadow: inset 0 1px 0 var(--askew-btn);
   z-index: 1000;
 }
 
@@ -128,10 +128,10 @@ const {
 }
 
 .ctrl-btn {
-  background: var(--askew-btn);
+  background: var(--askew-btn-hover);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  color: var(--bg-primary);
   font-size: 1.3rem;
   cursor: pointer;
   padding: 6px;
@@ -143,9 +143,9 @@ const {
 }
 
 .ctrl-btn:hover {
-  background: var(--askew-btn-hover);
+  background: var(--askew-btn-highlight);
   border-color: var(--askew-dark-border);
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn-hover);
   color: var(--bg-primary);
 }
 
@@ -156,7 +156,7 @@ const {
 }
 
 .ctrl-play:hover {
-  background: var(--askew-btn-hover);
+  background: var(--askew-btn-highlight);
   border-color: var(--askew-dark-border);
   color: var(--bg-primary);
 }
@@ -176,7 +176,7 @@ const {
 }
 
 .ctrl-add:hover {
-  background: var(--askew-btn-hover);
+  background: var(--askew-btn-highlight);
   border-color: var(--askew-dark-border);
   color: var(--bg-primary);
 }
