@@ -539,7 +539,7 @@ onUnmounted(() => {
   display: block;
   padding: 6px 12px;
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--askew-link-green);
   border-radius: 0px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -967,7 +967,7 @@ h2 {
 
 .info-card-title {
   font-size: 1.05rem;
-  color: var(--askew-cyan);
+  color: var(--askew-link-green);
   margin-bottom: 8px;
 }
 

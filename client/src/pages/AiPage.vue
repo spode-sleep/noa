@@ -611,12 +611,12 @@ onBeforeUnmount(() => {
 
 .icon-btn:hover {
   color: var(--text-primary);
-  background: var(--bg-tertiary);
+  background: transparent;
 }
 
 .icon-btn.delete-btn:hover {
   color: var(--askew-red);
-  background: var(--bg-tertiary);
+  background: transparent;
 }
 
 /* Main chat panel */

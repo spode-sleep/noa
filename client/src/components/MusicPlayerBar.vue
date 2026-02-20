@@ -115,7 +115,7 @@ const {
 
 .player-artist {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--askew-cream);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -213,6 +213,19 @@ const {
   height: 100%;
   background: var(--askew-gold);
   transition: width 0.1s linear;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: var(--askew-gold);
+  border: 1px solid #000000;
 }
 
 .player-volume {
@@ -255,7 +268,7 @@ const {
   appearance: none;
   width: 14px;
   height: 14px;
-  background: var(--askew-btn-hover);
+  background: var(--askew-gold);
   border: 1px solid #000000;
   cursor: pointer;
 }
@@ -263,7 +276,7 @@ const {
 .volume-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  background: var(--askew-btn-hover);
+  background: var(--askew-gold);
   border: 1px solid #000000;
   cursor: pointer;
 }

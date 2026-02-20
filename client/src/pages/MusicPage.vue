@@ -623,10 +623,10 @@ h1 {
 }
 
 .tab-btn {
-  background: var(--askew-tab-inactive, #793539);
+  background: var(--askew-btn, #1b8285);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 #a04a4e, inset -1px -1px 0 var(--askew-tab-border, #491a2d);
-  color: var(--text-secondary, #e6d298);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn-disabled, #155664);
+  color: var(--text-primary, #ffffff);
   padding: 10px 24px;
   font-size: 0.95rem;
   cursor: pointer;
