@@ -1,7 +1,7 @@
 <template>
   <div v-if="isActive" class="tts-player glass">
     <div class="tts-info">
-      <span class="tts-label">🔊 TTS</span>
+      <span class="tts-label"><Icon icon="mdi:volume-high" style="color: var(--accent-teal); vertical-align: -2px;" /> TTS</span>
       <span class="tts-text">{{ displayText }}</span>
     </div>
     <div class="tts-controls">
@@ -62,10 +62,7 @@ const {
 
 <style scoped>
 .tts-player {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;

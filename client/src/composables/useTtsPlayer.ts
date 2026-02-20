@@ -140,19 +140,10 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-/** Get selected text from page, falling back to clipboard for cross-origin iframes */
-async function getSelectedText(): Promise<string> {
-  // Try main document selection (works for FB2, plain HTML)
-  const mainSelection = window.getSelection()?.toString()?.trim()
-  if (mainSelection) return mainSelection
-
-  // Fallback: try clipboard (for cross-origin iframes like ZIM, PDF, EPUB)
-  try {
-    const clipText = await navigator.clipboard.readText()
-    if (clipText?.trim()) return clipText.trim()
-  } catch { /* clipboard permission denied or empty */ }
-
-  return ''
+/** Get selected text from page */
+function getSelectedText(): string {
+  const sel = window.getSelection()?.toString()?.trim()
+  return sel || ''
 }
 
 export function useTtsPlayer() {

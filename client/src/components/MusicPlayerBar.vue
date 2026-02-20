@@ -97,10 +97,7 @@ const {
 
 <style scoped>
 .player {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 20px;
