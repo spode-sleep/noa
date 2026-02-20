@@ -122,6 +122,7 @@ const {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 264px;
 }
 
 .ctrl-btn {

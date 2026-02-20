@@ -19,7 +19,7 @@
 
     <!-- Shared mini expand button when players are minimized -->
     <div v-if="isMinimized && (!!currentTrack || ttsActive)" class="mini-player" @click="toggleMinimize">
-      <svg v-if="isPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <svg v-if="isPlaying || ttsPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2"/>
         <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
         <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
@@ -82,7 +82,7 @@ import { useTtsPlayer } from './composables/useTtsPlayer'
 import { usePlayerStack } from './composables/usePlayerStack'
 
 const { currentTrack, isPlaying } = useMusicPlayer()
-const { isActive: ttsActive } = useTtsPlayer()
+const { isActive: ttsActive, isPlaying: ttsPlaying } = useTtsPlayer()
 const { isMinimized, toggleMinimize } = usePlayerStack()
 
 const showPlaylistPicker = ref(false)
