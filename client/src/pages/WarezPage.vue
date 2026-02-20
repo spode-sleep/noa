@@ -121,10 +121,7 @@ onMounted(async () => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .toolbar {
@@ -133,12 +130,23 @@ h1 {
   padding: 16px;
   margin-bottom: 16px;
   align-items: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
+}
+
+.search-wrap {
+  display: flex;
+  flex: 1;
+  min-width: 200px;
+  position: relative;
 }
 
 .search-input {
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
   color: var(--text-primary);
   padding: 10px 14px;
   font-size: 0.95rem;
@@ -149,7 +157,23 @@ h1 {
 }
 
 .search-input:focus {
-  border-color: #f59e0b;
+  border-color: var(--askew-btn-hover);
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.search-clear:hover {
+  color: var(--text-primary);
 }
 
 .loading {
@@ -165,6 +189,10 @@ h1 {
   padding: 48px 24px;
   max-width: 520px;
   margin: 48px auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .empty-icon {
@@ -186,12 +214,13 @@ h1 {
 
 .empty-state code {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--askew-input-bg);
   padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  color: #f59e0b;
+  border-radius: 0px;
+  color: var(--askew-gold);
   font-size: 0.85rem;
   word-break: break-all;
+  border: 1px solid var(--askew-input-border);
 }
 
 /* Repo grid */
@@ -206,12 +235,15 @@ h1 {
   padding: 20px;
   text-decoration: none;
   color: var(--text-primary);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
+  transition: background var(--transition-fast);
 }
 
 .repo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  background: var(--askew-btn-disabled);
 }
 
 .repo-name {
@@ -240,24 +272,24 @@ h1 {
 
 .branch-badge {
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: 0px;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.5px;
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--askew-btn-disabled);
+  color: var(--askew-gold);
+  border: 1px solid #000000;
 }
 
 .folder-badge {
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: 0px;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.5px;
-  background: rgba(148, 163, 184, 0.2);
-  color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--askew-btn-disabled);
+  color: var(--text-secondary);
+  border: 1px solid #000000;
 }
 
 .repo-last-commit {
