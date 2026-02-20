@@ -699,7 +699,7 @@ h1 {
 .btn:disabled {
   background: var(--askew-btn-disabled, #155664);
   box-shadow: inset 1px 1px 0 #1b6b6e, inset -1px -1px 0 #0d3a42;
-  color: var(--text-muted, #1b8285);
+  color: #5a8a8f;
   cursor: not-allowed;
 }
 
@@ -854,7 +854,7 @@ h1 {
 }
 
 .track-row.active {
-  background: var(--askew-tab-border, #491a2d);
+  background: #2a2000;
 }
 
 .play-btn {

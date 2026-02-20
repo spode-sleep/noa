@@ -4,10 +4,10 @@
   --bg-secondary: #0b0c32;
   --bg-tertiary: #001219;
 
-  /* Text colors - Askew resource pack (from color.properties) */
+  /* Text colors - Askew resource pack warm tones (from color.properties) */
   --text-primary: #ffffff;
-  --text-secondary: #aaaaaa;
-  --text-muted: #055999;
+  --text-secondary: #b8a88c;
+  --text-muted: #7a6e5a;
 
   /* Accent colors - Askew resource pack palette + text.code colors */
   --accent-teal: #00aaaa;
