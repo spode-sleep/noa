@@ -24,13 +24,13 @@ import { Icon } from '@iconify/vue'
 const route = useRoute()
 
 const links = [
-  { to: '/main', label: 'Main', color: '#da9067' },
-  { to: '/games', label: 'Games', color: '#00ecff' },
-  { to: '/music', label: 'Music', color: '#ecb16e' },
-  { to: '/fiction', label: 'Fiction', color: '#82cab1' },
-  { to: '/reference', label: 'Reference', color: '#04a935' },
-  { to: '/warez', label: 'Warez', color: '#ecb16e' },
-  { to: '/ai', label: 'AI Librarian', color: '#9f5348' },
+  { to: '/main', label: 'Main' },
+  { to: '/games', label: 'Games' },
+  { to: '/music', label: 'Music' },
+  { to: '/fiction', label: 'Fiction' },
+  { to: '/reference', label: 'Reference' },
+  { to: '/warez', label: 'Warez' },
+  { to: '/ai', label: 'AI Librarian' },
 ]
 
 function isActive(to: string): boolean {
