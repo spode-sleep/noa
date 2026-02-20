@@ -174,16 +174,16 @@ main.has-player {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--askew-btn);
+  background: var(--askew-tab-active);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
-  color: var(--text-primary);
+  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-container);
+  color: var(--bg-primary);
   font-size: 1.1rem;
   cursor: pointer;
 }
 
 .stack-minimize-btn:hover {
-  background: var(--askew-btn-hover);
+  background: var(--askew-gold);
   border-color: var(--askew-dark-border);
   color: var(--bg-primary);
 }

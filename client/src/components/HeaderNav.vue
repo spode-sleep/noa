@@ -95,7 +95,7 @@ function isActive(to: string): boolean {
   color: var(--text-primary);
   background: var(--askew-btn);
   border: 1px solid var(--askew-btn-disabled);
-  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-gold);
 }
 
 .nav-link.active {
@@ -103,6 +103,6 @@ function isActive(to: string): boolean {
   color: var(--bg-primary);
   font-weight: 700;
   border: 1px solid var(--askew-btn-disabled);
-  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-salmon);
 }
 </style>

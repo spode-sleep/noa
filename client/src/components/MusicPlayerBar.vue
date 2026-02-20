@@ -146,7 +146,7 @@ const {
   background: var(--askew-btn-highlight);
   border-color: var(--askew-dark-border);
   box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn-hover);
-  color: var(--bg-primary);
+  color: var(--askew-gold);
 }
 
 .ctrl-play {
@@ -158,7 +158,7 @@ const {
 .ctrl-play:hover {
   background: var(--askew-btn-highlight);
   border-color: var(--askew-dark-border);
-  color: var(--bg-primary);
+  color: var(--askew-gold);
 }
 
 .ctrl-add {
@@ -172,13 +172,13 @@ const {
 }
 
 .ctrl-active:hover {
-  color: var(--bg-primary);
+  color: var(--askew-gold);
 }
 
 .ctrl-add:hover {
   background: var(--askew-btn-highlight);
   border-color: var(--askew-dark-border);
-  color: var(--bg-primary);
+  color: var(--askew-gold);
 }
 
 .player-progress {
@@ -211,7 +211,7 @@ const {
 
 .progress-fill {
   height: 100%;
-  background: var(--askew-btn);
+  background: var(--askew-gold);
   transition: width 0.1s linear;
 }
 
@@ -241,8 +241,8 @@ const {
   height: 6px;
   background: linear-gradient(
     to right,
-    var(--askew-btn) 0%,
-    var(--askew-btn) var(--volume-pct, 100%),
+    var(--askew-gold) 0%,
+    var(--askew-gold) var(--volume-pct, 100%),
     var(--askew-btn-disabled) var(--volume-pct, 100%),
     var(--askew-btn-disabled) 100%
   );
@@ -269,7 +269,7 @@ const {
 }
 
 .volume-slider::-moz-range-progress {
-  background: var(--askew-btn);
+  background: var(--askew-gold);
   height: 6px;
 }
 

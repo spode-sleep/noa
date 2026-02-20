@@ -4,17 +4,18 @@
   --bg-secondary: #0b0c32;
   --bg-tertiary: #001219;
 
-  /* Text colors - Askew warm cream & mint */
-  --text-primary: #fdfbef;
-  --text-secondary: #e6d298;
-  --text-muted: #1b8285;
+  /* Text colors - Askew resource pack (from color.properties) */
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --text-muted: #055999;
 
-  /* Accent colors - Askew resource pack palette */
-  --accent-teal: #0a9396;
-  --accent-purple: #491a2d;
-  --accent-blue: #005f73;
+  /* Accent colors - Askew resource pack palette + text.code colors */
+  --accent-teal: #00aaaa;
+  --accent-purple: #491743;
+  --accent-blue: #055999;
   --accent-pink: #793539;
-  --accent-green: #04a935;
+  --accent-green: #00aa00;
+  --accent-orange: #ffaa00;
 
   /* Askew UI element colors */
   --askew-btn: #1b8285;
