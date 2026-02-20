@@ -3,7 +3,7 @@
     <div class="viewer-header">
       <a class="btn btn-back" @click="router.push('/reference')" style="cursor:pointer">← Reference</a>
       <h1>{{ displayName }}</h1>
-      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
+      <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" /></button>
     </div>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
@@ -88,47 +88,45 @@ onUnmounted(() => {
   flex: 1;
   font-size: 2rem;
   margin: 0;
-  background: linear-gradient(135deg, #34d399, var(--accent-teal));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .ctrl-btn {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
   padding: 6px 12px;
-  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .ctrl-btn:hover {
-  border-color: var(--accent-teal);
-  color: var(--text-primary);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  color: var(--bg-primary);
 }
 
 .btn-back {
   display: inline-flex;
   align-items: center;
   padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid var(--glass-border);
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
   color: var(--text-secondary);
   font-size: 0.9rem;
   text-decoration: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .btn-back:hover {
+  background: var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-primary);
-  border-color: var(--accent-teal);
 }
 
 .loading {
@@ -169,8 +167,7 @@ onUnmounted(() => {
 .zim-viewer {
   width: 100%;
   height: 100%;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border: 1px solid #000000;
   background: #fff;
 }
 

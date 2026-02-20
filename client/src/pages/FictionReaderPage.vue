@@ -7,10 +7,10 @@
         <span class="header-author">{{ book.author }}</span>
       </div>
       <div class="header-controls">
-        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--accent-teal); vertical-align: middle" /></button>
+        <button class="ctrl-btn" @click="readAloud" title="Read Aloud"><Icon icon="mdi:volume-high" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" /></button>
         <template v-if="book?.format !== 'pdf'">
           <button class="ctrl-btn" :class="{ active: showBookmarks }" @click="showBookmarks = !showBookmarks" title="Bookmarks">
-            <Icon icon="mdi:star" width="20" height="20" style="color: #f59e0b; vertical-align: middle" />
+            <Icon icon="mdi:star" width="20" height="20" style="color: var(--askew-gold); vertical-align: middle" />
           </button>
         </template>
       </div>
@@ -32,7 +32,7 @@
             class="bookmark-input"
             @keyup.enter="addBookmark"
           />
-          <button class="btn btn-sm" @click="addBookmark"><Icon icon="mdi:star" style="color: #f59e0b; vertical-align: -2px;" /> Add</button>
+          <button class="btn btn-sm" @click="addBookmark"><Icon icon="mdi:star" style="color: var(--askew-gold); vertical-align: -2px;" /> Add</button>
         </div>
         <div v-if="manualBookmarks.length === 0" class="bookmark-empty">No bookmarks yet.</div>
         <div v-else class="bookmark-list">
@@ -468,9 +468,10 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(10, 10, 26, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--bg-primary);
+  border: 1px solid #000000;
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .header-info {
@@ -502,36 +503,36 @@ onUnmounted(() => {
 }
 
 .ctrl-btn {
-  background: transparent;
-  border: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   color: var(--text-secondary);
   padding: 6px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: all var(--transition-fast);
 }
 
 .ctrl-btn:hover {
-  border-color: var(--accent-teal);
+  background: var(--askew-btn-hover);
   color: var(--text-primary);
 }
 
 .ctrl-btn.active {
-  background: rgba(0, 212, 170, 0.15);
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-tab-active);
+  border-color: #000000;
+  color: var(--text-primary);
 }
 
 .btn {
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  border: none;
-  color: #fff;
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
   padding: 10px 20px;
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -540,7 +541,7 @@ onUnmounted(() => {
 }
 
 .btn:hover {
-  opacity: 0.85;
+  background: var(--askew-btn-hover);
 }
 
 .btn-sm {
@@ -551,27 +552,30 @@ onUnmounted(() => {
 }
 
 .btn-back {
-  background: transparent;
-  border: 1px solid var(--glass-border);
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
   color: var(--text-secondary);
+  text-decoration: none;
+  line-height: 1;
 }
 
 .btn-back:hover {
   color: var(--text-primary);
-  border-color: var(--accent-teal);
-  opacity: 1;
+  background: var(--askew-btn-hover);
 }
 
 .btn-ghost {
   background: transparent;
   border: 1px solid var(--glass-border);
+  box-shadow: none;
   color: var(--text-secondary);
 }
 
 .btn-ghost:hover {
-  border-color: var(--accent-teal);
+  background: var(--askew-btn-disabled);
+  border-color: #000000;
   color: var(--text-primary);
-  opacity: 1;
 }
 
 .loading,
@@ -597,16 +601,16 @@ onUnmounted(() => {
   overflow-x: hidden;
   position: sticky;
   top: 80px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .bookmarks-sidebar h3 {
   font-size: 1rem;
-  color: var(--text-primary);
   margin-bottom: 12px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .add-bookmark {
@@ -619,18 +623,17 @@ onUnmounted(() => {
 .bookmark-input {
   flex: 1;
   min-width: 0;
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
   color: var(--text-primary);
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .bookmark-input:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover);
 }
 
 .bookmark-empty {
@@ -652,17 +655,16 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 8px;
   padding: 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0px;
+  background: var(--bg-tertiary);
   border: 1px solid var(--glass-border);
   cursor: pointer;
-  transition: background var(--transition-fast);
   overflow: hidden;
   max-width: 100%;
 }
 
 .bookmark-item:hover {
-  background: rgba(0, 232, 184, 0.06);
+  background: var(--askew-btn-disabled);
 }
 
 .bookmark-info {
@@ -676,7 +678,7 @@ onUnmounted(() => {
 
 .bookmark-page {
   font-size: 0.8rem;
-  color: var(--accent-teal);
+  color: var(--askew-mint);
   font-weight: 600;
 }
 
@@ -695,22 +697,22 @@ onUnmounted(() => {
 
 .btn-delete {
   background: transparent;
-  border: 1px solid rgba(231, 76, 60, 0.3);
-  color: #e74c3c;
+  border: 1px solid var(--askew-red);
+  color: var(--askew-red);
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: 0px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
 }
 
 .btn-delete:hover {
-  background: rgba(231, 76, 60, 0.2);
+  background: var(--askew-red);
+  color: var(--text-primary);
 }
 
 /* Reader Content */
@@ -728,6 +730,10 @@ onUnmounted(() => {
   font-size: 0.9rem;
   color: var(--text-secondary);
   flex-wrap: wrap;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 /* PDF */
@@ -738,45 +744,45 @@ onUnmounted(() => {
 .pdf-frame {
   width: 100%;
   height: calc(100vh - 120px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border: 1px solid #000000;
+  border-radius: 0px;
   background: #fff;
 }
 
 /* EPUB Reader (vue-book-reader) */
 .epub-reader {
   height: calc(100vh - 120px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border: 1px solid #000000;
+  border-radius: 0px;
   overflow: hidden;
-  background: #0a0a1a;
-  color: #e0e0e0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Style vue-book-reader internal elements for dark theme */
 .epub-reader :deep(.container) {
-  background: #0a0a1a !important;
+  background: var(--bg-primary) !important;
 }
 .epub-reader :deep(.readerArea) {
-  background: #0a0a1a !important;
+  background: var(--bg-primary) !important;
 }
 .epub-reader :deep(.titleArea) {
-  color: #e0e0e0 !important;
+  color: var(--text-primary) !important;
 }
 .epub-reader :deep(.tocButton) {
-  color: #e0e0e0 !important;
+  color: var(--text-primary) !important;
 }
 .epub-reader :deep(.tocArea) {
-  background: #12122a !important;
+  background: var(--bg-secondary) !important;
 }
 .epub-reader :deep(.tocAreaButton) {
-  color: #ccc !important;
+  color: var(--text-secondary) !important;
 }
 .epub-reader :deep(.tocAreaButton:hover) {
-  color: #00e8b8 !important;
+  color: var(--askew-mint) !important;
 }
 .epub-reader :deep(.arrow) {
-  color: #e0e0e0 !important;
+  color: var(--text-primary) !important;
 }
 
 /* FB2 */
@@ -796,7 +802,7 @@ onUnmounted(() => {
   font-size: 1.4em;
   font-weight: 600;
   margin-bottom: 16px;
-  color: var(--accent-teal);
+  color: var(--askew-gold);
 }
 
 .chapter-paragraph {
@@ -814,6 +820,10 @@ onUnmounted(() => {
   z-index: 200;
   cursor: pointer;
   max-width: 320px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid #000000;
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .tts-modal p {

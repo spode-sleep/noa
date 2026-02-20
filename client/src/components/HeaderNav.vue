@@ -8,7 +8,6 @@
             :to="link.to"
             class="nav-link"
             :class="{ active: isActive(link.to) }"
-            :style="isActive(link.to) ? { color: link.color, background: link.color + '14', boxShadow: '0 0 16px ' + link.color + '14' } : {}"
           >
             {{ link.label }}
           </router-link>
@@ -25,13 +24,13 @@ import { Icon } from '@iconify/vue'
 const route = useRoute()
 
 const links = [
-  { to: '/main', label: 'Main', color: '#c072f4' },
-  { to: '/games', label: 'Games', color: '#4cc9f0' },
-  { to: '/music', label: 'Music', color: '#8b6cee' },
-  { to: '/fiction', label: 'Fiction', color: '#7ec8e3' },
-  { to: '/reference', label: 'Reference', color: '#34d399' },
-  { to: '/warez', label: 'Warez', color: '#f59e0b' },
-  { to: '/ai', label: 'AI Librarian', color: '#a855f7' },
+  { to: '/main', label: 'Main' },
+  { to: '/games', label: 'Games' },
+  { to: '/music', label: 'Music' },
+  { to: '/fiction', label: 'Fiction' },
+  { to: '/reference', label: 'Reference' },
+  { to: '/warez', label: 'Warez' },
+  { to: '/ai', label: 'AI Librarian' },
 ]
 
 function isActive(to: string): boolean {
@@ -44,70 +43,68 @@ function isActive(to: string): boolean {
   position: sticky;
   top: 0;
   z-index: 100;
-  border-radius: 0;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  background: rgba(7, 11, 26, 0.75);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--askew-btn-disabled);
+  border: none;
+  border-bottom: 1px solid #000000;
+  box-shadow: inset 0 1px 0 var(--askew-btn);
 }
 
 .nav-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .nav-logo {
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple), var(--accent-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 12px rgba(0, 232, 184, 0.3));
+  color: var(--askew-gold);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   text-decoration: none;
-  color: inherit;
 }
 
 .nav-logo-icon {
   font-size: 1.4rem;
-  color: var(--accent-purple);
-  filter: drop-shadow(0 0 6px rgba(139, 108, 238, 0.5));
+  color: var(--askew-gold);
 }
 
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 4px;
+  gap: 2px;
 }
 
 .nav-link {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
+  padding: 6px 14px;
+  color: var(--text-primary);
   font-weight: 500;
   font-size: 0.92rem;
   display: inline-flex;
   justify-content: center;
   min-width: max-content;
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn-disabled);
+  text-decoration: none;
 }
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
-  text-shadow: 0 0 10px rgba(0, 232, 184, 0.15);
+  background: var(--askew-btn-hover);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
 }
 
 .nav-link.active {
-  /* Use text-shadow to simulate bold instead of font-weight to avoid layout shift */
-  text-shadow: 0 0 0.5px currentColor, 0 0 0.5px currentColor;
+  background: var(--askew-gold);
+  color: var(--bg-primary);
+  font-weight: 700;
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-gold-light), inset -1px -1px 0 var(--askew-tab-active);
 }
 </style>

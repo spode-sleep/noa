@@ -221,10 +221,7 @@ onMounted(async () => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #7ec8e3, var(--accent-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .toolbar {
@@ -234,18 +231,21 @@ h1 {
   margin-bottom: 16px;
   flex-wrap: wrap;
   align-items: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .search-input,
 .filter-select {
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
   color: var(--text-primary);
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .search-input {
@@ -259,18 +259,18 @@ h1 {
 
 .search-input:focus,
 .filter-select:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover);
 }
 
 .btn {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  border: none;
-  color: #fff;
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
   padding: 10px 20px;
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -278,19 +278,19 @@ h1 {
 }
 
 .btn:hover {
-  opacity: 0.85;
+  background: var(--askew-btn-hover);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  background: var(--askew-btn-disabled);
   cursor: not-allowed;
 }
 
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--askew-btn-disabled);
+  border-top-color: var(--askew-gold);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -324,12 +324,14 @@ h1 {
   padding: 20px;
   text-decoration: none;
   color: var(--text-primary);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .book-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 2px 2px 0 var(--askew-btn), inset -2px -2px 0 var(--askew-dark-border);
 }
 
 .book-title {
@@ -356,44 +358,65 @@ h1 {
 
 .format-badge {
   padding: 2px 8px;
-  border-radius: 10px;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.5px;
+  background: var(--askew-btn);
+  color: var(--text-primary);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .format-pdf {
-  background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
-  border: 1px solid rgba(231, 76, 60, 0.3);
+  background: var(--askew-red);
+  box-shadow: inset 1px 1px 0 #eb6666, inset -1px -1px 0 #6a0b13;
+  color: var(--text-primary);
 }
 
 .format-epub {
-  background: rgba(0, 212, 170, 0.2);
-  color: var(--accent-teal);
-  border: 1px solid rgba(0, 212, 170, 0.3);
+  background: var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--askew-mint);
 }
 
 .format-fb2 {
-  background: rgba(123, 104, 238, 0.2);
-  color: var(--accent-purple);
-  border: 1px solid rgba(123, 104, 238, 0.3);
+  background: var(--askew-tab-inactive);
+  box-shadow: inset 1px 1px 0 var(--askew-salmon), inset -1px -1px 0 var(--askew-tab-border);
+  color: var(--text-primary);
 }
 
 .format-zim {
-  background: rgba(76, 201, 240, 0.2);
-  color: #4cc9f0;
-  border: 1px solid rgba(76, 201, 240, 0.3);
+  background: var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn), inset -1px -1px 0 var(--askew-dark-border);
+  color: var(--askew-cyan);
+}
+
+.format-mobi {
+  background: var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-tab-inactive), inset -1px -1px 0 var(--askew-dark-border);
+  color: var(--askew-gold);
+}
+
+.format-txt {
+  background: var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn), inset -1px -1px 0 var(--askew-dark-border);
+  color: var(--askew-cream);
+}
+
+.format-djvu {
+  background: var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--askew-gold);
 }
 
 .progress-badge {
   margin-top: 10px;
   font-size: 0.8rem;
-  color: var(--accent-teal);
+  color: var(--askew-mint);
   padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(0, 212, 170, 0.1);
-  border: 1px solid rgba(0, 212, 170, 0.2);
+  border-radius: 0px;
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
   display: inline-block;
 }
 

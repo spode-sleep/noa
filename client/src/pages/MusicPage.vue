@@ -607,10 +607,7 @@ onMounted(() => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #8b6cee, var(--accent-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold, #ecb16e);
 }
 
 /* Tab Switcher */
@@ -619,26 +616,32 @@ h1 {
   gap: 2px;
   padding: 4px;
   margin-bottom: 20px;
+  background: var(--glass-bg, #0b0c32);
+  border: 1px solid var(--glass-border, #005264);
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--glass-border, #005264), inset -1px -1px 0 #000000;
 }
 
 .tab-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
+  background: var(--askew-btn, #1b8285);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn-disabled, #155664);
+  color: var(--text-primary, #ffffff);
   padding: 10px 24px;
   font-size: 0.95rem;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  border-radius: 0;
 }
 
 .tab-btn:hover {
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-  color: #fff;
+  background: var(--askew-tab-active, #da9067);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-gold, #ecb16e), inset -1px -1px 0 #9a5a3a;
+  color: #000000;
 }
 
 /* Toolbar */
@@ -649,34 +652,37 @@ h1 {
   margin-bottom: 16px;
   flex-wrap: wrap;
   align-items: center;
+  background: var(--glass-bg, #0b0c32);
+  border: 1px solid var(--glass-border, #005264);
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--glass-border, #005264), inset -1px -1px 0 #000000;
 }
 
 .search-input {
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
+  background: var(--askew-input-bg, #000e14);
+  border: 1px solid var(--askew-input-border, #005264);
+  border-radius: 0;
+  color: var(--text-primary, #fdfbef);
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
   flex: 1;
   min-width: 200px;
-  transition: border-color var(--transition-fast);
 }
 
 .search-input:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover, #82cab1);
 }
 
 .btn {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-  border: none;
-  color: #fff;
+  background: var(--askew-btn, #1b8285);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary, #fdfbef);
   padding: 10px 20px;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -684,28 +690,41 @@ h1 {
 }
 
 .btn:hover {
-  opacity: 0.85;
+  background: var(--askew-btn-hover, #82cab1);
+  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  border-color: var(--askew-dark-border, #000d12);
+  color: #000000;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  background: var(--askew-btn-disabled, #155664);
+  box-shadow: inset 1px 1px 0 #1b6b6e, inset -1px -1px 0 #0d3a42;
+  color: #5a8a8f;
   cursor: not-allowed;
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: var(--askew-red, #d22323);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 #e85555, inset -1px -1px 0 #8a1717;
+}
+
+.btn-danger:hover {
+  background: #e83a3a;
+  box-shadow: inset 1px 1px 0 #f08080, inset -1px -1px 0 var(--askew-red, #d22323);
 }
 
 .btn-back {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn-disabled, #155664);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 #1b7b7e, inset -1px -1px 0 #0d3a42;
+  color: var(--text-secondary, #e6d298);
 }
 
 .btn-back:hover {
-  color: var(--text-primary);
-  border-color: var(--accent-teal);
-  opacity: 1;
+  background: var(--askew-btn, #1b8285);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary, #fdfbef);
 }
 
 .btn-sm {
@@ -716,8 +735,8 @@ h1 {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--askew-btn-disabled);
+  border-top-color: var(--askew-gold);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -727,7 +746,7 @@ h1 {
 }
 
 .scan-info {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.85rem;
   margin-bottom: 16px;
 }
@@ -735,7 +754,7 @@ h1 {
 .loading,
 .empty {
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   padding: 48px 0;
   font-size: 1.1rem;
 }
@@ -749,6 +768,7 @@ h1 {
 
 .artist-section {
   overflow: hidden;
+  border-radius: 0;
 }
 
 .artist-header {
@@ -759,20 +779,19 @@ h1 {
   padding: 14px 16px;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
   text-align: left;
-  transition: background var(--transition-fast);
 }
 
 .artist-header:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(27, 130, 133, 0.15);
 }
 
 .collapse-icon {
-  color: var(--accent-teal);
+  color: var(--askew-gold, #ecb16e);
   font-size: 0.9rem;
   width: 16px;
 }
@@ -782,7 +801,7 @@ h1 {
 }
 
 .artist-count {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.8rem;
   font-weight: 400;
 }
@@ -801,15 +820,15 @@ h1 {
   gap: 8px;
   padding: 8px 0;
   margin-bottom: 6px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #e6d298);
   font-size: 0.9rem;
   font-weight: 500;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border, #005264);
 }
 
 .album-icon {
   font-size: 1rem;
-  color: var(--accent-teal);
+  color: var(--askew-gold, #ecb16e);
 }
 
 .album-name {
@@ -827,44 +846,43 @@ h1 {
   align-items: center;
   gap: 12px;
   padding: 8px 8px 8px 24px;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
+  border-radius: 0;
 }
 
 .track-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--askew-btn-disabled, #155664);
 }
 
 .track-row.active {
-  background: rgba(123, 104, 238, 0.15);
+  background: #002a2a;
 }
 
 .play-btn {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--accent-teal);
+  background: var(--askew-btn, #1b8285);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary, #fdfbef);
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .play-btn:hover {
-  background: var(--accent-teal);
-  color: #fff;
-  border-color: var(--accent-teal);
+  background: var(--askew-btn-hover, #82cab1);
+  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  color: #000000;
 }
 
 .track-title {
   flex: 1;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -872,13 +890,13 @@ h1 {
 }
 
 .track-artist {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
 
 .track-duration {
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.85rem;
   flex-shrink: 0;
   min-width: 40px;
@@ -898,11 +916,11 @@ h1 {
   justify-content: space-between;
   padding: 16px;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  border-radius: 0;
 }
 
 .playlist-card:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--askew-btn-disabled, #155664);
 }
 
 .playlist-info {
@@ -914,12 +932,12 @@ h1 {
 .playlist-name {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .playlist-count {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
 }
 
 .playlist-detail-header {
@@ -931,7 +949,7 @@ h1 {
 
 .playlist-detail-header h2 {
   font-size: 1.4rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
   margin: 0;
 }
 
@@ -948,36 +966,35 @@ h1 {
   gap: 2px;
   padding: 4px;
   margin-bottom: 16px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--glass-bg, #0b0c32);
+  border: 1px solid var(--glass-border, #005264);
+  border-radius: 0;
 }
 
 .search-tab {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #e6d298);
   padding: 6px 16px;
   font-size: 0.85rem;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  border-radius: 0;
 }
 
 .search-tab:hover {
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .search-tab.active {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-  color: #fff;
+  background: var(--askew-tab-active, #da9067);
+  color: #000000;
 }
 
 /* Search track list */
 .search-track-list {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
+  background: var(--glass-bg, #0b0c32);
+  border: 1px solid var(--glass-border, #005264);
+  border-radius: 0;
   padding: 8px;
 }
 
@@ -990,6 +1007,7 @@ h1 {
 
 .album-card {
   padding: 16px;
+  border-radius: 0;
 }
 
 .album-card-header {
@@ -998,7 +1016,7 @@ h1 {
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border, #005264);
 }
 
 .album-card-info {
@@ -1009,12 +1027,12 @@ h1 {
 .album-card-name {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .album-card-artist {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
 }
 
 /* Track actions */
@@ -1023,32 +1041,31 @@ h1 {
 }
 
 .add-to-playlist-btn {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn, #1b8285);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary, #fdfbef);
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: 0;
   cursor: pointer;
   font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .add-to-playlist-btn:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-btn-hover, #82cab1);
+  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  color: #000000;
 }
 
 /* Playlist picker modal */
 .playlist-picker-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1062,7 +1079,10 @@ h1 {
   max-height: 70vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary);
+  background: var(--bg-secondary, #0b0c32);
+  border: 1px solid var(--glass-border, #005264);
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--glass-border, #005264), inset -1px -1px 0 #000000;
 }
 
 .picker-header {
@@ -1074,36 +1094,34 @@ h1 {
 
 .picker-header h3 {
   font-size: 1.1rem;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold, #ecb16e);
 }
 
 .picker-close {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn, #1b8285);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight, #84cbb2), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary, #fdfbef);
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: 0;
   cursor: pointer;
   font-size: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .picker-close:hover {
-  border-color: var(--accent-teal);
-  color: var(--text-primary);
+  background: var(--askew-btn-hover, #82cab1);
+  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  color: #000000;
 }
 
 .picker-track-info {
   padding: 4px 20px 12px;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1111,7 +1129,7 @@ h1 {
 
 .picker-empty {
   padding: 24px 20px;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -1131,13 +1149,12 @@ h1 {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background var(--transition-fast);
   text-align: left;
-  color: var(--text-primary);
+  color: var(--text-primary, #fdfbef);
 }
 
 .picker-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--askew-btn-disabled, #155664);
 }
 
 .picker-item-name {
@@ -1146,29 +1163,28 @@ h1 {
 
 .picker-item-count {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #1b8285);
 }
 
 .picker-create {
   display: flex;
   gap: 8px;
   padding: 12px 20px 16px;
-  border-top: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-border, #005264);
 }
 
 .picker-input {
   flex: 1;
-  background: var(--bg-primary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
+  background: var(--askew-input-bg, #000e14);
+  border: 1px solid var(--askew-input-border, #005264);
+  border-radius: 0;
+  color: var(--text-primary, #fdfbef);
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .picker-input:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover, #82cab1);
 }
 </style>

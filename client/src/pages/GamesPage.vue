@@ -280,10 +280,7 @@ onUnmounted(() => {
 h1 {
   font-size: 2rem;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #4cc9f0, var(--accent-teal));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .filters {
@@ -293,18 +290,21 @@ h1 {
   margin-bottom: 16px;
   flex-wrap: wrap;
   align-items: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .search-input,
 .source-select {
-  background: #1a1a2e;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
   color: var(--text-primary);
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .search-input {
@@ -318,7 +318,7 @@ h1 {
 
 .search-input:focus,
 .source-select:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover);
 }
 
 /* Tags button */
@@ -326,20 +326,22 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #1a1a2e;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid var(--askew-btn-border);
+  border-radius: 0px;
+  color: var(--text-primary);
   padding: 10px 16px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
   white-space: nowrap;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .tags-btn:hover {
-  border-color: var(--accent-purple);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
   color: var(--text-primary);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
 }
 
 .tags-count {
@@ -348,10 +350,10 @@ h1 {
   justify-content: center;
   min-width: 22px;
   height: 22px;
-  border-radius: 11px;
+  border-radius: 0px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
+  background: var(--askew-tab-active);
   color: #fff;
   padding: 0 6px;
 }
@@ -369,20 +371,19 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(0, 212, 170, 0.15);
-  border: 1px solid rgba(0, 212, 170, 0.3);
-  border-radius: 20px;
-  color: var(--accent-teal);
+  background: var(--askew-btn-disabled);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
+  color: var(--askew-gold);
   padding: 4px 12px;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .selected-tag-pill:hover {
-  background: rgba(231, 76, 60, 0.15);
-  border-color: rgba(231, 76, 60, 0.3);
-  color: #e74c3c;
+  background: var(--askew-red);
+  border-color: var(--askew-red);
+  color: var(--text-primary);
 }
 
 .clear-tags-btn {
@@ -392,7 +393,6 @@ h1 {
   font-size: 0.8rem;
   cursor: pointer;
   padding: 4px 8px;
-  transition: color var(--transition-fast);
 }
 
 .clear-tags-btn:hover {
@@ -403,9 +403,7 @@ h1 {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -420,6 +418,9 @@ h1 {
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-header {
@@ -432,47 +433,45 @@ h1 {
 
 .modal-header h2 {
   font-size: 1.2rem;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .modal-close {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid var(--askew-btn-border);
+  color: var(--text-primary);
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 0px;
   cursor: pointer;
   font-size: 0.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-close:hover {
-  border-color: var(--accent-teal);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
   color: var(--text-primary);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-search {
   margin: 0 24px 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
   color: var(--text-primary);
   padding: 10px 14px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition-fast);
   flex-shrink: 0;
 }
 
 .modal-search:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover);
 }
 
 .modal-tags {
@@ -487,24 +486,24 @@ h1 {
 
 .tag-pill {
   background: transparent;
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
+  border: 1px solid var(--askew-btn-disabled);
+  border-radius: 0px;
   color: var(--text-secondary);
   padding: 6px 14px;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .tag-pill:hover {
-  border-color: var(--accent-purple);
+  border-color: var(--askew-cyan);
   color: var(--text-primary);
 }
 
 .tag-pill.active {
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  border-color: transparent;
+  background: var(--askew-tab-active);
+  border: 1px solid var(--askew-btn-border);
   color: #fff;
+  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .modal-empty {
@@ -530,19 +529,21 @@ h1 {
 }
 
 .modal-done-btn {
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  border: none;
-  color: #fff;
+  background: var(--askew-btn);
+  border: 1px solid var(--askew-btn-border);
+  color: var(--text-primary);
   padding: 8px 24px;
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-done-btn:hover {
-  opacity: 0.85;
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
 }
 
 .loading,
@@ -565,22 +566,23 @@ h1 {
   overflow: hidden;
   text-decoration: none;
   color: var(--text-primary);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  background: var(--glass-bg);
 }
 
 .not-archived-badge {
   position: absolute;
   bottom: 8px;
   right: 8px;
-  color: #e74c3c;
-  filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.5));
+  color: var(--askew-red);
   line-height: 1;
 }
 
 .game-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 2px 2px 0 var(--askew-btn), inset -2px -2px 0 var(--askew-dark-border);
 }
 
 .game-image-wrap {
@@ -588,21 +590,20 @@ h1 {
   width: 230px;
   min-width: 230px;
   aspect-ratio: 460 / 215;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  border-radius: 0px;
   overflow: hidden;
 }
 
 .game-image-skeleton {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #1a1a2e 25%, #2a2a3e 50%, #1a1a2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite ease-in-out;
+  background: var(--bg-tertiary);
+  animation: skeleton-pulse 1.5s infinite ease-in-out;
 }
 
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 .game-image {
@@ -612,7 +613,6 @@ h1 {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.3s ease;
 }
 
 .game-image.loaded {
@@ -647,13 +647,11 @@ h1 {
 }
 
 .steam-icon {
-  color: #66c0f4;
-  filter: drop-shadow(0 0 6px rgba(102, 192, 244, 0.4));
+  color: var(--askew-cyan);
 }
 
 .rawg-icon {
-  color: #8b6cee;
-  filter: drop-shadow(0 0 6px rgba(123, 104, 238, 0.4));
+  color: var(--askew-salmon);
 }
 
 .game-tags {
@@ -663,12 +661,12 @@ h1 {
 }
 
 .game-tag {
-  font-size: 0.65rem;
-  padding: 2px 8px;
-  border-radius: 12px;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 0px;
   border: 1px solid var(--glass-border);
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
 }
 
 @media (max-width: 560px) {
@@ -683,7 +681,7 @@ h1 {
   .game-image-wrap {
     width: 100%;
     min-width: unset;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border-radius: 0px;
   }
 
   .modal {

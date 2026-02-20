@@ -177,19 +177,20 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
   font-size: 0.9rem;
   margin-bottom: 20px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  text-decoration: none;
+  line-height: 1;
 }
 
 .btn-back:hover {
+  background: var(--askew-btn-hover);
   color: var(--text-primary);
-  border-color: #f59e0b;
 }
 
 .loading,
@@ -201,7 +202,7 @@ onUnmounted(() => {
 }
 
 .error {
-  color: #f44;
+  color: var(--askew-red);
 }
 
 .repo-header {
@@ -211,10 +212,7 @@ onUnmounted(() => {
 h1 {
   font-size: 2rem;
   margin-bottom: 8px;
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .repo-desc {
@@ -235,22 +233,22 @@ h1 {
 
 .branch-badge {
   padding: 2px 10px;
-  border-radius: 10px;
+  border-radius: 0px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--askew-btn-disabled);
+  color: var(--askew-gold);
+  border: 1px solid #000000;
 }
 
 .folder-badge {
   padding: 2px 10px;
-  border-radius: 10px;
+  border-radius: 0px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(148, 163, 184, 0.2);
-  color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--askew-btn-disabled);
+  color: var(--text-secondary);
+  border: 1px solid #000000;
 }
 
 .last-commit {
@@ -263,6 +261,10 @@ h1 {
 .files-section {
   padding: 16px;
   margin-bottom: 24px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .files-section h2 {
@@ -301,6 +303,10 @@ h1 {
 /* README */
 .readme-section {
   padding: 24px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 0px;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-dark-border);
 }
 
 .readme-section h2 {
@@ -332,22 +338,22 @@ h1 {
 }
 
 .readme-content :deep(a) {
-  color: #f59e0b;
+  color: var(--askew-cyan);
   text-decoration: underline;
 }
 
 .readme-content :deep(code) {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: var(--askew-input-bg);
+  color: var(--askew-gold);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 0px;
   font-size: 0.85rem;
 }
 
 .readme-content :deep(pre) {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-tertiary);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   padding: 16px;
   overflow-x: auto;
   margin: 12px 0;
@@ -379,7 +385,7 @@ h1 {
 }
 
 .readme-content :deep(img) {
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   max-width: 100%;
 }
 

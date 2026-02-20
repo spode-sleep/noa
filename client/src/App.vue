@@ -19,12 +19,12 @@
 
     <!-- Shared mini expand button when players are minimized -->
     <div v-if="isMinimized && (!!currentTrack || ttsActive)" class="mini-player" @click="toggleMinimize">
-      <svg v-if="isPlaying || ttsPlaying" class="arc-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path class="arc-wave arc-wave1" d="M200,200 L200,128 A72,72 0 0,0 128,200 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2"/>
-        <path class="arc-wave arc-wave2" d="M200,200 L200,100 A100,100 0 0,0 100,200 Z" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
-        <path class="arc-wave arc-wave3" d="M200,200 L200,68 A132,132 0 0,0 68,200 Z" fill="none" stroke="var(--accent-blue)" stroke-width="2"/>
+      <svg v-if="isPlaying || ttsPlaying" class="sq-waves" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <rect class="sq-wave sq-wave1" x="128" y="128" width="72" height="72" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
+        <rect class="sq-wave sq-wave2" x="100" y="100" width="100" height="100" fill="none" stroke="var(--askew-btn)" stroke-width="2"/>
+        <rect class="sq-wave sq-wave3" x="68" y="68" width="132" height="132" fill="none" stroke="var(--askew-btn-disabled)" stroke-width="2"/>
       </svg>
-      <div class="mini-arc">
+      <div class="mini-sq">
         <Icon v-if="!!currentTrack" icon="mdi:music-note" />
         <Icon v-else icon="mdi:volume-high" />
       </div>
@@ -174,21 +174,21 @@ main.has-player {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 26, 0.9);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  background: var(--askew-tab-active);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-gold), inset -1px -1px 0 var(--askew-container);
+  color: var(--bg-primary);
   font-size: 1.1rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
 .stack-minimize-btn:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-gold);
+  border-color: var(--askew-dark-border);
+  color: var(--bg-primary);
 }
 
-/* Shared mini player quarter-arc in bottom-right corner */
+/* Shared mini player square button in bottom-right corner */
 .mini-player {
   position: fixed;
   bottom: 0;
@@ -199,32 +199,30 @@ main.has-player {
   height: 72px;
 }
 
-.mini-arc {
+.mini-sq {
   position: absolute;
   bottom: 0;
   right: 0;
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 72px 0 0 0;
+  background: var(--askew-btn);
+  border-top: 1px solid #000000;
+  border-left: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 12px;
-  padding-left: 12px;
   font-size: 1.5rem;
-  color: #fff;
-  box-shadow: -4px -4px 20px rgba(0, 232, 184, 0.35);
+  color: var(--text-primary);
   z-index: 2;
-  transition: transform 0.2s ease;
 }
 
-.mini-player:hover .mini-arc {
-  transform: scale(1.08);
-  transform-origin: bottom right;
+.mini-player:hover .mini-sq {
+  background: var(--askew-btn-hover);
+  color: var(--bg-primary);
 }
 
-.arc-waves {
+.sq-waves {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -234,26 +232,25 @@ main.has-player {
   pointer-events: none;
 }
 
-.arc-wave {
+.sq-wave {
   opacity: 0;
-  transform-origin: 200px 200px;
 }
 
-.arc-wave1 {
-  animation: arc-pulse 2.4s ease-out infinite;
+.sq-wave1 {
+  animation: sq-pulse 2.4s ease-out infinite;
 }
 
-.arc-wave2 {
-  animation: arc-pulse 2.4s ease-out 0.8s infinite;
+.sq-wave2 {
+  animation: sq-pulse 2.4s ease-out 0.8s infinite;
 }
 
-.arc-wave3 {
-  animation: arc-pulse 2.4s ease-out 1.6s infinite;
+.sq-wave3 {
+  animation: sq-pulse 2.4s ease-out 1.6s infinite;
 }
 
-@keyframes arc-pulse {
+@keyframes sq-pulse {
   0% {
-    opacity: 0.7;
+    opacity: 0.5;
     stroke-width: 3;
   }
   100% {
@@ -266,9 +263,7 @@ main.has-player {
 .playlist-picker-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -294,30 +289,27 @@ main.has-player {
 
 .picker-header h3 {
   font-size: 1.1rem;
-  background: linear-gradient(135deg, var(--accent-teal), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--askew-gold);
 }
 
 .picker-close {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
   width: 28px;
   height: 28px;
-  border-radius: 50%;
   cursor: pointer;
   font-size: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .picker-close:hover {
-  border-color: var(--accent-teal);
-  color: var(--text-primary);
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  color: var(--bg-primary);
 }
 
 .picker-track-info {
@@ -351,13 +343,12 @@ main.has-player {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background var(--transition-fast);
   text-align: left;
   color: var(--text-primary);
 }
 
 .picker-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--askew-btn-disabled);
 }
 
 .picker-item-name {
@@ -378,29 +369,27 @@ main.has-player {
 
 .picker-input {
   flex: 1;
-  background: var(--bg-primary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
   color: var(--text-primary);
   padding: 8px 12px;
   font-size: 0.85rem;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
 .picker-input:focus {
-  border-color: var(--accent-teal);
+  border-color: var(--askew-btn-hover);
+  box-shadow: inset 1px 1px 0 var(--askew-dark-border);
 }
 
 .btn {
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-  border: none;
-  color: #fff;
+  background: var(--askew-btn);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
   padding: 10px 20px;
-  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -408,10 +397,15 @@ main.has-player {
 }
 
 .btn:hover {
-  opacity: 0.85;
+  background: var(--askew-btn-hover);
+  border-color: var(--askew-dark-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  color: var(--bg-primary);
 }
 
 .btn:disabled {
+  background: var(--askew-btn-disabled);
+  box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
 }

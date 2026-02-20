@@ -26,7 +26,7 @@ defineProps<{
   color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.6;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--askew-btn-disabled);
 }
 
 .tip-item:last-child {
@@ -37,7 +37,7 @@ defineProps<{
   content: '•';
   position: absolute;
   left: 0;
-  color: var(--accent-teal);
+  color: var(--askew-gold);
 }
 
 .tips-list-nested {
@@ -51,10 +51,10 @@ defineProps<{
 }
 
 .tip-item :deep(code) {
-  background: rgba(0, 232, 184, 0.1);
-  color: var(--accent-teal);
+  background: var(--askew-btn-disabled);
+  color: var(--askew-gold);
   padding: 1px 6px;
-  border-radius: 4px;
+  border: 1px solid #000000;
   font-size: 0.82rem;
 }
 </style>

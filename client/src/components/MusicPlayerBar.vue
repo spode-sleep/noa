@@ -91,10 +91,9 @@ const {
   align-items: center;
   gap: 20px;
   padding: 12px 24px;
-  background: rgba(10, 10, 26, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
+  background: var(--askew-btn-disabled);
+  border-top: 1px solid #000000;
+  box-shadow: inset 0 1px 0 var(--askew-btn);
   z-index: 1000;
 }
 
@@ -116,7 +115,7 @@ const {
 
 .player-artist {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--askew-cream);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -129,53 +128,57 @@ const {
 }
 
 .ctrl-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.4rem;
+  background: var(--askew-btn-hover);
+  border: 1px solid #000000;
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  color: var(--bg-primary);
+  font-size: 1.3rem;
   cursor: pointer;
   padding: 6px;
-  border-radius: 50%;
-  transition: color var(--transition-fast);
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ctrl-btn:hover {
-  color: var(--text-primary);
+  background: var(--askew-btn-highlight);
+  border-color: var(--askew-dark-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn-hover);
+  color: var(--askew-gold);
 }
 
 .ctrl-play {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--glass-border);
+  width: 36px;
+  height: 36px;
   font-size: 1.3rem;
 }
 
 .ctrl-play:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-btn-highlight);
+  border-color: var(--askew-dark-border);
+  color: var(--askew-gold);
 }
 
 .ctrl-add {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--glass-border);
+  width: 36px;
+  height: 36px;
   font-size: 1.2rem;
 }
 
 .ctrl-active {
-  color: var(--accent-teal);
+  color: var(--askew-gold);
 }
 
 .ctrl-active:hover {
-  color: var(--accent-teal);
+  color: var(--askew-gold);
 }
 
 .ctrl-add:hover {
-  border-color: var(--accent-teal);
-  color: var(--accent-teal);
+  background: var(--askew-btn-highlight);
+  border-color: var(--askew-dark-border);
+  color: var(--askew-gold);
 }
 
 .player-progress {
@@ -187,7 +190,7 @@ const {
 
 .time {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--askew-cream);
   min-width: 36px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -196,8 +199,8 @@ const {
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
   cursor: pointer;
   position: relative;
 }
@@ -208,9 +211,21 @@ const {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-teal), var(--accent-purple));
-  border-radius: 3px;
+  background: var(--askew-gold);
   transition: width 0.1s linear;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: var(--askew-gold);
+  border: 1px solid #000000;
 }
 
 .player-volume {
@@ -222,7 +237,7 @@ const {
 
 .volume-icon {
   font-size: 1.1rem;
-  color: var(--text-secondary);
+  color: var(--askew-cream);
 }
 
 .volume-bar-wrapper {
@@ -237,14 +252,14 @@ const {
   appearance: none;
   width: 80px;
   height: 6px;
-  border-radius: 3px;
   background: linear-gradient(
     to right,
-    var(--accent-teal) 0%,
-    var(--accent-teal) var(--volume-pct, 100%),
-    rgba(255, 255, 255, 0.1) var(--volume-pct, 100%),
-    rgba(255, 255, 255, 0.1) 100%
+    var(--askew-gold) 0%,
+    var(--askew-gold) var(--volume-pct, 100%),
+    var(--askew-btn-disabled) var(--volume-pct, 100%),
+    var(--askew-btn-disabled) 100%
   );
+  border: 1px solid #000000;
   outline: none;
 }
 
@@ -253,25 +268,21 @@ const {
   appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: var(--accent-teal);
+  background: var(--askew-gold);
+  border: 1px solid #000000;
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
 }
 
 .volume-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: var(--accent-teal);
+  background: var(--askew-gold);
+  border: 1px solid #000000;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 0 6px rgba(0, 232, 184, 0.4);
 }
 
 .volume-slider::-moz-range-progress {
-  background: var(--accent-teal);
-  border-radius: 3px;
+  background: var(--askew-gold);
   height: 6px;
 }
 
