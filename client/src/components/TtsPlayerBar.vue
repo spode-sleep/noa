@@ -232,7 +232,7 @@ const {
 }
 
 .volume-icon {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 1.1rem;
 }
 

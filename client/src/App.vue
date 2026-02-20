@@ -4,9 +4,9 @@
     <main class="container" :class="{ 'has-player': !!currentTrack || ttsActive }">
       <router-view />
     </main>
-    <div class="player-stack" @mouseenter="stackHover = true" @mouseleave="stackHover = false">
+    <div class="player-stack">
       <button
-        v-if="stackHover && !isMinimized && (!!currentTrack || ttsActive)"
+        v-if="!isMinimized && (!!currentTrack || ttsActive)"
         class="stack-minimize-btn"
         @click="toggleMinimize"
         title="Minimize players"
@@ -85,7 +85,6 @@ const { currentTrack, isPlaying } = useMusicPlayer()
 const { isActive: ttsActive } = useTtsPlayer()
 const { isMinimized, toggleMinimize } = usePlayerStack()
 
-const stackHover = ref(false)
 const showPlaylistPicker = ref(false)
 const pickerTrack = ref<Track | null>(null)
 const pickerNewName = ref('')
@@ -166,8 +165,9 @@ main.has-player {
 
 .stack-minimize-btn {
   position: absolute;
-  top: -32px;
+  top: 0;
   right: 16px;
+  transform: translateY(-50%);
   z-index: 1002;
   width: 28px;
   height: 28px;
