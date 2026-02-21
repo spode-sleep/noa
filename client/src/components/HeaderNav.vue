@@ -70,7 +70,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-logo-icon {
-  font-size: 1.6rem;
+  font-size: 2rem;
   color: var(--askew-gold);
 }
 
