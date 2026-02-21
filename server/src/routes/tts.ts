@@ -64,6 +64,17 @@ function getModelPath(voice: string): string | null {
   return null;
 }
 
+function getModelSampleRate(modelPath: string): number {
+  try {
+    const configPath = modelPath + '.json';
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (config.audio?.sample_rate) return config.audio.sample_rate;
+    }
+  } catch { /* fall through to default */ }
+  return 22050;
+}
+
 function stripMarkdown(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, '')
@@ -118,8 +129,8 @@ router.post('/synthesize', (req: Request, res: Response) => {
 
   const piper = spawn(resolvedPiperPath!, args, { stdio: ['pipe', 'pipe', 'pipe'], env: piperEnv });
 
-  // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono 22050Hz)
-  const sampleRate = 22050;
+  // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono)
+  const sampleRate = getModelSampleRate(modelPath);
   const bitsPerSample = 16;
   const numChannels = 1;
   const headerSize = 44;
