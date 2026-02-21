@@ -504,7 +504,7 @@ onBeforeUnmount(() => {
   padding: 10px 14px;
   border: 1px solid var(--askew-tab-border);
   border-radius: 0px;
-  background: var(--askew-cream);
+  background: var(--askew-gold);
   color: var(--bg-primary);
   cursor: pointer;
   font-size: 0.9rem;
@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
 }
 
 .new-chat-btn:hover {
-  background: var(--bg-tertiary);
+  background: var(--askew-cream);
 }
 
 .conversation-list {
