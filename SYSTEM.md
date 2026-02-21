@@ -121,7 +121,8 @@ cp server/.env.example server/.env
 | `FICTION_LIBRARY_PATH`  | Book directories (comma-separated for multiple)  | `/home/user/Books,/media/user/USB/Books`|
 | `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference,/media/user/USB/ZIM`|
 | `TTS_MODEL_PATH`       | Path to Piper TTS model files                   | `/home/user/models/piper`        |
-| `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-irina-medium`             |
+| `TTS_DEFAULT_VOICE`    | Default TTS voice identifier (Russian)           | `ru_RU-irina-medium`             |
+| `TTS_EN_VOICE`         | English TTS voice (auto-selected for English text)| `en_US-lessac-medium`           |
 | `PIPER_PATH`           | Path to Piper TTS binary (avoids GTK piper conflict) | `/opt/piper-tts/piper`  |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
 
@@ -134,6 +135,7 @@ FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Books/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-irina-medium
+TTS_EN_VOICE=en_US-lessac-medium
 PIPER_PATH=/opt/piper-tts/piper
 DATA_PATH=../data
 ```
@@ -421,6 +423,7 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/mediu
 PIPER_PATH=/opt/piper-tts/piper
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-irina-medium
+TTS_EN_VOICE=en_US-lessac-medium
 ```
 
 ### Test TTS
