@@ -97,7 +97,7 @@ function isActive(to: string): boolean {
   color: var(--text-primary);
   background: var(--askew-btn-hover);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-mint), inset -1px -1px 0 var(--askew-btn);
 }
 
 .nav-link.active {
