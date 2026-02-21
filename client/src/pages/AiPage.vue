@@ -540,9 +540,9 @@ onBeforeUnmount(() => {
 }
 
 .conversation-item.active {
-  background: var(--askew-blue);
+  background: var(--accent-blue);
   border: 1px solid var(--askew-tab-border);
-  box-shadow: inset 1px 1px 0 var(--askew-blue-light), inset -1px -1px 0 var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cyan), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .conversation-title-row {
