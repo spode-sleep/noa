@@ -22,7 +22,7 @@
         <div class="archive-info">
           <div class="archive-title">{{ archive.displayName }}</div>
           <div class="archive-meta">
-            <span class="format-badge">ZIM</span>
+            <span class="format-badge format-zim">ZIM</span>
             <span class="archive-size">{{ formatFileSize(archive.size) }}</span>
           </div>
         </div>
@@ -169,6 +169,12 @@ h1 {
   color: var(--text-primary);
   border: 1px solid #000000;
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+}
+
+.format-zim {
+  background: var(--askew-btn-disabled);
+  box-shadow: inset 1px 1px 0 var(--askew-btn), inset -1px -1px 0 var(--askew-dark-border);
+  color: var(--askew-cyan);
 }
 
 @media (max-width: 560px) {
