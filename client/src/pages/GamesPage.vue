@@ -572,7 +572,7 @@ h1 {
 
 .not-archived-badge {
   position: absolute;
-  bottom: 4px;
+  bottom: 8px;
   right: 8px;
   color: var(--askew-red);
   line-height: 1;

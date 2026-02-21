@@ -640,7 +640,7 @@ onUnmounted(() => {
   padding: 3px 10px;
   border-radius: 0px;
   white-space: nowrap;
-  align-self: center;
+  align-self: flex-end;
 }
 
 .archive-chip.not-archived {
