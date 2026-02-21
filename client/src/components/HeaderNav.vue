@@ -81,6 +81,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-link {
+  font-family: 'AskewFont', 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
   padding: 6px 14px;
   color: var(--text-primary);
   font-weight: 500;

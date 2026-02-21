@@ -96,6 +96,10 @@ a:hover {
   color: var(--askew-gold);
 }
 
+h1 {
+  font-family: 'AskewFont', 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
+}
+
 .glass {
   background: var(--glass-bg);
   border: 1px solid #000000;
