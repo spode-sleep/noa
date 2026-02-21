@@ -58,6 +58,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-logo {
+  font-family: 'AskewFont', 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
