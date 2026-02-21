@@ -341,7 +341,7 @@ h1 {
   background: var(--askew-btn-hover);
   border-color: var(--askew-dark-border);
   color: var(--text-primary);
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-mint), inset -1px -1px 0 var(--askew-btn);
 }
 
 .tags-count {
@@ -455,7 +455,7 @@ h1 {
   background: var(--askew-btn-hover);
   border-color: var(--askew-dark-border);
   color: var(--text-primary);
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-mint), inset -1px -1px 0 var(--askew-btn);
 }
 
 .modal-search {
@@ -543,7 +543,7 @@ h1 {
 .modal-done-btn:hover {
   background: var(--askew-btn-hover);
   border-color: var(--askew-dark-border);
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-mint), inset -1px -1px 0 var(--askew-btn);
 }
 
 .loading,

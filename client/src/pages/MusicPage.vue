@@ -691,7 +691,7 @@ h1 {
 
 .btn:hover {
   background: var(--askew-btn-hover, #82cab1);
-  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  box-shadow: inset 1px 1px 0 var(--askew-mint, #82cab1), inset -1px -1px 0 var(--askew-btn, #1b8285);
   border-color: var(--askew-dark-border, #000d12);
   color: #000000;
 }
@@ -875,7 +875,7 @@ h1 {
 
 .play-btn:hover {
   background: var(--askew-btn-hover, #82cab1);
-  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  box-shadow: inset 1px 1px 0 var(--askew-mint, #82cab1), inset -1px -1px 0 var(--askew-btn, #1b8285);
   color: #000000;
 }
 
@@ -1057,7 +1057,7 @@ h1 {
 
 .add-to-playlist-btn:hover {
   background: var(--askew-btn-hover, #82cab1);
-  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  box-shadow: inset 1px 1px 0 var(--askew-mint, #82cab1), inset -1px -1px 0 var(--askew-btn, #1b8285);
   color: #000000;
 }
 
@@ -1114,7 +1114,7 @@ h1 {
 
 .picker-close:hover {
   background: var(--askew-btn-hover, #82cab1);
-  box-shadow: inset 1px 1px 0 var(--askew-cream, #e6d298), inset -1px -1px 0 var(--askew-btn, #1b8285);
+  box-shadow: inset 1px 1px 0 var(--askew-mint, #82cab1), inset -1px -1px 0 var(--askew-btn, #1b8285);
   color: #000000;
 }
 
