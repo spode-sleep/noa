@@ -114,9 +114,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page {
-  padding: 24px 0;
-}
 
 h1 {
   font-size: 2rem;

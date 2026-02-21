@@ -568,7 +568,6 @@ onUnmounted(() => {
 }
 
 .page {
-  padding: 24px 0;
   flex: 1;
   min-width: 0;
 }

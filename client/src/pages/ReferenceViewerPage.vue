@@ -73,9 +73,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page {
-  padding: 24px 0;
-}
 
 .viewer-header {
   display: flex;
