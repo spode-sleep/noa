@@ -459,20 +459,20 @@ export async function runAgent(
     if (!/^[\w.\-]+$/.test(branchName)) {
       actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
     } else {
+      let uniqueName = branchName;
       try {
         // Ensure unique branch name by appending numeric suffix if it already exists
         const existingBranches = execSync('git branch --list', { cwd: workdir, encoding: 'utf-8' })
           .split('\n').map(b => b.replace(/^\*?\s+/, '').trim()).filter(Boolean);
-        let uniqueName = branchName;
         let suffix = 2;
         while (existingBranches.includes(uniqueName)) {
           uniqueName = `${branchName}-${suffix++}`;
         }
-        execSync(`git checkout -b ${uniqueName}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+        execFileSync('git', ['checkout', '-b', uniqueName], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         createdBranch = uniqueName;
         actions.push({ tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch created: ${uniqueName}` });
       } catch (err: any) {
-        actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch creation error: ${err.message}` });
+        actions.push({ tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch creation error: ${err.message}` });
       }
     }
   }
