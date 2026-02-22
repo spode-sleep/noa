@@ -450,7 +450,7 @@ async function sendMessage() {
         history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
         model: selectedModel.value,
         repo: selectedRepo.value || undefined,
-        branch: selectedBranch.value || undefined,
+        branch: agentCurrentBranch.value || selectedBranch.value || undefined,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,
