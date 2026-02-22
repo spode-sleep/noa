@@ -206,11 +206,30 @@ function pktLine(data: string): string {
   return `${len}${data}`;
 }
 
+// Whitelist mapping for allowed git services
+const GIT_SERVICES: Record<string, string> = {
+  'git-upload-pack': 'git-upload-pack',
+  'git-receive-pack': 'git-receive-pack',
+};
+
+function spawnGitService(serviceBin: string, args: string[], repoPath: string, req: Request, res: Response) {
+  const proc = spawn(serviceBin, args);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', (data: Buffer) => {
+    console.error(`[git-http] ${serviceBin} stderr:`, data.toString());
+  });
+  proc.on('error', (err) => {
+    console.error(`[git-http] ${serviceBin} error:`, err);
+    if (!res.headersSent) res.status(500).send(`${serviceBin} process failed`);
+  });
+  return proc;
+}
+
 // GET /git/:name/info/refs?service=git-upload-pack|git-receive-pack
 router.get('/git/:name/info/refs', (req: Request, res: Response) => {
-  const service = req.query.service as string;
-  if (service !== 'git-upload-pack' && service !== 'git-receive-pack') {
-    res.status(403).send('Service not supported');
+  const serviceBin = GIT_SERVICES[req.query.service as string];
+  if (!serviceBin) {
+    res.status(403).send('Service not supported. Expected git-upload-pack or git-receive-pack');
     return;
   }
 
@@ -220,21 +239,14 @@ router.get('/git/:name/info/refs', (req: Request, res: Response) => {
     return;
   }
 
-  res.setHeader('Content-Type', `application/x-${service}-advertisement`);
+  res.setHeader('Content-Type', `application/x-${serviceBin}-advertisement`);
   res.setHeader('Cache-Control', 'no-cache');
 
   // Write service announcement header
-  res.write(pktLine(`# service=${service}\n`));
+  res.write(pktLine(`# service=${serviceBin}\n`));
   res.write('0000');
 
-  const proc = spawn(service, ['--stateless-rpc', '--advertise-refs', repoPath]);
-  proc.stdout.pipe(res);
-  proc.stderr.on('data', (data: Buffer) => {
-    console.error(`[git-http] ${service} stderr:`, data.toString());
-  });
-  proc.on('error', () => {
-    if (!res.headersSent) res.status(500).send('Git process error');
-  });
+  spawnGitService(serviceBin, ['--stateless-rpc', '--advertise-refs', repoPath], repoPath, req, res);
 });
 
 // POST /git/:name/git-upload-pack (clone/fetch)
@@ -248,15 +260,7 @@ router.post('/git/:name/git-upload-pack', express.raw({ type: 'application/x-git
   res.setHeader('Content-Type', 'application/x-git-upload-pack-result');
   res.setHeader('Cache-Control', 'no-cache');
 
-  const proc = spawn('git-upload-pack', ['--stateless-rpc', repoPath]);
-  proc.stdout.pipe(res);
-  proc.stderr.on('data', (data: Buffer) => {
-    console.error('[git-http] upload-pack stderr:', data.toString());
-  });
-  proc.on('error', () => {
-    if (!res.headersSent) res.status(500).send('Git process error');
-  });
-
+  const proc = spawnGitService('git-upload-pack', ['--stateless-rpc', repoPath], repoPath, req, res);
   if (Buffer.isBuffer(req.body) && req.body.length > 0) {
     proc.stdin.write(req.body);
     proc.stdin.end();
@@ -276,15 +280,7 @@ router.post('/git/:name/git-receive-pack', express.raw({ type: 'application/x-gi
   res.setHeader('Content-Type', 'application/x-git-receive-pack-result');
   res.setHeader('Cache-Control', 'no-cache');
 
-  const proc = spawn('git-receive-pack', ['--stateless-rpc', repoPath]);
-  proc.stdout.pipe(res);
-  proc.stderr.on('data', (data: Buffer) => {
-    console.error('[git-http] receive-pack stderr:', data.toString());
-  });
-  proc.on('error', () => {
-    if (!res.headersSent) res.status(500).send('Git process error');
-  });
-
+  const proc = spawnGitService('git-receive-pack', ['--stateless-rpc', repoPath], repoPath, req, res);
   if (Buffer.isBuffer(req.body) && req.body.length > 0) {
     proc.stdin.write(req.body);
     proc.stdin.end();
