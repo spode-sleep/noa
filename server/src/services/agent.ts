@@ -3,6 +3,10 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import { Ollama, Tool, Message } from 'ollama';
 
+const MAX_FILE_SIZE_BYTES = 512 * 1024;
+const MAX_TOOL_ITERATIONS = 15;
+const MAX_ACTION_RESULT_LENGTH = 200;
+
 // --- Path safety ---
 
 function sanitizeRelativePath(relPath: string): string | null {
@@ -115,7 +119,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         const fullPath = path.join(repoPath, rel);
         if (!fs.existsSync(fullPath)) return `Error: file not found: ${rel}`;
         const stat = fs.statSync(fullPath);
-        if (stat.size > 512 * 1024) return 'Error: file too large (max 512KB)';
+        if (stat.size > MAX_FILE_SIZE_BYTES) return 'Error: file too large (max 512KB)';
         return fs.readFileSync(fullPath, 'utf-8');
       }
       case 'write_file': {
@@ -141,7 +145,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
       }
       case 'git_create_branch': {
         const branch = args.branch_name || '';
-        if (!branch || !/^[\w.\-/]+$/.test(branch)) return 'Error: invalid branch name';
+        if (!branch || !/^[\w.\-]+$/.test(branch)) return 'Error: invalid branch name';
         execSync(`git checkout -b ${branch}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return `Branch created and checked out: ${branch}`;
       }
@@ -190,8 +194,6 @@ export interface AgentResult {
 }
 
 // --- Main agent runner using official Ollama client ---
-
-const MAX_TOOL_ITERATIONS = 15;
 
 export async function runAgent(
   model: string,
@@ -259,7 +261,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         }
 
         const result = executeTool(toolName, toolArgs, repoPath);
-        actions.push({ tool: toolName, args: toolArgs, result: result.slice(0, 200) });
+        actions.push({ tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
 
         // Add tool result to conversation
         messages.push({ role: 'tool', content: result });
