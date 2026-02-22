@@ -76,12 +76,19 @@ const repo = ref<RepoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
 const copyLabel = ref('📋 Copy')
+let copyTimeout: ReturnType<typeof setTimeout> | null = null
 
 function copyCloneUrl() {
   if (!repo.value?.cloneUrl) return
-  navigator.clipboard.writeText(`git clone ${repo.value.cloneUrl}`)
-  copyLabel.value = '✓ Copied'
-  setTimeout(() => { copyLabel.value = '📋 Copy' }, 2000)
+  navigator.clipboard.writeText(`git clone ${repo.value.cloneUrl}`).then(() => {
+    copyLabel.value = '✓ Copied'
+    if (copyTimeout) clearTimeout(copyTimeout)
+    copyTimeout = setTimeout(() => { copyLabel.value = '📋 Copy' }, 2000)
+  }).catch(() => {
+    copyLabel.value = '⚠ Failed'
+    if (copyTimeout) clearTimeout(copyTimeout)
+    copyTimeout = setTimeout(() => { copyLabel.value = '📋 Copy' }, 2000)
+  })
 }
 
 function formatDate(dateStr: string): string {
@@ -181,6 +188,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.title = 'BOX'
+  if (copyTimeout) clearTimeout(copyTimeout)
 })
 </script>
 
