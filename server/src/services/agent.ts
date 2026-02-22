@@ -9,7 +9,7 @@ const MAX_ACTION_RESULT_LENGTH = 200;
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'list_files',
-  'git_create_branch', 'git_status', 'git_diff', 'git_commit', 'git_revert',
+  'git_status', 'git_diff', 'git_commit', 'git_revert',
 ]);
 
 // --- Text-based tool call parser ---
@@ -126,20 +126,6 @@ const AGENT_TOOLS: Tool[] = [
   {
     type: 'function',
     function: {
-      name: 'git_create_branch',
-      description: 'Create a new git branch and switch to it',
-      parameters: {
-        type: 'object',
-        properties: {
-          branch_name: { type: 'string', description: 'Name of the new branch' },
-        },
-        required: ['branch_name'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
       name: 'git_status',
       description: 'Show the current git status (changed, staged, untracked files)',
       parameters: { type: 'object', properties: {} },
@@ -218,12 +204,6 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
           .sort()
           .join('\n') || '(empty directory)';
       }
-      case 'git_create_branch': {
-        const branch = args.branch_name || '';
-        if (!branch || !/^[\w.\-]+$/.test(branch)) return 'Error: invalid branch name';
-        execSync(`git checkout -b ${branch}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        return `Branch created and checked out: ${branch}`;
-      }
       case 'git_status':
         return execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)';
       case 'git_diff':
@@ -289,6 +269,36 @@ function getCurrentBranch(repoPath: string): string {
   }
 }
 
+function hasUncommittedChanges(repoPath: string): boolean {
+  try {
+    const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+    return status.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function generateBranchName(client: Ollama, model: string, userMessage: string): Promise<string> {
+  try {
+    const response = await client.chat({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'Generate a short git branch name (2-4 words, kebab-case, lowercase, no special characters except hyphens) that describes the task. Respond with ONLY the branch name, nothing else. Examples: add-binary-search, fix-login-bug, update-readme, refactor-api-routes',
+        },
+        { role: 'user', content: userMessage },
+      ],
+    });
+    const raw = (response.message.content || '').trim().replace(/[^a-z0-9\-]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+    if (raw.length >= 3 && raw.length <= 60) return raw;
+  } catch {
+    // fallback below
+  }
+  // Fallback: generate from timestamp
+  return `agent-${Date.now().toString(36)}`;
+}
+
 export async function runAgent(
   model: string,
   userMessage: string,
@@ -308,8 +318,13 @@ export async function runAgent(
     },
   });
 
+  // Auto-init git if needed
+  if (!isGitRepo) {
+    autoInitGit(repoPath, actions);
+  }
+
   // Checkout the requested branch if specified and repo is a git repo
-  if (isGitRepo && branch && /^[\w.\-/]+$/.test(branch)) {
+  if (branch && /^[\w.\-/]+$/.test(branch)) {
     try {
       const currentBranch = getCurrentBranch(repoPath);
       if (currentBranch !== branch) {
@@ -321,43 +336,42 @@ export async function runAgent(
     }
   }
 
-  const workflowSteps = isFirstMessage
-    ? `1. Explore the repository structure with list_files
-2. Read relevant files to understand the codebase
-3. MANDATORY: Create a new branch with git_create_branch BEFORE any write_file calls
-4. Make changes with write_file
-5. Verify with git_status
-6. Commit with git_commit`
-    : `1. Explore the repository structure with list_files
-2. Read relevant files to understand the codebase
-3. Make changes with write_file
-4. Verify with git_status
-5. Commit with git_commit`;
+  // On first message: generate branch name and create it before the agent loop
+  let createdBranch = '';
+  if (isFirstMessage) {
+    const branchName = await generateBranchName(client, model, userMessage);
+    try {
+      execSync(`git checkout -b ${branchName}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+      createdBranch = branchName;
+      actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch created: ${branchName}` });
+    } catch (err: any) {
+      actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch creation error: ${err.message}` });
+    }
+  }
 
-  const branchRules = isFirstMessage
-    ? `- You MUST create a new branch using git_create_branch before making any changes. This is required.
-- In your response, always mention the name of the new branch you created.`
-    : '- A branch was already created in a previous message. Do NOT create new branches.';
+  const branchInfo = createdBranch
+    ? `A new branch "${createdBranch}" has been automatically created for this task (parent: "${branch}").`
+    : '';
 
   const systemPrompt = `You are NOA Code Agent — an AI assistant that can read, write, and manage code in local git repositories.
-You are currently working with the repository "${repoName}"${branch ? ` on branch "${branch}"` : ''}.
-${!isGitRepo ? 'This directory is NOT a git repository yet. Git will be auto-initialized when you use any git tool.' : ''}
+You are currently working with the repository "${repoName}" on branch "${createdBranch || getCurrentBranch(repoPath)}".
+${branchInfo}
 
 WORKFLOW for code changes:
-${workflowSteps}
+1. Explore the repository structure with list_files
+2. Read relevant files to understand the codebase
+3. Make changes with write_file
+4. Verify with git_status and git_diff
+5. Commit with git_commit
 
 IMPORTANT RULES:
-${branchRules}
-- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
+- Do NOT create new branches. The branch has already been created for you.
+- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.${createdBranch ? `\n- Mention that changes were made on branch "${createdBranch}".` : ''}
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
 - You can revert to a previous commit using git_revert if needed.
+- Always commit your changes with git_commit when done.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
-
-  // Only include git_create_branch on first message
-  const tools = isFirstMessage
-    ? AGENT_TOOLS
-    : AGENT_TOOLS.filter(t => t.function.name !== 'git_create_branch');
 
   const messages: Message[] = [
     { role: 'system', content: systemPrompt },
@@ -368,12 +382,14 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     { role: 'user', content: userMessage },
   ];
 
+  let lastResponse = '';
+
   try {
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
       const response = await client.chat({
         model,
         messages,
-        tools,
+        tools: AGENT_TOOLS,
       });
 
       let toolCalls = response.message.tool_calls || [];
@@ -391,13 +407,11 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         }
       }
 
-      // If no tool calls found (neither structured nor text), return final response
+      lastResponse = response.message.content || '';
+
+      // If no tool calls found (neither structured nor text), break out of loop
       if (toolCalls.length === 0) {
-        return {
-          response: response.message.content || 'Done.',
-          actions,
-          currentBranch: getCurrentBranch(repoPath),
-        };
+        break;
       }
 
       // Add assistant message to history — preserve structured tool_calls
@@ -413,12 +427,6 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         const toolName = tc.function.name;
         const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
 
-        // Block branch creation after first message
-        if (toolName === 'git_create_branch' && !isFirstMessage) {
-          messages.push({ role: 'tool', content: 'Error: branch creation is only allowed in the first message. A branch has already been created for this conversation.' });
-          continue;
-        }
-
         // Auto-init git if needed before any git operation
         if (toolName.startsWith('git_')) {
           autoInitGit(repoPath, actions);
@@ -432,13 +440,34 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       }
     }
 
-    // If we hit the iteration limit, return the last content
+    // Auto-commit any uncommitted changes
+    if (hasUncommittedChanges(repoPath)) {
+      try {
+        execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        actions.push({ tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
+      } catch {
+        // ignore commit errors (e.g. nothing to commit)
+      }
+    }
+
     return {
-      response: 'Agent reached maximum iterations.',
+      response: lastResponse || 'Done.',
       actions,
       currentBranch: getCurrentBranch(repoPath),
     };
   } catch (err: any) {
+    // Auto-commit even on error
+    if (hasUncommittedChanges(repoPath)) {
+      try {
+        execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        actions.push({ tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
+      } catch {
+        // ignore
+      }
+    }
+
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,
