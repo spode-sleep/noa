@@ -306,6 +306,32 @@ function extractSectionChunks(
   return chunks;
 }
 
+function walkZimDir(dir: string, visited = new Set<string>()): string[] {
+  return walkRefDir(dir, ['.zim'], visited);
+}
+
+function walkTextDir(dir: string, extensions: string[], visited = new Set<string>()): string[] {
+  return walkRefDir(dir, extensions, visited);
+}
+
+function walkRefDir(dir: string, extensions: string[], visited = new Set<string>()): string[] {
+  const results: string[] = [];
+  if (!fs.existsSync(dir)) return results;
+  const realDir = fs.realpathSync(dir);
+  if (visited.has(realDir)) return results;
+  visited.add(realDir);
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...walkRefDir(fullPath, extensions, visited));
+    } else if (extensions.some(ext => entry.name.toLowerCase().endsWith(ext))) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
 async function collectReferenceChunks(): Promise<DocumentChunk[]> {
   const chunks: DocumentChunk[] = [];
   const seenTexts = new Set<string>(); // Deduplication
@@ -318,15 +344,14 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
   for (const refPath of refPaths) {
     try {
       if (!fs.existsSync(refPath)) continue;
-      const files = fs.readdirSync(refPath);
-      for (const file of files) {
-        if (!file.endsWith('.zim')) continue;
+      const zimFiles = walkZimDir(refPath);
+      for (const zimPath of zimFiles) {
+        const file = path.basename(zimPath);
         if (chunks.length >= MAX_CHUNKS) {
           console.log(`[RAG] Chunk limit (${MAX_CHUNKS}) reached, stopping extraction`);
           break;
         }
 
-        const zimPath = path.join(refPath, file);
         const zimBasename = file.replace('.zim', '');
         console.log(`[RAG] Extracting articles from ZIM: ${file}`);
 
@@ -416,27 +441,25 @@ async function collectReferenceChunks(): Promise<DocumentChunk[]> {
     }
   }
 
-  // Also read .txt or .md files
+  // Also read .txt or .md files recursively
   for (const refPath of refPaths) {
     try {
-      if (!fs.existsSync(refPath)) continue;
-      const files = fs.readdirSync(refPath);
-      for (const file of files) {
-        if (file.endsWith('.txt') || file.endsWith('.md')) {
-          const filePath = path.join(refPath, file);
-          const stat = fs.statSync(filePath);
-          if (stat.size > 1024 * 1024) continue;
-          const content = fs.readFileSync(filePath, 'utf-8');
-          const textChunks = splitIntoChunks(content, CHUNK_SIZE, CHUNK_OVERLAP);
-          for (let i = 0; i < textChunks.length; i++) {
-            chunks.push({
-              id: `ref-${file}-${i}`,
-              text: textChunks[i],
-              source: `Reference: ${file}`,
-              sourceType: 'reference',
-              metadata: { filename: file, chunkIndex: i },
-            });
-          }
+      const textFiles = walkTextDir(refPath, ['.txt', '.md']);
+      for (const filePath of textFiles) {
+        const file = path.basename(filePath);
+        const relPath = path.relative(refPath, filePath).replace(/[/\\]/g, '_');
+        const stat = fs.statSync(filePath);
+        if (stat.size > 1024 * 1024) continue;
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const textChunks = splitIntoChunks(content, CHUNK_SIZE, CHUNK_OVERLAP);
+        for (let i = 0; i < textChunks.length; i++) {
+          chunks.push({
+            id: `ref-${relPath}-${i}`,
+            text: textChunks[i],
+            source: `Reference: ${file}`,
+            sourceType: 'reference',
+            metadata: { filename: file, chunkIndex: i },
+          });
         }
       }
     } catch (err) {
