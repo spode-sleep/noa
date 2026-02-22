@@ -209,7 +209,7 @@ export async function runAgent(
   const client = new Ollama({ host: ollamaHost });
 
   // Checkout the requested branch if specified and repo is a git repo
-  if (isGitRepo && branch) {
+  if (isGitRepo && branch && /^[\w.\-/]+$/.test(branch)) {
     try {
       const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
       if (currentBranch !== branch) {
