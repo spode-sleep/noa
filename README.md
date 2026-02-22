@@ -8,15 +8,15 @@ Offline Knowledge & Media Hub — a fully offline local application for long-ter
 - **🎵 Music** — Local music player with library scanning, metadata and playlists
 - **📖 Fiction** — PDF/EPUB/FB2 reader with bookmarks and reading position saving
 - **📚 Reference** — ZIM archive browser for offline Wikipedia, WikiHow, iFixIt and more
-- **🔧 Warez** — Local git repository browser with README viewer, file tree, and AI Code Agent for automated code changes
-- **🤖 AI Librarian** — Local AI chat with multi-model selection and RAG-powered knowledge base search (Ollama + ChromaDB)
+- **🔧 Warez** — Local git repository browser with README viewer and file tree
+- **🤖 AI Librarian** — Local AI agent with multi-model selection, RAG-powered knowledge base search (Ollama + ChromaDB), and code agent mode for automated repository changes
 - **🔊 TTS** — Text-to-speech via Piper TTS for reading AI responses and articles aloud
 
 ## Tech Stack
 
 - **Frontend**: Vue 3, TypeScript, Composition API, Vue Router, Vite
 - **Backend**: Node.js, Express, TypeScript
-- **AI/LLM**: Ollama (local LLM, auto-launched), `ollama` npm client for agent tool-calling
+- **AI/LLM**: Ollama (local LLM, auto-launched), `ollama` npm client for AI agent tool-calling
 - **Vector DB**: ChromaDB (for RAG, auto-launched)
 - **TTS**: Piper TTS (local, offline)
 - **Design**: Dark Frutiger Aurora theme, glassmorphism, desktop-first
@@ -314,15 +314,21 @@ Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM arch
 ### Warez
 Set WAREZ_LIBRARY_PATH in .env, pointing to directories containing git repositories or other project folders. BOX will display them with git metadata (branch, commits, last commit message) and render README files.
 
-Each repository page includes an **AI Code Agent** panel — an LLM-powered assistant that can browse, edit, and manage code directly in your local repositories. See [AI Code Agent](#ai-code-agent) below.
-
 ---
 
 ## AI Code Agent
 
-The Warez section includes a built-in AI agent that can work with your local repositories — similar to GitHub Copilot, but fully local via Ollama.
+The AI Librarian includes a built-in code agent mode — similar to GitHub Copilot Agent, but fully local via Ollama.
 
-### Capabilities
+### How to use
+
+1. Open the **AI Librarian** page
+2. Before starting a chat, select a repository from the **Repository** dropdown (repos from WAREZ_LIBRARY_PATH)
+3. Describe the changes you want in natural language
+4. The agent will explore the codebase, create a branch, make changes, and commit — all automatically
+5. If no repository is selected, the AI works as a regular chat assistant with RAG
+
+### Agent capabilities
 
 The agent has access to the following tools via Ollama native tool-calling:
 
@@ -336,31 +342,20 @@ The agent has access to the following tools via Ollama native tool-calling:
 | `git_diff` | Show uncommitted changes |
 | `git_commit` | Stage all changes and commit |
 
-### How it works
-
-1. Open any repository in the Warez section
-2. Expand the **Agent** panel at the bottom of the page
-3. Describe the changes you want in natural language
-4. The agent will explore the codebase, create a branch, make changes, and commit — all automatically
-
 ### Auto-init git
 
-If a directory in WAREZ_LIBRARY_PATH is not a git repository, git will be automatically initialized (with an initial commit) when the agent performs any git operation. You can also manually init git via the API:
-
-```bash
-curl -X POST http://localhost:3001/api/warez/repos/<name>/git/init
-```
+If a directory in WAREZ_LIBRARY_PATH is not a git repository, git will be automatically initialized (with an initial commit) when the agent performs any git operation.
 
 ### Agent API
 
 ```bash
 # Chat with the agent for a specific repository
-curl -X POST http://localhost:3001/api/warez/repos/<name>/agent/chat \
+curl -X POST http://localhost:3001/api/ai/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Create a README.md for this project", "history": []}'
+  -d '{"message": "Create a README.md for this project", "repo": "my-project", "history": []}'
 
-# List branches
-curl http://localhost:3001/api/warez/repos/<name>/branches
+# List available repos
+curl http://localhost:3001/api/ai/repos
 ```
 
 ---

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from '../services/rag';
+import { runAgent } from '../services/agent';
 
 const router = Router();
 
@@ -30,6 +31,48 @@ const llmModel = getConfiguredModels()[0];
 function isModelAllowed(model: string): boolean {
   const allowed = getConfiguredModels();
   return allowed.includes(model);
+}
+
+// --- Warez repo resolution for agent ---
+
+import { execSync } from 'child_process';
+
+const warezPaths = (process.env.WAREZ_LIBRARY_PATH || '')
+  .split(',')
+  .map(p => p.trim())
+  .filter(Boolean);
+
+interface RepoInfo {
+  name: string;
+  path: string;
+  branch: string;
+  isGitRepo: boolean;
+}
+
+function findWarezRepos(): RepoInfo[] {
+  const repos: RepoInfo[] = [];
+  for (const warezPath of warezPaths) {
+    if (!fs.existsSync(warezPath)) continue;
+    const entries = fs.readdirSync(warezPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const fullPath = path.join(warezPath, entry.name);
+      const isGitRepo = fs.existsSync(path.join(fullPath, '.git'));
+      let branch = '';
+      if (isGitRepo) {
+        try {
+          branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: fullPath, encoding: 'utf-8', timeout: 5000 }).trim();
+        } catch { /* ignore */ }
+      }
+      repos.push({ name: entry.name, path: fullPath, branch, isGitRepo });
+    }
+  }
+  return repos.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function findRepoByName(name: string): RepoInfo | null {
+  if (!name || name.includes('/') || name.includes('\\') || name === '..' || name === '.') return null;
+  return findWarezRepos().find(r => r.name === name) || null;
 }
 
 function readJSON(filepath: string): unknown {
@@ -198,9 +241,9 @@ async function sendToLlamaCpp(model: string, messages: ChatMessage[]): Promise<s
   });
 }
 
-// POST /api/ai/chat - Send message to AI
+// POST /api/ai/chat - Send message to AI Agent
 router.post('/chat', async (req: Request, res: Response) => {
-  const { message, history, context, model: requestedModel } = req.body;
+  const { message, history, context, model: requestedModel, repo: repoName } = req.body;
 
   if (typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'message is required' });
@@ -213,6 +256,60 @@ router.post('/chat', async (req: Request, res: Response) => {
     ? trimmedModel
     : llmModel;
 
+  // Check if LLM is available
+  const status = await checkLlmAvailability();
+  if (!status.available) {
+    res.json({
+      role: 'assistant',
+      content: `AI assistant is not available. ${status.message}`,
+      sources: [],
+      actions: [],
+    });
+    return;
+  }
+
+  // If a repo is selected, use the agent with tool-calling
+  if (typeof repoName === 'string' && repoName.trim()) {
+    const repo = findRepoByName(repoName.trim());
+    if (!repo) {
+      res.json({
+        role: 'assistant',
+        content: `Repository "${repoName}" not found in Warez paths.`,
+        sources: [],
+        actions: [],
+      });
+      return;
+    }
+
+    try {
+      const result = await runAgent(
+        selectedModel,
+        message,
+        Array.isArray(history) ? history : [],
+        repo.path,
+        repo.name,
+        repo.branch,
+        repo.isGitRepo,
+      );
+
+      res.json({
+        role: 'assistant',
+        content: result.response,
+        actions: result.actions,
+        sources: [],
+      });
+    } catch (err) {
+      res.json({
+        role: 'assistant',
+        content: `Agent error: ${String(err)}`,
+        actions: [],
+        sources: [],
+      });
+    }
+    return;
+  }
+
+  // No repo selected — use standard LLM chat (with RAG)
   const contextLoaded = { musicLibrary: false, fictionLibrary: false };
 
   if (context?.musicLibrary) {
@@ -252,18 +349,6 @@ router.post('/chat', async (req: Request, res: Response) => {
     }
   }
 
-  // Check if LLM is available
-  const status = await checkLlmAvailability();
-  if (!status.available) {
-    res.json({
-      role: 'assistant',
-      content: `AI assistant is not available. ${status.message}`,
-      sources: [],
-      contextLoaded,
-    });
-    return;
-  }
-
   try {
     let response: string;
     if (detectApiType() === 'ollama') {
@@ -276,6 +361,7 @@ router.post('/chat', async (req: Request, res: Response) => {
       role: 'assistant',
       content: response,
       sources: ragSources,
+      actions: [],
       contextLoaded,
     });
   } catch (err) {
@@ -283,6 +369,7 @@ router.post('/chat', async (req: Request, res: Response) => {
       role: 'assistant',
       content: `Error communicating with AI: ${String(err)}. Make sure the LLM server is running.`,
       sources: [],
+      actions: [],
       contextLoaded,
     });
   }
@@ -313,6 +400,12 @@ router.get('/status', async (_req: Request, res: Response) => {
 // GET /api/ai/models - List configured models
 router.get('/models', (_req: Request, res: Response) => {
   res.json({ models: getConfiguredModels(), defaultModel: llmModel });
+});
+
+// GET /api/ai/repos - List available Warez repositories for the agent
+router.get('/repos', (_req: Request, res: Response) => {
+  const repos = findWarezRepos().map(r => ({ name: r.name, branch: r.branch, isGitRepo: r.isGitRepo }));
+  res.json({ repos });
 });
 
 export default router;

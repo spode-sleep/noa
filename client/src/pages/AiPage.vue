@@ -72,6 +72,15 @@
           <span class="toggle-slider"></span>
           <span class="toggle-text">Fiction Library</span>
         </label>
+        <div v-if="availableRepos.length > 0" class="model-selector">
+          <label class="model-label">Repository</label>
+          <select v-model="selectedRepo" class="model-dropdown">
+            <option value="">None (plain chat)</option>
+            <option v-for="r in availableRepos" :key="r.name" :value="r.name">
+              {{ r.name }}{{ r.isGitRepo ? ` (${r.branch})` : ' (no git)' }}
+            </option>
+          </select>
+        </div>
         <div v-if="availableModels.length > 1" class="model-selector">
           <label class="model-label">Model</label>
           <select v-model="selectedModel" class="model-dropdown">
@@ -103,6 +112,12 @@
             <div v-if="msg.sources?.length" class="sources-list">
               <span class="sources-label">Sources:</span>
               <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
+            </div>
+            <div v-if="msg.actions?.length" class="actions-list">
+              <span class="actions-label">Tools used:</span>
+              <span v-for="(act, ai) in msg.actions" :key="ai" class="action-tag" :title="act.result">
+                {{ act.tool }}
+              </span>
             </div>
           </div>
         </div>
@@ -142,6 +157,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: string[]
+  actions?: Array<{ tool: string; args: Record<string, string>; result: string }>
 }
 
 interface Conversation {
@@ -193,6 +209,10 @@ const defaultModel = ref('')
 const aiStatus = ref<{ available: boolean; message: string }>({ available: false, message: '' })
 const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean; backend: string }>({ ready: false, chunksIndexed: 0, indexing: false, backend: 'none' })
 
+// Agent repo state
+const availableRepos = ref<Array<{ name: string; branch: string; isGitRepo: boolean }>>([])
+const selectedRepo = ref('')
+
 const chatAreaRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
@@ -200,6 +220,7 @@ const activeContextLabel = computed(() => {
   const parts: string[] = []
   if (musicLibraryEnabled.value) parts.push('Music')
   if (fictionLibraryEnabled.value) parts.push('Fiction')
+  if (selectedRepo.value) parts.push(`Repo: ${selectedRepo.value}`)
   return parts.join(', ')
 })
 
@@ -378,6 +399,7 @@ async function sendMessage() {
         message: text,
         history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
         model: selectedModel.value,
+        repo: selectedRepo.value || undefined,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,
@@ -389,6 +411,7 @@ async function sendMessage() {
       role: 'assistant',
       content: data.content ?? data.response ?? 'No response.',
       sources: data.sources?.length ? data.sources : undefined,
+      actions: data.actions?.length ? data.actions : undefined,
     })
   } catch {
     pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
@@ -466,6 +489,15 @@ onMounted(async () => {
   } catch {
     aiStatus.value = { available: false, message: 'Unable to reach AI service' }
   }
+
+  // Load available repos for agent mode
+  try {
+    const reposRes = await fetch('/api/ai/repos')
+    const reposData = await reposRes.json()
+    if (reposData.repos) {
+      availableRepos.value = reposData.repos
+    }
+  } catch { /* ignore */ }
 })
 
 onBeforeUnmount(() => {
@@ -919,6 +951,32 @@ onBeforeUnmount(() => {
   background: var(--askew-tab-inactive);
   color: var(--askew-cream);
   border: 1px solid #000000;
+}
+
+.actions-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--askew-dark-border);
+}
+
+.actions-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.action-tag {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 0px;
+  background: var(--askew-tab-inactive);
+  color: var(--askew-mint);
+  border: 1px solid #000000;
+  cursor: default;
 }
 
 .index-btn {

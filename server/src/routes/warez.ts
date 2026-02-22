@@ -2,24 +2,8 @@ import { Router, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
-import { runAgent, AgentResult } from '../services/agent';
 
 const router = Router();
-
-const DEFAULT_MODEL = 'huihui_ai/qwen3-abliterated:8b-v2';
-
-function getConfiguredModels(): string[] {
-  const envModels = process.env.LLM_MODELS;
-  if (envModels) {
-    const models = envModels.split(',').map(m => m.trim()).filter(Boolean);
-    return models.length > 0 ? models : [DEFAULT_MODEL];
-  }
-  return [DEFAULT_MODEL];
-}
-
-function isModelAllowed(model: string): boolean {
-  return getConfiguredModels().includes(model);
-}
 
 const warezPaths = (process.env.WAREZ_LIBRARY_PATH || '')
   .split(',')
@@ -150,90 +134,6 @@ router.get('/repos/:name', (req: Request, res: Response) => {
     res.json({ ...repo, readme, files });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get repo details', details: String(err) });
-  }
-});
-
-// Helper: validate repo name and find repo
-function findRepoByName(name: string): RepoInfo | null {
-  if (!name || name.includes('/') || name.includes('\\') || name === '..' || name === '.') return null;
-  const repos = findRepos();
-  return repos.find(r => r.name === name) || null;
-}
-
-// GET /api/warez/repos/:name/branches - List git branches
-router.get('/repos/:name/branches', (req: Request, res: Response) => {
-  try {
-    const repo = findRepoByName(req.params.name as string);
-    if (!repo) { res.status(404).json({ error: 'Repository not found' }); return; }
-    if (!repo.isGitRepo) { res.json({ branches: [], current: '' }); return; }
-
-    const branchesRaw = execSync('git branch --no-color', { cwd: repo.path, encoding: 'utf-8', timeout: 10000 });
-    const lines = branchesRaw.split('\n').filter(Boolean);
-    let current = '';
-    const branches = lines.map(line => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('* ')) {
-        current = trimmed.slice(2);
-        return current;
-      }
-      return trimmed;
-    });
-    res.json({ branches, current });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to list branches', details: String(err) });
-  }
-});
-
-// POST /api/warez/repos/:name/git/init - Initialize git in a non-git directory
-router.post('/repos/:name/git/init', (req: Request, res: Response) => {
-  try {
-    const repo = findRepoByName(req.params.name as string);
-    if (!repo) { res.status(404).json({ error: 'Repository not found' }); return; }
-    if (repo.isGitRepo) { res.json({ message: 'Already a git repository' }); return; }
-
-    execSync('git init', { cwd: repo.path, encoding: 'utf-8', timeout: 10000 });
-    execSync('git add -A', { cwd: repo.path, encoding: 'utf-8', timeout: 10000 });
-    execSync('git commit -m "Initial commit" --allow-empty', { cwd: repo.path, encoding: 'utf-8', timeout: 10000 });
-    res.json({ message: 'Git initialized with initial commit' });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to initialize git', details: String(err) });
-  }
-});
-
-// POST /api/warez/repos/:name/agent/chat - AI agent chat for code changes
-router.post('/repos/:name/agent/chat', async (req: Request, res: Response) => {
-  try {
-    const repo = findRepoByName(req.params.name as string);
-    if (!repo) { res.status(404).json({ error: 'Repository not found' }); return; }
-
-    const { message, history, model: requestedModel } = req.body;
-    if (typeof message !== 'string' || !message.trim()) {
-      res.status(400).json({ error: 'message is required' });
-      return;
-    }
-
-    const trimmedModel = typeof requestedModel === 'string' ? requestedModel.trim() : '';
-    const selectedModel = (trimmedModel && isModelAllowed(trimmedModel))
-      ? trimmedModel
-      : getConfiguredModels()[0];
-
-    const result = await runAgent(
-      selectedModel,
-      message,
-      Array.isArray(history) ? history : [],
-      repo.path,
-      repo.name,
-      repo.branch,
-      repo.isGitRepo,
-    );
-
-    res.json({
-      role: 'assistant',
-      content: result.response,
-      actions: result.actions,
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Agent error', details: String(err) });
   }
 });
 
