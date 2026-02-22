@@ -568,7 +568,6 @@ onUnmounted(() => {
 }
 
 .page {
-  padding: 24px 0;
   flex: 1;
   min-width: 0;
 }
@@ -642,6 +641,7 @@ onUnmounted(() => {
   border-radius: 0px;
   white-space: nowrap;
   align-self: center;
+  margin-top: 6px;
 }
 
 .archive-chip.not-archived {
@@ -652,7 +652,7 @@ onUnmounted(() => {
 
 .archive-path {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   opacity: 0.5;
   margin-bottom: 20px;
   display: flex;
@@ -662,7 +662,7 @@ onUnmounted(() => {
 
 .app-id {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -672,7 +672,7 @@ onUnmounted(() => {
 .copy-btn {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 2px;
   font-size: 0.9rem;

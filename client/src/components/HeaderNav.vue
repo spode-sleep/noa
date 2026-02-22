@@ -58,6 +58,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-logo {
+  font-family: 'AskewFont', 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -69,7 +70,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-logo-icon {
-  font-size: 1.4rem;
+  font-size: 2rem;
   color: var(--askew-gold);
 }
 
@@ -80,6 +81,7 @@ function isActive(to: string): boolean {
 }
 
 .nav-link {
+  font-family: 'AskewFont', 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
   padding: 6px 14px;
   color: var(--text-primary);
   font-weight: 500;
@@ -97,7 +99,7 @@ function isActive(to: string): boolean {
   color: var(--text-primary);
   background: var(--askew-btn-hover);
   border: 1px solid #000000;
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-mint), inset -1px -1px 0 var(--askew-btn);
 }
 
 .nav-link.active {

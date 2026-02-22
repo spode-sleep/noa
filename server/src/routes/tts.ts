@@ -7,6 +7,16 @@ const router = Router();
 
 const ttsModelPath = process.env.TTS_MODEL_PATH || '';
 const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-irina-medium';
+const ttsEnVoice = process.env.TTS_EN_VOICE || '';
+
+function detectLanguage(text: string): 'ru' | 'en' {
+  const letterOnly = text.replace(/[^a-zA-Zа-яА-ЯёЁ]/g, '');
+  if (!letterOnly) return 'ru';
+  const cyrillicCount = (letterOnly.match(/[а-яА-ЯёЁ]/g) || []).length;
+  // If more than 30% of letters are Cyrillic, treat as Russian
+  return cyrillicCount / letterOnly.length > 0.3 ? 'ru' : 'en';
+}
+
 function detectPiperPath(): string | null {
   const candidates = process.env.PIPER_PATH
     ? [process.env.PIPER_PATH]
@@ -54,6 +64,17 @@ function getModelPath(voice: string): string | null {
   return null;
 }
 
+function getModelSampleRate(modelPath: string): number {
+  try {
+    const configPath = modelPath + '.json';
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (config.audio?.sample_rate) return config.audio.sample_rate;
+    }
+  } catch { /* fall through to default */ }
+  return 22050;
+}
+
 function stripMarkdown(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, '')
@@ -87,7 +108,7 @@ router.post('/synthesize', (req: Request, res: Response) => {
     return;
   }
 
-  const selectedVoice = voice || ttsDefaultVoice;
+  const selectedVoice = voice || (ttsEnVoice && detectLanguage(text) === 'en' ? ttsEnVoice : ttsDefaultVoice);
   const modelPath = getModelPath(selectedVoice);
   if (!modelPath) {
     res.status(404).json({
@@ -108,8 +129,8 @@ router.post('/synthesize', (req: Request, res: Response) => {
 
   const piper = spawn(resolvedPiperPath!, args, { stdio: ['pipe', 'pipe', 'pipe'], env: piperEnv });
 
-  // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono 22050Hz)
-  const sampleRate = 22050;
+  // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono)
+  const sampleRate = getModelSampleRate(modelPath);
   const bitsPerSample = 16;
   const numChannels = 1;
   const headerSize = 44;
@@ -178,7 +199,7 @@ router.get('/status', (_req: Request, res: Response) => {
     fs.readdirSync(ttsModelPath).some(f => f.endsWith('.onnx'));
 
   if (piperInstalled && hasModels) {
-    res.json({ available: true, message: 'Piper TTS ready', defaultVoice: ttsDefaultVoice });
+    res.json({ available: true, message: 'Piper TTS ready', defaultVoice: ttsDefaultVoice, enVoice: ttsEnVoice || null });
   } else if (piperInstalled && !hasModels) {
     res.json({ available: false, message: 'Piper installed but no voice models found. Set TTS_MODEL_PATH and add .onnx models.' });
   } else {

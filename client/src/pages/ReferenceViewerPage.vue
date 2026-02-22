@@ -73,9 +73,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page {
-  padding: 24px 0;
-}
 
 .viewer-header {
   display: flex;
@@ -105,7 +102,7 @@ onUnmounted(() => {
 .ctrl-btn:hover {
   background: var(--askew-btn-hover);
   border-color: var(--askew-dark-border);
-  box-shadow: inset 1px 1px 0 var(--askew-cream), inset -1px -1px 0 var(--askew-btn);
+  box-shadow: inset 1px 1px 0 var(--askew-mint), inset -1px -1px 0 var(--askew-btn);
   color: var(--bg-primary);
 }
 

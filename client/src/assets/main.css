@@ -1,3 +1,13 @@
+@font-face {
+  font-family: 'AskewFont';
+  src: url('./fonts/AskewFont.woff2') format('woff2'),
+       url('./fonts/AskewFont.woff') format('woff'),
+       url('./fonts/AskewFont.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Background colors - Askew deep teal/navy */
   --bg-primary: #000e14;
@@ -84,6 +94,10 @@ a {
 
 a:hover {
   color: var(--askew-gold);
+}
+
+h1 {
+  font-family: 'AskewFont', 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif;
 }
 
 .glass {

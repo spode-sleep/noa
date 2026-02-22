@@ -208,6 +208,7 @@ KIWIX_SERVE_PATH=
 PIPER_PATH=/opt/piper-tts/piper
 TTS_MODEL_PATH=/home/user/models/piper
 TTS_DEFAULT_VOICE=ru_RU-irina-medium
+TTS_EN_VOICE=en_US-lessac-medium
 
 # AI / LLM (auto-launched)
 LLM_API_URL=http://localhost:11434

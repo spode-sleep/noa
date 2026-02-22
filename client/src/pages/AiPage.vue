@@ -504,15 +504,15 @@ onBeforeUnmount(() => {
   padding: 10px 14px;
   border: 1px solid var(--askew-tab-border);
   border-radius: 0px;
-  background: var(--askew-tab-active);
-  color: var(--text-primary);
+  background: var(--askew-gold);
+  color: var(--bg-primary);
   cursor: pointer;
   font-size: 0.9rem;
   box-shadow: inset 1px 1px 0 var(--askew-container-light), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .new-chat-btn:hover {
-  background: var(--bg-tertiary);
+  background: var(--askew-cream);
 }
 
 .conversation-list {
@@ -540,9 +540,9 @@ onBeforeUnmount(() => {
 }
 
 .conversation-item.active {
-  background: var(--askew-tab-active);
+  background: var(--accent-blue);
   border: 1px solid var(--askew-tab-border);
-  box-shadow: inset 1px 1px 0 var(--askew-container-light), inset -1px -1px 0 var(--askew-tab-border);
+  box-shadow: inset 1px 1px 0 var(--askew-cyan), inset -1px -1px 0 var(--askew-tab-border);
 }
 
 .conversation-title-row {
