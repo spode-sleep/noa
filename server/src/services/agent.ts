@@ -316,7 +316,7 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentA
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: 'Cloned from warez' });
   } catch (err: any) {
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
-    return '';
+    return ''; // empty string signals failure — caller checks with `if (!workdir)`
   }
 
   return workdir;
@@ -324,6 +324,7 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentA
 
 // Auto-init git for non-git directories, then convert to bare
 function autoInitGit(repoPath: string, actions: AgentAction[]) {
+  if (fs.existsSync(path.join(repoPath, '.git'))) return;
   try {
     execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
