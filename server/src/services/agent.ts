@@ -521,6 +521,12 @@ export async function runAgent(
         } catch {
           execSync(`git checkout -b ${branch} origin/${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         }
+        // Pull latest changes after checkout
+        try {
+          execSync(`git pull origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        } catch {
+          // pull may fail if branch is local-only, continue
+        }
         actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
       }
     } catch (err: any) {
