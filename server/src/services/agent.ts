@@ -276,16 +276,19 @@ function getWorkdir(repoName: string): string {
 
 function convertToBare(repoPath: string, actions: AgentAction[]): boolean {
   const tmpPath = repoPath + '-bare-tmp-' + Date.now();
+  console.log(`[agent] Converting to bare repo: ${repoPath}`);
   try {
     execFileSync('git', ['clone', '--bare', repoPath, tmpPath],
       { encoding: 'utf-8', timeout: 60000 });
     fs.rmSync(repoPath, { recursive: true, force: true });
     fs.renameSync(tmpPath, repoPath);
+    console.log(`[agent] Converted to bare repository`);
     actions.push({ tool: 'convert_to_bare', args: {}, result: 'Converted to bare repository' });
     return true;
   } catch (err: any) {
     // Clean up temp if it exists
     try { fs.rmSync(tmpPath, { recursive: true, force: true }); } catch { /* ignore */ }
+    console.error(`[agent] Failed to convert to bare: ${err.message}`);
     actions.push({ tool: 'convert_to_bare', args: {}, result: `Error: ${err.message}` });
     return false;
   }
@@ -296,6 +299,7 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentA
 
   // If clone already exists, fetch latest from warez
   if (fs.existsSync(path.join(workdir, '.git'))) {
+    console.log(`[agent] Workdir exists, fetching origin: ${workdir}`);
     try {
       execSync('git fetch origin', { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
     } catch {
@@ -310,11 +314,14 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentA
   }
 
   // Clone from warez (bare repo)
+  console.log(`[agent] Cloning from warez: ${warezPath} → ${workdir}`);
   try {
     execFileSync('git', ['clone', warezPath, workdir],
       { encoding: 'utf-8', timeout: 60000 });
+    console.log(`[agent] Cloned successfully`);
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: 'Cloned from warez' });
   } catch (err: any) {
+    console.error(`[agent] Clone failed: ${err.message}`);
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
     return ''; // empty string signals failure — caller checks with `if (!workdir)`
   }
@@ -325,6 +332,7 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentA
 // Auto-init git for non-git directories, then convert to bare
 function autoInitGit(repoPath: string, actions: AgentAction[]) {
   if (fs.existsSync(path.join(repoPath, '.git'))) return;
+  console.log(`[agent] Initializing git in: ${repoPath}`);
   try {
     execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
@@ -404,6 +412,7 @@ async function generateBranchName(client: Ollama, model: string, userMessage: st
 
 function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
   if (!hasUncommittedChanges(repoPath)) return;
+  console.log(`[agent] Auto-committing uncommitted changes`);
   try {
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
@@ -417,6 +426,7 @@ function pushToWarez(workdir: string, actions: AgentAction[]) {
   try {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
+    console.log(`[agent] Pushing branch ${branch} to warez`);
     execFileSync('git', ['push', 'origin', branch],
       { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
     actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to hub` });
@@ -436,6 +446,7 @@ export async function runAgent(
   isFirstMessage: boolean,
 ): Promise<AgentResult> {
   const actions: AgentAction[] = [];
+  console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
   const client = new Ollama({
     host: ollamaHost,
@@ -471,6 +482,7 @@ export async function runAgent(
     try {
       const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
+        console.log(`[agent] Checking out branch: ${branch}`);
         // Try local branch first, then remote tracking branch
         try {
           execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
@@ -487,6 +499,7 @@ export async function runAgent(
   // On first message: generate branch name and create it before the agent loop
   let createdBranch = '';
   if (isFirstMessage) {
+    console.log(`[agent] Generating branch name from prompt...`);
     const branchName = await generateBranchName(client, model, userMessage);
     if (!/^[\w.\-]+$/.test(branchName)) {
       actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
@@ -502,6 +515,7 @@ export async function runAgent(
         }
         execFileSync('git', ['checkout', '-b', uniqueName], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         createdBranch = uniqueName;
+        console.log(`[agent] Created branch: ${uniqueName}`);
         actions.push({ tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch created: ${uniqueName}` });
       } catch (err: any) {
         actions.push({ tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch creation error: ${err.message}` });
@@ -587,6 +601,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         const toolName = tc.function.name;
         const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
 
+        console.log(`[agent] Tool: ${toolName}(${Object.values(toolArgs).join(', ')})`);
         const result = executeTool(toolName, toolArgs, workdir);
         actions.push({ tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
 
@@ -601,12 +616,14 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     // Push to warez (bare repo)
     pushToWarez(workdir, actions);
 
+    console.log(`[agent] Done. Branch: ${getCurrentBranch(workdir)}, actions: ${actions.length}`);
     return {
       response: lastResponse || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
+    console.error(`[agent] Error: ${err.message || String(err)}`);
     // Auto-commit even on error
     autoCommitChanges(workdir, actions);
     pushToWarez(workdir, actions);
