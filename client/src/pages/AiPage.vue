@@ -173,6 +173,10 @@ interface Conversation {
   messages: Message[]
   createdAt: string
   model?: string
+  repo?: string
+  branch?: string
+  agentCurrentBranch?: string
+  agentParentBranch?: string
 }
 
 const { speak } = useTtsPlayer()
@@ -267,6 +271,10 @@ function switchConversation(id: string) {
     messages.value = conv.messages
     chatStarted.value = conv.messages.length > 0
     selectedModel.value = conv.model || defaultModel.value
+    selectedRepo.value = conv.repo || ''
+    selectedBranch.value = conv.branch || ''
+    agentCurrentBranch.value = conv.agentCurrentBranch || ''
+    agentParentBranch.value = conv.agentParentBranch || ''
   }
 }
 
@@ -275,6 +283,10 @@ function syncCurrentConversation() {
   if (conv) {
     conv.messages = messages.value
     conv.model = selectedModel.value
+    conv.repo = selectedRepo.value || undefined
+    conv.branch = selectedBranch.value || undefined
+    conv.agentCurrentBranch = agentCurrentBranch.value || undefined
+    conv.agentParentBranch = agentParentBranch.value || undefined
     saveConversations()
   }
 }

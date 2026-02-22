@@ -257,6 +257,53 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
   }
 }
 
+// --- Agent workspace (clone-based) ---
+// The agent operates on a local clone of the original repo, so user's
+// working tree is never affected. Clones live in <data>/agent-workdirs/<repo>.
+
+const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
+const WORKDIR_BASE = path.join(dataPath, 'agent-workdirs');
+
+function getWorkdir(repoName: string): string {
+  return path.join(WORKDIR_BASE, repoName);
+}
+
+function ensureWorkdir(originalPath: string, repoName: string, actions: AgentAction[]): string {
+  const workdir = getWorkdir(repoName);
+
+  // If clone already exists, just fetch latest
+  if (fs.existsSync(path.join(workdir, '.git'))) {
+    try {
+      execSync('git fetch origin', { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    } catch {
+      // fetch may fail if origin is unreachable (offline), continue anyway
+    }
+    return workdir;
+  }
+
+  // Ensure the original repo has git initialized
+  if (!fs.existsSync(path.join(originalPath, '.git'))) {
+    autoInitGit(originalPath, actions);
+  }
+
+  // Create workdir base
+  if (!fs.existsSync(WORKDIR_BASE)) {
+    fs.mkdirSync(WORKDIR_BASE, { recursive: true });
+  }
+
+  // Clone the original repo
+  try {
+    execSync(`git clone ${JSON.stringify(originalPath)} ${JSON.stringify(workdir)}`, { encoding: 'utf-8', timeout: 60000 });
+    actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Cloned into agent workspace` });
+  } catch (err: any) {
+    actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
+    // Fall back to original path if clone fails
+    return originalPath;
+  }
+
+  return workdir;
+}
+
 // Auto-init git for non-git directories
 function autoInitGit(repoPath: string, actions: AgentAction[]) {
   if (fs.existsSync(path.join(repoPath, '.git'))) return;
@@ -348,6 +395,17 @@ function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
   }
 }
 
+function pushToOrigin(workdir: string, actions: AgentAction[]) {
+  try {
+    const branch = getCurrentBranch(workdir);
+    if (!branch) return;
+    execSync(`git push origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to origin` });
+  } catch {
+    // push may fail if origin doesn't accept pushes; the changes remain in the clone
+  }
+}
+
 export async function runAgent(
   model: string,
   userMessage: string,
@@ -367,18 +425,27 @@ export async function runAgent(
     },
   });
 
-  // Auto-init git if needed
-  if (!isGitRepo) {
-    autoInitGit(repoPath, actions);
-  }
+  // Set up agent workspace (clone of original repo)
+  const workdir = ensureWorkdir(repoPath, repoName, actions);
 
-  // Checkout the requested branch if specified and repo is a git repo
+  // Checkout the requested branch if specified
   if (branch && /^[\w.\-/]+$/.test(branch)) {
     try {
-      const currentBranch = getCurrentBranch(repoPath);
+      const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
-        execSync(`git checkout ${branch}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        // Try local branch first, then remote tracking branch
+        try {
+          execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+        } catch {
+          execSync(`git checkout -b ${branch} origin/${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+        }
         actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
+      }
+      // Pull latest changes from origin
+      try {
+        execSync(`git pull origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+      } catch {
+        // pull may fail if branch doesn't exist on origin yet, continue
       }
     } catch (err: any) {
       actions.push({ tool: 'git_checkout', args: { branch }, result: `Checkout error: ${err.message}` });
@@ -393,7 +460,7 @@ export async function runAgent(
       actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
     } else {
       try {
-        execSync(`git checkout -b ${branchName}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        execSync(`git checkout -b ${branchName}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         createdBranch = branchName;
         actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch created: ${branchName}` });
       } catch (err: any) {
@@ -407,7 +474,7 @@ export async function runAgent(
     : '';
 
   const systemPrompt = `You are NOA Code Agent — an AI assistant that can read, write, and manage code in local git repositories.
-You are currently working with the repository "${repoName}" on branch "${createdBranch || getCurrentBranch(repoPath)}".
+You are currently working with the repository "${repoName}" on branch "${createdBranch || getCurrentBranch(workdir)}".
 ${branchInfo}
 
 WORKFLOW for code changes:
@@ -480,12 +547,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         const toolName = tc.function.name;
         const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
 
-        // Auto-init git if needed before any git operation
-        if (toolName.startsWith('git_')) {
-          autoInitGit(repoPath, actions);
-        }
-
-        const result = executeTool(toolName, toolArgs, repoPath);
+        const result = executeTool(toolName, toolArgs, workdir);
         actions.push({ tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
 
         // Add tool result to conversation
@@ -494,21 +556,25 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     }
 
     // Auto-commit any uncommitted changes
-    autoCommitChanges(repoPath, actions);
+    autoCommitChanges(workdir, actions);
+
+    // Push changes back to original repo
+    pushToOrigin(workdir, actions);
 
     return {
       response: lastResponse || 'Done.',
       actions,
-      currentBranch: getCurrentBranch(repoPath),
+      currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
     // Auto-commit even on error
-    autoCommitChanges(repoPath, actions);
+    autoCommitChanges(workdir, actions);
+    pushToOrigin(workdir, actions);
 
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,
-      currentBranch: getCurrentBranch(repoPath),
+      currentBranch: getCurrentBranch(workdir),
     };
   }
 }
