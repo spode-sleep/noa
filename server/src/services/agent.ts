@@ -333,6 +333,12 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
     return workdir;
   }
 
+  // If directory exists but is not a git clone (corrupted), remove and re-clone
+  if (fs.existsSync(workdir)) {
+    console.log(`[agent] Workdir exists but no .git — removing and re-cloning: ${workdir}`);
+    fs.rmSync(workdir, { recursive: true, force: true });
+  }
+
   // Create workdir base
   if (!fs.existsSync(WORKDIR_BASE)) {
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
