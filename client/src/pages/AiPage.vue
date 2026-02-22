@@ -56,7 +56,7 @@
 
       <!-- Context indicator -->
       <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
-        <span>Connected: {{ activeContextLabel }}</span>
+        <span>{{ activeContextLabel }}</span>
       </div>
 
       <!-- Library switches (visible only before first message) -->
@@ -221,6 +221,8 @@ const availableRepos = ref<Array<{ name: string; branch: string; isGitRepo: bool
 const selectedRepo = ref('')
 const availableBranches = ref<string[]>([])
 const selectedBranch = ref('')
+const agentCurrentBranch = ref('')
+const agentParentBranch = ref('')
 
 const chatAreaRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -230,11 +232,17 @@ const activeContextLabel = computed(() => {
   if (musicLibraryEnabled.value) parts.push('Music')
   if (fictionLibraryEnabled.value) parts.push('Fiction')
   if (selectedRepo.value) {
-    let repoLabel = `Repo: ${selectedRepo.value}`
-    if (selectedBranch.value) repoLabel += ` (${selectedBranch.value})`
-    parts.push(repoLabel)
+    parts.push(`Repo: ${selectedRepo.value}`)
+    if (agentParentBranch.value) {
+      parts.push(`Base: ${agentParentBranch.value}`)
+    }
+    if (agentCurrentBranch.value && agentCurrentBranch.value !== agentParentBranch.value) {
+      parts.push(`Branch: ${agentCurrentBranch.value}`)
+    } else if (selectedBranch.value && !agentParentBranch.value) {
+      parts.push(`Branch: ${selectedBranch.value}`)
+    }
   }
-  return parts.join(', ')
+  return parts.join(' · ')
 })
 
 // --- Conversation management ---
@@ -438,6 +446,8 @@ async function sendMessage() {
       }),
     })
     const data = await res.json()
+    if (data.currentBranch) agentCurrentBranch.value = data.currentBranch
+    if (data.parentBranch) agentParentBranch.value = data.parentBranch
     pushResponse({
       role: 'assistant',
       content: data.content ?? data.response ?? 'No response.',
@@ -459,6 +469,8 @@ function clearChat() {
   createNewConversation()
   musicLibraryEnabled.value = false
   fictionLibraryEnabled.value = false
+  agentCurrentBranch.value = ''
+  agentParentBranch.value = ''
 }
 
 async function buildIndex() {

@@ -297,6 +297,8 @@ router.post('/chat', async (req: Request, res: Response) => {
         role: 'assistant',
         content: result.response,
         actions: result.actions,
+        currentBranch: result.currentBranch,
+        parentBranch: targetBranch || repo.branch,
         sources: [],
       });
     } catch (err) {

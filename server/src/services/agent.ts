@@ -9,7 +9,7 @@ const MAX_ACTION_RESULT_LENGTH = 200;
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'list_files',
-  'git_create_branch', 'git_status', 'git_diff', 'git_commit',
+  'git_create_branch', 'git_status', 'git_diff', 'git_commit', 'git_revert',
 ]);
 
 // --- Text-based tool call parser ---
@@ -167,6 +167,20 @@ const AGENT_TOOLS: Tool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'git_revert',
+      description: 'Revert the repository to a specific commit (hard reset). Use git_status or git log to find commit hashes first.',
+      parameters: {
+        type: 'object',
+        properties: {
+          commit_hash: { type: 'string', description: 'The commit hash to revert to' },
+        },
+        required: ['commit_hash'],
+      },
+    },
+  },
 ];
 
 // --- Tool execution ---
@@ -220,6 +234,12 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return `Changes committed: ${message}`;
       }
+      case 'git_revert': {
+        const hash = args.commit_hash || '';
+        if (!hash || !/^[a-f0-9]{4,40}$/i.test(hash)) return 'Error: invalid commit hash';
+        execSync(`git reset --hard ${hash}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        return `Repository reverted to commit: ${hash}`;
+      }
       default:
         return `Error: unknown tool: ${toolName}`;
     }
@@ -252,9 +272,20 @@ export interface AgentAction {
 export interface AgentResult {
   response: string;
   actions: AgentAction[];
+  currentBranch: string;
 }
 
 // --- Main agent runner using official Ollama client ---
+
+const AGENT_REQUEST_TIMEOUT = 300000; // 5 minutes per Ollama request
+
+function getCurrentBranch(repoPath: string): string {
+  try {
+    return execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+  } catch {
+    return '';
+  }
+}
 
 export async function runAgent(
   model: string,
@@ -267,12 +298,17 @@ export async function runAgent(
 ): Promise<AgentResult> {
   const actions: AgentAction[] = [];
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
-  const client = new Ollama({ host: ollamaHost });
+  const client = new Ollama({
+    host: ollamaHost,
+    fetch: (url: RequestInfo | URL, init?: RequestInit) => {
+      return fetch(url, { ...init, signal: AbortSignal.timeout(AGENT_REQUEST_TIMEOUT) });
+    },
+  });
 
   // Checkout the requested branch if specified and repo is a git repo
   if (isGitRepo && branch && /^[\w.\-/]+$/.test(branch)) {
     try {
-      const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+      const currentBranch = getCurrentBranch(repoPath);
       if (currentBranch !== branch) {
         execSync(`git checkout ${branch}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
@@ -293,6 +329,12 @@ WORKFLOW for code changes:
 4. Make changes with write_file
 5. Verify with git_status
 6. Commit with git_commit
+
+IMPORTANT RULES:
+- In your FIRST message always mention which new branch you created (or will create).
+- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
+- When working with files, preserve the programming language of the file. Determine the language from the file extension (e.g. .py=Python, .ts=TypeScript, .js=JavaScript, .rs=Rust, .go=Go, .java=Java, .cpp/.c=C/C++, .rb=Ruby, .lua=Lua) or from existing content (shebangs, syntax patterns). Always write code in the same language as the file.
+- You can revert to a previous commit using git_revert if needed.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
 
@@ -333,6 +375,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         return {
           response: response.message.content || 'Done.',
           actions,
+          currentBranch: getCurrentBranch(repoPath),
         };
       }
 
@@ -366,11 +409,13 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     return {
       response: 'Agent reached maximum iterations.',
       actions,
+      currentBranch: getCurrentBranch(repoPath),
     };
   } catch (err: any) {
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,
+      currentBranch: getCurrentBranch(repoPath),
     };
   }
 }
