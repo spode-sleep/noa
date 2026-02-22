@@ -171,7 +171,7 @@ const AGENT_TOOLS: Tool[] = [
     type: 'function',
     function: {
       name: 'git_revert',
-      description: 'Revert the repository to a specific commit (hard reset). Use git_status or git log to find commit hashes first.',
+      description: 'Revert the repository to a specific commit (hard reset). Use git_status to see recent changes first.',
       parameters: {
         type: 'object',
         properties: {
@@ -279,6 +279,8 @@ export interface AgentResult {
 
 const AGENT_REQUEST_TIMEOUT = 300000; // 5 minutes per Ollama request
 
+const FILE_EXTENSION_LANGUAGES = '.py=Python, .ts=TypeScript, .js=JavaScript, .rs=Rust, .go=Go, .java=Java, .cpp/.c/.h=C/C++, .rb=Ruby, .lua=Lua, .php=PHP, .swift=Swift, .kt=Kotlin, .cs=C#, .sh=Shell';
+
 function getCurrentBranch(repoPath: string): string {
   try {
     return execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
@@ -333,7 +335,7 @@ WORKFLOW for code changes:
 IMPORTANT RULES:
 - In your FIRST message always mention which new branch you created (or will create).
 - After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
-- When working with files, preserve the programming language of the file. Determine the language from the file extension (e.g. .py=Python, .ts=TypeScript, .js=JavaScript, .rs=Rust, .go=Go, .java=Java, .cpp/.c=C/C++, .rb=Ruby, .lua=Lua) or from existing content (shebangs, syntax patterns). Always write code in the same language as the file.
+- When working with files, preserve the programming language of the file. Determine the language from the file extension (${FILE_EXTENSION_LANGUAGES}) or from existing content (shebangs, syntax patterns). Always write code in the same language as the file.
 - You can revert to a previous commit using git_revert if needed.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
