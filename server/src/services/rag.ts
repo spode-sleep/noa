@@ -167,17 +167,20 @@ function collectGameChunks(): DocumentChunk[] {
     const gamesPath = path.join(dataPath, 'games', 'games.json');
     if (!fs.existsSync(gamesPath)) return chunks;
 
-    const games = JSON.parse(fs.readFileSync(gamesPath, 'utf-8'));
-    if (!Array.isArray(games)) return chunks;
+    const raw = JSON.parse(fs.readFileSync(gamesPath, 'utf-8'));
+    const games = Array.isArray(raw) ? raw : Object.values(raw);
 
     for (const game of games) {
       const parts: string[] = [];
-      if (game.name) parts.push(`Game: ${game.name}`);
-      if (game.appId) parts.push(`App ID: ${game.appId}`);
-      if (game.type) parts.push(`Platform: ${game.type}`);
+      if (game.name) parts.push(game.name);
+      if (game.description) parts.push(game.description);
       if (game.tags?.length) parts.push(`Tags: ${game.tags.join(', ')}`);
-      if (game.description) parts.push(`Description: ${game.description}`);
-      if (game.protonStatus) parts.push(`ProtonDB: ${game.protonStatus}`);
+      if (game.gameplay_tips?.length) {
+        const tips = game.gameplay_tips
+          .flatMap((section: any) => (section.tips || []).map((t: any) => t.text))
+          .filter(Boolean);
+        if (tips.length) parts.push(`Gameplay tips: ${tips.join(' ')}`);
+      }
 
       if (parts.length > 0) {
         chunks.push({
