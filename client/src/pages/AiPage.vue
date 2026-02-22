@@ -81,6 +81,12 @@
             </option>
           </select>
         </div>
+        <div v-if="availableBranches.length > 0" class="model-selector">
+          <label class="model-label">Branch</label>
+          <select v-model="selectedBranch" class="model-dropdown">
+            <option v-for="b in availableBranches" :key="b" :value="b">{{ b }}</option>
+          </select>
+        </div>
         <div v-if="availableModels.length > 1" class="model-selector">
           <label class="model-label">Model</label>
           <select v-model="selectedModel" class="model-dropdown">
@@ -212,6 +218,8 @@ const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean
 // Agent repo state
 const availableRepos = ref<Array<{ name: string; branch: string; isGitRepo: boolean }>>([])
 const selectedRepo = ref('')
+const availableBranches = ref<string[]>([])
+const selectedBranch = ref('')
 
 const chatAreaRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -220,7 +228,11 @@ const activeContextLabel = computed(() => {
   const parts: string[] = []
   if (musicLibraryEnabled.value) parts.push('Music')
   if (fictionLibraryEnabled.value) parts.push('Fiction')
-  if (selectedRepo.value) parts.push(`Repo: ${selectedRepo.value}`)
+  if (selectedRepo.value) {
+    let repoLabel = `Repo: ${selectedRepo.value}`
+    if (selectedBranch.value) repoLabel += ` (${selectedBranch.value})`
+    parts.push(repoLabel)
+  }
   return parts.join(', ')
 })
 
@@ -359,6 +371,23 @@ watch(messages, () => {
   syncCurrentConversation()
 }, { deep: true })
 
+// Load branches when repo selection changes
+watch(selectedRepo, async (repoName) => {
+  availableBranches.value = []
+  selectedBranch.value = ''
+  if (!repoName) return
+  const repo = availableRepos.value.find(r => r.name === repoName)
+  if (!repo?.isGitRepo) return
+  try {
+    const res = await fetch(`/api/ai/repos/${encodeURIComponent(repoName)}/branches`)
+    const data = await res.json()
+    if (data.branches?.length) {
+      availableBranches.value = data.branches
+      selectedBranch.value = data.current || data.branches[0]
+    }
+  } catch { /* ignore */ }
+})
+
 async function sendMessage() {
   const text = input.value.trim()
   if (!text) return
@@ -400,6 +429,7 @@ async function sendMessage() {
         history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
         model: selectedModel.value,
         repo: selectedRepo.value || undefined,
+        branch: selectedBranch.value || undefined,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,

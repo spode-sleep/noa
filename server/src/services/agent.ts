@@ -208,6 +208,19 @@ export async function runAgent(
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
   const client = new Ollama({ host: ollamaHost });
 
+  // Checkout the requested branch if specified and repo is a git repo
+  if (isGitRepo && branch) {
+    try {
+      const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+      if (currentBranch !== branch) {
+        execSync(`git checkout ${branch}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
+      }
+    } catch (err: any) {
+      actions.push({ tool: 'git_checkout', args: { branch }, result: `Checkout error: ${err.message}` });
+    }
+  }
+
   const systemPrompt = `You are NOA Code Agent — an AI assistant that can read, write, and manage code in local git repositories.
 You are currently working with the repository "${repoName}"${branch ? ` on branch "${branch}"` : ''}.
 ${!isGitRepo ? 'This directory is NOT a git repository yet. Git will be auto-initialized when you use any git tool.' : ''}

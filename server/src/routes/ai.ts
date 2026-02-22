@@ -243,7 +243,7 @@ async function sendToLlamaCpp(model: string, messages: ChatMessage[]): Promise<s
 
 // POST /api/ai/chat - Send message to AI Agent
 router.post('/chat', async (req: Request, res: Response) => {
-  const { message, history, context, model: requestedModel, repo: repoName } = req.body;
+  const { message, history, context, model: requestedModel, repo: repoName, branch: requestedBranch } = req.body;
 
   if (typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'message is required' });
@@ -282,13 +282,14 @@ router.post('/chat', async (req: Request, res: Response) => {
     }
 
     try {
+      const targetBranch = typeof requestedBranch === 'string' ? requestedBranch.trim() : '';
       const result = await runAgent(
         selectedModel,
         message,
         Array.isArray(history) ? history : [],
         repo.path,
         repo.name,
-        repo.branch,
+        targetBranch || repo.branch,
         repo.isGitRepo,
       );
 
@@ -406,6 +407,30 @@ router.get('/models', (_req: Request, res: Response) => {
 router.get('/repos', (_req: Request, res: Response) => {
   const repos = findWarezRepos().map(r => ({ name: r.name, branch: r.branch, isGitRepo: r.isGitRepo }));
   res.json({ repos });
+});
+
+// GET /api/ai/repos/:name/branches - List branches for a repository
+router.get('/repos/:name/branches', (req: Request, res: Response) => {
+  try {
+    const repo = findRepoByName(req.params.name as string);
+    if (!repo) { res.status(404).json({ error: 'Repository not found' }); return; }
+    if (!repo.isGitRepo) { res.json({ branches: [], current: '' }); return; }
+
+    const branchesRaw = execSync('git branch --no-color', { cwd: repo.path, encoding: 'utf-8', timeout: 10000 });
+    const lines = branchesRaw.split('\n').filter(Boolean);
+    let current = '';
+    const branches = lines.map(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('* ')) {
+        current = trimmed.slice(2);
+        return current;
+      }
+      return trimmed;
+    });
+    res.json({ branches, current });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list branches', details: String(err) });
+  }
 });
 
 export default router;
