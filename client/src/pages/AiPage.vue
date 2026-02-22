@@ -288,6 +288,8 @@ function syncCurrentConversation() {
 
 function deleteConversation(id: string) {
   if (!confirm('Delete this conversation?')) return
+  // Clean up agent workdir on the server
+  fetch(`/api/ai/conversations/${encodeURIComponent(id)}/workdir`, { method: 'DELETE' }).catch(() => {})
   conversations.value = conversations.value.filter(c => c.id !== id)
   saveConversations()
   if (activeConversationId.value === id) {
@@ -446,6 +448,7 @@ async function sendMessage() {
         model: selectedModel.value,
         repo: selectedRepo.value || undefined,
         branch: agentCurrentBranch.value || selectedBranch.value || undefined,
+        conversationId: currentConvId,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,

@@ -270,8 +270,33 @@ export function isBareRepo(repoPath: string): boolean {
          fs.existsSync(path.join(repoPath, 'HEAD'));
 }
 
-function getWorkdir(repoName: string): string {
-  return path.join(WORKDIR_BASE, repoName);
+function getWorkdir(repoName: string, conversationId: string): string {
+  return path.join(WORKDIR_BASE, `${repoName}-${conversationId}`);
+}
+
+export function cleanupWorkdir(repoName: string, conversationId: string): boolean {
+  const workdir = getWorkdir(repoName, conversationId);
+  if (fs.existsSync(workdir)) {
+    console.log(`[agent] Cleaning up workdir: ${workdir}`);
+    fs.rmSync(workdir, { recursive: true, force: true });
+    return true;
+  }
+  return false;
+}
+
+export function cleanupWorkdirsForConversation(conversationId: string): number {
+  if (!fs.existsSync(WORKDIR_BASE)) return 0;
+  let count = 0;
+  const entries = fs.readdirSync(WORKDIR_BASE, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name.endsWith(`-${conversationId}`)) {
+      const fullPath = path.join(WORKDIR_BASE, entry.name);
+      console.log(`[agent] Cleaning up workdir: ${fullPath}`);
+      fs.rmSync(fullPath, { recursive: true, force: true });
+      count++;
+    }
+  }
+  return count;
 }
 
 function convertToBare(repoPath: string, actions: AgentAction[]): boolean {
@@ -294,8 +319,8 @@ function convertToBare(repoPath: string, actions: AgentAction[]): boolean {
   }
 }
 
-function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentAction[]): string {
-  const workdir = getWorkdir(repoName);
+function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId: string, actions: AgentAction[]): string {
+  const workdir = getWorkdir(repoName, conversationId);
 
   // If clone already exists, fetch latest from warez
   if (fs.existsSync(path.join(workdir, '.git'))) {
@@ -444,6 +469,7 @@ export async function runAgent(
   branch: string,
   isGitRepo: boolean,
   isFirstMessage: boolean,
+  conversationId: string,
 ): Promise<AgentResult> {
   const actions: AgentAction[] = [];
   console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
@@ -471,8 +497,8 @@ export async function runAgent(
     }
   }
 
-  // Clone from warez (bare) into agent workdir
-  const workdir = ensureAgentWorkdir(repoPath, repoName, actions);
+  // Clone from warez (bare) into agent workdir (per-conversation)
+  const workdir = ensureAgentWorkdir(repoPath, repoName, conversationId, actions);
   if (!workdir) {
     return { response: 'Error: could not create agent workspace.', actions, currentBranch: '' };
   }

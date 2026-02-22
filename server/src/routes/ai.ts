@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from '../services/rag';
-import { runAgent, isBareRepo } from '../services/agent';
+import { runAgent, isBareRepo, cleanupWorkdirsForConversation } from '../services/agent';
 
 const router = Router();
 
@@ -245,7 +245,7 @@ async function sendToLlamaCpp(model: string, messages: ChatMessage[]): Promise<s
 
 // POST /api/ai/chat - Send message to AI Agent
 router.post('/chat', async (req: Request, res: Response) => {
-  const { message, history, context, model: requestedModel, repo: repoName, branch: requestedBranch } = req.body;
+  const { message, history, context, model: requestedModel, repo: repoName, branch: requestedBranch, conversationId } = req.body;
 
   if (typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'message is required' });
@@ -287,6 +287,7 @@ router.post('/chat', async (req: Request, res: Response) => {
       const targetBranch = typeof requestedBranch === 'string' ? requestedBranch.trim() : '';
       const historyArr = Array.isArray(history) ? history : [];
       const isFirstMessage = historyArr.filter((m: any) => m.role === 'assistant').length === 0;
+      const convId = typeof conversationId === 'string' ? conversationId.trim() : `anon-${Date.now()}`;
       const result = await runAgent(
         selectedModel,
         message,
@@ -296,6 +297,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         targetBranch || repo.branch,
         repo.isGitRepo,
         isFirstMessage,
+        convId,
       );
 
       res.json({
@@ -438,6 +440,17 @@ router.get('/repos/:name/branches', (req: Request, res: Response) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to list branches', details: String(err) });
   }
+});
+
+// DELETE /api/ai/conversations/:id/workdir - Clean up agent workdir when conversation is deleted
+router.delete('/conversations/:id/workdir', (req: Request, res: Response) => {
+  const convId = req.params.id as string;
+  if (!convId || !/^[\w\-]+$/.test(convId)) {
+    res.status(400).json({ error: 'Invalid conversation ID' });
+    return;
+  }
+  const removed = cleanupWorkdirsForConversation(convId);
+  res.json({ removed });
 });
 
 export default router;
