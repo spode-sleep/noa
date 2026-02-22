@@ -11,12 +11,17 @@
         <div v-if="repo.description" class="repo-desc">{{ repo.description }}</div>
         <div class="repo-meta">
           <span v-if="repo.isGitRepo && repo.branch" class="branch-badge">{{ repo.branch }}</span>
+          <span v-if="repo.isBare" class="bare-badge">bare</span>
           <span v-if="!repo.isGitRepo" class="folder-badge">folder</span>
           <span v-if="repo.commitCount" class="meta-item">{{ repo.commitCount }} commits</span>
           <span v-if="repo.lastCommitDate" class="meta-item">{{ formatDate(repo.lastCommitDate) }}</span>
         </div>
         <div v-if="repo.lastCommitMessage" class="last-commit">
           Latest: {{ repo.lastCommitMessage }}
+        </div>
+        <div v-if="repo.cloneUrl" class="clone-url glass">
+          <span class="clone-label">Clone:</span>
+          <code class="clone-path">git clone {{ repo.cloneUrl }}</code>
         </div>
       </div>
 
@@ -58,8 +63,10 @@ interface RepoDetail {
   branch: string
   commitCount: number
   isGitRepo: boolean
+  isBare: boolean
   readme: string
   files: RepoFile[]
+  cloneUrl?: string
 }
 
 const route = useRoute()
@@ -246,6 +253,37 @@ h1 {
   background: var(--askew-btn-disabled);
   color: var(--text-secondary);
   border: 1px solid #000000;
+}
+
+.bare-badge {
+  padding: 2px 10px;
+  border-radius: 0px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--askew-btn-disabled);
+  color: var(--askew-neon);
+  border: 1px solid #000000;
+}
+
+.clone-url {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.clone-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.clone-path {
+  font-family: var(--font-mono);
+  color: var(--askew-gold);
+  background: var(--askew-btn-disabled);
+  padding: 2px 8px;
+  border: 1px solid var(--glass-border);
+  user-select: all;
 }
 
 .last-commit {

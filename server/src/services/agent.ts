@@ -257,69 +257,44 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
   }
 }
 
-// --- Agent workspace (bare hub architecture) ---
-// User's Repo (warez/) ←push→ Bare Hub (bare-repos/) ←clone→ Agent Workdir (agent-workdirs/)
-// Bare repos always accept pushes — no "checked out branch" errors.
-// User connects via: git remote add noa <bare-hub-path>
+// --- Agent workspace ---
+// Warez/ = bare repos (the "GitHub hub"). Agent clones from warez, pushes to warez.
+// Non-bare repos are converted to bare on first agent use.
+// Agent workdirs live in <data>/agent-workdirs/<repo>.
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
-const BARE_HUB_BASE = path.join(dataPath, 'bare-repos');
 const WORKDIR_BASE = path.join(dataPath, 'agent-workdirs');
 
-export function getBareHubPath(repoName: string): string {
-  return path.join(BARE_HUB_BASE, `${repoName}.git`);
+export function isBareRepo(repoPath: string): boolean {
+  return !fs.existsSync(path.join(repoPath, '.git')) &&
+         fs.existsSync(path.join(repoPath, 'HEAD'));
 }
 
 function getWorkdir(repoName: string): string {
   return path.join(WORKDIR_BASE, repoName);
 }
 
-function ensureBareHub(originalPath: string, repoName: string, actions: AgentAction[]): string {
-  const barePath = getBareHubPath(repoName);
-
-  // Ensure the original repo has git initialized
-  if (!fs.existsSync(path.join(originalPath, '.git'))) {
-    autoInitGit(originalPath, actions);
-  }
-
-  // Create bare hub if it doesn't exist
-  if (!fs.existsSync(barePath)) {
-    if (!fs.existsSync(BARE_HUB_BASE)) {
-      fs.mkdirSync(BARE_HUB_BASE, { recursive: true });
-    }
-    try {
-      execFileSync('git', ['clone', '--bare', originalPath, barePath],
-        { encoding: 'utf-8', timeout: 60000 });
-      actions.push({ tool: 'git_hub', args: { repo: repoName }, result: 'Created bare hub' });
-    } catch (err: any) {
-      actions.push({ tool: 'git_hub', args: { repo: repoName }, result: `Bare hub error: ${err.message}` });
-      return '';
-    }
-
-    // Add 'noa' remote to user's repo pointing to bare hub
-    try {
-      execFileSync('git', ['remote', 'add', 'noa', barePath],
-        { cwd: originalPath, encoding: 'utf-8', timeout: 10000 });
-    } catch {
-      // 'noa' remote may already exist
-    }
-  }
-
-  // Sync latest from user's repo to bare hub
+function convertToBare(repoPath: string, actions: AgentAction[]): boolean {
+  const tmpPath = repoPath + '-bare-tmp-' + Date.now();
   try {
-    execFileSync('git', ['push', 'noa', '--all'],
-      { cwd: originalPath, encoding: 'utf-8', timeout: 30000 });
-  } catch {
-    // push may fail if nothing new, continue
+    execFileSync('git', ['clone', '--bare', repoPath, tmpPath],
+      { encoding: 'utf-8', timeout: 60000 });
+    fs.rmSync(repoPath, { recursive: true, force: true });
+    fs.renameSync(tmpPath, repoPath);
+    actions.push({ tool: 'convert_to_bare', args: {}, result: 'Converted to bare repository' });
+    return true;
+  } catch (err: any) {
+    // Clean up temp if it exists
+    try { fs.rmSync(tmpPath, { recursive: true, force: true }); } catch { /* ignore */ }
+    actions.push({ tool: 'convert_to_bare', args: {}, result: `Error: ${err.message}` });
+    return false;
   }
-
-  return barePath;
 }
 
-function ensureAgentWorkdir(barePath: string, repoName: string, actions: AgentAction[]): string {
+function ensureAgentWorkdir(warezPath: string, repoName: string, actions: AgentAction[]): string {
   const workdir = getWorkdir(repoName);
 
-  // If clone already exists, fetch latest from bare hub
+  // If clone already exists, fetch latest from warez
   if (fs.existsSync(path.join(workdir, '.git'))) {
     try {
       execSync('git fetch origin', { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
@@ -334,11 +309,11 @@ function ensureAgentWorkdir(barePath: string, repoName: string, actions: AgentAc
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
   }
 
-  // Clone from bare hub
+  // Clone from warez (bare repo)
   try {
-    execFileSync('git', ['clone', barePath, workdir],
+    execFileSync('git', ['clone', warezPath, workdir],
       { encoding: 'utf-8', timeout: 60000 });
-    actions.push({ tool: 'git_clone', args: { source: repoName }, result: 'Cloned from bare hub' });
+    actions.push({ tool: 'git_clone', args: { source: repoName }, result: 'Cloned from warez' });
   } catch (err: any) {
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
     return '';
@@ -347,9 +322,8 @@ function ensureAgentWorkdir(barePath: string, repoName: string, actions: AgentAc
   return workdir;
 }
 
-// Auto-init git for non-git directories
+// Auto-init git for non-git directories, then convert to bare
 function autoInitGit(repoPath: string, actions: AgentAction[]) {
-  if (fs.existsSync(path.join(repoPath, '.git'))) return;
   try {
     execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
@@ -372,7 +346,6 @@ export interface AgentResult {
   response: string;
   actions: AgentAction[];
   currentBranch: string;
-  bareHubPath: string;
 }
 
 // --- Main agent runner using official Ollama client ---
@@ -439,7 +412,7 @@ function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
   }
 }
 
-function pushToBareHub(workdir: string, actions: AgentAction[]) {
+function pushToWarez(workdir: string, actions: AgentAction[]) {
   try {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
@@ -470,14 +443,26 @@ export async function runAgent(
     },
   });
 
-  // Set up bare hub and agent workspace
-  const barePath = ensureBareHub(repoPath, repoName, actions);
-  if (!barePath) {
-    return { response: 'Error: could not create bare hub for repository.', actions, currentBranch: '', bareHubPath: '' };
+  // Ensure warez repo is bare (convert if needed)
+  if (!isBareRepo(repoPath)) {
+    if (fs.existsSync(path.join(repoPath, '.git'))) {
+      // Non-bare git repo → convert to bare
+      if (!convertToBare(repoPath, actions)) {
+        return { response: 'Error: could not convert repository to bare.', actions, currentBranch: '' };
+      }
+    } else {
+      // Not a git repo at all → init + convert
+      autoInitGit(repoPath, actions);
+      if (!convertToBare(repoPath, actions)) {
+        return { response: 'Error: could not initialize bare repository.', actions, currentBranch: '' };
+      }
+    }
   }
-  const workdir = ensureAgentWorkdir(barePath, repoName, actions);
+
+  // Clone from warez (bare) into agent workdir
+  const workdir = ensureAgentWorkdir(repoPath, repoName, actions);
   if (!workdir) {
-    return { response: 'Error: could not create agent workspace.', actions, currentBranch: '', bareHubPath: barePath };
+    return { response: 'Error: could not create agent workspace.', actions, currentBranch: '' };
   }
 
   // Checkout the requested branch if specified
@@ -612,25 +597,23 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     // Auto-commit any uncommitted changes
     autoCommitChanges(workdir, actions);
 
-    // Push to bare hub so changes are visible from user's repo
-    pushToBareHub(workdir, actions);
+    // Push to warez (bare repo)
+    pushToWarez(workdir, actions);
 
     return {
       response: lastResponse || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
-      bareHubPath: barePath,
     };
   } catch (err: any) {
     // Auto-commit even on error
     autoCommitChanges(workdir, actions);
-    pushToBareHub(workdir, actions);
+    pushToWarez(workdir, actions);
 
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,
       currentBranch: getCurrentBranch(workdir),
-      bareHubPath: barePath,
     };
   }
 }

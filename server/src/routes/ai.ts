@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from '../services/rag';
-import { runAgent, getBareHubPath } from '../services/agent';
+import { runAgent, isBareRepo } from '../services/agent';
 
 const router = Router();
 
@@ -57,7 +57,9 @@ function findWarezRepos(): RepoInfo[] {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const fullPath = path.join(warezPath, entry.name);
-      const isGitRepo = fs.existsSync(path.join(fullPath, '.git'));
+      const hasGitDir = fs.existsSync(path.join(fullPath, '.git'));
+      const bare = isBareRepo(fullPath);
+      const isGitRepo = hasGitDir || bare;
       let branch = '';
       if (isGitRepo) {
         try {
@@ -302,7 +304,6 @@ router.post('/chat', async (req: Request, res: Response) => {
         actions: result.actions,
         currentBranch: result.currentBranch,
         parentBranch: targetBranch || repo.branch,
-        bareHubPath: result.bareHubPath,
         sources: [],
       });
     } catch (err) {
