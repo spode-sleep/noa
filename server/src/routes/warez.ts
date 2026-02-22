@@ -172,8 +172,8 @@ router.get('/repos/:name', (req: Request, res: Response) => {
       return a.name.localeCompare(b.name);
     });
 
-    // Clone URL for bare repos
-    const cloneUrl = repo.isBare ? repo.path : undefined;
+    // Clone URL for any git repo (bare or non-bare)
+    const cloneUrl = repo.isGitRepo ? repo.path : undefined;
 
     res.json({ ...repo, readme, files, cloneUrl });
   } catch (err) {

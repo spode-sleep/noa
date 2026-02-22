@@ -22,6 +22,7 @@
         <div v-if="repo.cloneUrl" class="clone-url glass">
           <span class="clone-label">Clone:</span>
           <code class="clone-path">git clone {{ repo.cloneUrl }}</code>
+          <button class="btn-copy" @click="copyCloneUrl" :title="copyLabel">{{ copyLabel }}</button>
         </div>
       </div>
 
@@ -74,6 +75,14 @@ const router = useRouter()
 const repo = ref<RepoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
+const copyLabel = ref('📋 Copy')
+
+function copyCloneUrl() {
+  if (!repo.value?.cloneUrl) return
+  navigator.clipboard.writeText(`git clone ${repo.value.cloneUrl}`)
+  copyLabel.value = '✓ Copied'
+  setTimeout(() => { copyLabel.value = '📋 Copy' }, 2000)
+}
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
@@ -284,6 +293,21 @@ h1 {
   padding: 2px 8px;
   border: 1px solid var(--glass-border);
   user-select: all;
+  flex: 1;
+  overflow-x: auto;
+}
+.btn-copy {
+  padding: 2px 10px;
+  background: var(--askew-btn);
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-copy:hover {
+  background: var(--askew-btn-hover);
 }
 
 .last-commit {
