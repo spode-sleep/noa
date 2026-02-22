@@ -7,6 +7,67 @@ const MAX_FILE_SIZE_BYTES = 512 * 1024;
 const MAX_TOOL_ITERATIONS = 15;
 const MAX_ACTION_RESULT_LENGTH = 200;
 
+const KNOWN_TOOL_NAMES = new Set([
+  'read_file', 'write_file', 'list_files',
+  'git_create_branch', 'git_status', 'git_diff', 'git_commit',
+]);
+
+// --- Text-based tool call parser ---
+// Many local models output tool calls as JSON text instead of using the
+// structured tool_calls mechanism. This parser extracts them from content.
+
+interface ParsedToolCall {
+  name: string;
+  arguments: Record<string, string>;
+}
+
+function parseToolCallsFromText(text: string): ParsedToolCall[] {
+  const results: ParsedToolCall[] = [];
+
+  // Strip <tool_call> tags and markdown code fences
+  const cleaned = text
+    .replace(/<\/?tool_call>/g, '')
+    .replace(/```(?:json)?\s*/g, '')
+    .replace(/```/g, '');
+
+  // Try to parse JSON objects starting at each '{' by tracking brace depth
+  for (let i = 0; i < cleaned.length; i++) {
+    if (cleaned[i] !== '{') continue;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let j = i; j < cleaned.length; j++) {
+      const ch = cleaned[j];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          try {
+            const obj = JSON.parse(cleaned.slice(i, j + 1));
+            if (obj.name && KNOWN_TOOL_NAMES.has(obj.name)) {
+              // Some models use "parameters" instead of "arguments"
+              results.push({
+                name: obj.name,
+                arguments: obj.arguments || obj.parameters || {},
+              });
+            }
+          } catch {
+            // malformed JSON, skip
+          }
+          i = j; // skip past this object
+          break;
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
 // --- Path safety ---
 
 function sanitizeRelativePath(relPath: string): string | null {
@@ -252,19 +313,39 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         tools: AGENT_TOOLS,
       });
 
-      // If no tool calls, return the final response
-      if (!response.message.tool_calls || response.message.tool_calls.length === 0) {
+      let toolCalls = response.message.tool_calls || [];
+      let parsedFromText = false;
+
+      // Fallback: parse tool calls from text content when model doesn't
+      // use structured tool_calls (common with local models)
+      if (toolCalls.length === 0 && response.message.content) {
+        const parsed = parseToolCallsFromText(response.message.content);
+        if (parsed.length > 0) {
+          toolCalls = parsed.map(p => ({
+            function: { name: p.name, arguments: p.arguments },
+          }));
+          parsedFromText = true;
+        }
+      }
+
+      // If no tool calls found (neither structured nor text), return final response
+      if (toolCalls.length === 0) {
         return {
           response: response.message.content || 'Done.',
           actions,
         };
       }
 
-      // Add assistant message with tool calls to history
-      messages.push(response.message);
+      // Add assistant message to history — preserve structured tool_calls
+      // when available, use plain content when parsed from text
+      if (parsedFromText) {
+        messages.push({ role: 'assistant', content: response.message.content || '' });
+      } else {
+        messages.push(response.message);
+      }
 
       // Execute each tool call
-      for (const tc of response.message.tool_calls) {
+      for (const tc of toolCalls) {
         const toolName = tc.function.name;
         const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
 
