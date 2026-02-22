@@ -283,14 +283,17 @@ router.post('/chat', async (req: Request, res: Response) => {
 
     try {
       const targetBranch = typeof requestedBranch === 'string' ? requestedBranch.trim() : '';
+      const historyArr = Array.isArray(history) ? history : [];
+      const isFirstMessage = historyArr.filter((m: any) => m.role === 'assistant').length === 0;
       const result = await runAgent(
         selectedModel,
         message,
-        Array.isArray(history) ? history : [],
+        historyArr,
         repo.path,
         repo.name,
         targetBranch || repo.branch,
         repo.isGitRepo,
+        isFirstMessage,
       );
 
       res.json({

@@ -297,6 +297,7 @@ export async function runAgent(
   repoName: string,
   branch: string,
   isGitRepo: boolean,
+  isFirstMessage: boolean,
 ): Promise<AgentResult> {
   const actions: AgentAction[] = [];
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
@@ -327,18 +328,21 @@ ${!isGitRepo ? 'This directory is NOT a git repository yet. Git will be auto-ini
 WORKFLOW for code changes:
 1. First, explore the repository structure with list_files
 2. Read relevant files to understand the codebase
-3. Create a new branch for your changes with git_create_branch
-4. Make changes with write_file
+${isFirstMessage ? '3. MANDATORY: Create a new branch for your changes with git_create_branch BEFORE any write_file calls\n' : ''}4. Make changes with write_file
 5. Verify with git_status
 6. Commit with git_commit
 
 IMPORTANT RULES:
-- In your FIRST message always mention which new branch you created (or will create).
-- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
-- When working with files, preserve the programming language of the file. Determine the language from the file extension (${FILE_EXTENSION_LANGUAGES}) or from existing content (shebangs, syntax patterns). Always write code in the same language as the file.
+${isFirstMessage ? '- You MUST create a new branch using git_create_branch before making any changes. This is required.\n- In your response, always mention the name of the new branch you created.\n' : '- A branch was already created in a previous message. Do NOT create new branches.\n'}- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
+- When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
 - You can revert to a previous commit using git_revert if needed.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
+
+  // Only include git_create_branch on first message
+  const tools = isFirstMessage
+    ? AGENT_TOOLS
+    : AGENT_TOOLS.filter(t => t.function.name !== 'git_create_branch');
 
   const messages: Message[] = [
     { role: 'system', content: systemPrompt },
@@ -354,7 +358,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       const response = await client.chat({
         model,
         messages,
-        tools: AGENT_TOOLS,
+        tools,
       });
 
       let toolCalls = response.message.tool_calls || [];
@@ -393,6 +397,12 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       for (const tc of toolCalls) {
         const toolName = tc.function.name;
         const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
+
+        // Block branch creation after first message
+        if (toolName === 'git_create_branch' && !isFirstMessage) {
+          messages.push({ role: 'tool', content: 'Error: branch creation is only allowed in the first message' });
+          continue;
+        }
 
         // Auto-init git if needed before any git operation
         if (toolName.startsWith('git_')) {
