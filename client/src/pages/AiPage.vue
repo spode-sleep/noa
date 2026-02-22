@@ -237,13 +237,8 @@ const activeContextLabel = computed(() => {
   if (fictionLibraryEnabled.value) parts.push('Fiction')
   if (selectedRepo.value) {
     parts.push(`Repo: ${selectedRepo.value}`)
-    if (agentParentBranch.value) {
-      parts.push(`Base: ${agentParentBranch.value}`)
-    }
-    if (agentCurrentBranch.value && agentCurrentBranch.value !== agentParentBranch.value) {
+    if (agentCurrentBranch.value) {
       parts.push(`Branch: ${agentCurrentBranch.value}`)
-    } else if (selectedBranch.value && !agentParentBranch.value) {
-      parts.push(`Branch: ${selectedBranch.value}`)
     }
   }
   return parts.join(' · ')
