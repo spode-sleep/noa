@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { Ollama, Tool, Message } from 'ollama';
 
 const MAX_FILE_SIZE_BYTES = 512 * 1024;
@@ -291,9 +291,9 @@ function ensureWorkdir(originalPath: string, repoName: string, actions: AgentAct
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
   }
 
-  // Clone the original repo
+  // Clone the original repo using execFileSync to safely handle paths with spaces
   try {
-    execSync(`git clone ${JSON.stringify(originalPath)} ${JSON.stringify(workdir)}`, { encoding: 'utf-8', timeout: 60000 });
+    execFileSync('git', ['clone', originalPath, workdir], { encoding: 'utf-8', timeout: 60000 });
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Cloned into agent workspace` });
   } catch (err: any) {
     actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
@@ -399,7 +399,7 @@ function pushToOrigin(workdir: string, actions: AgentAction[]) {
   try {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
-    execSync(`git push origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    execFileSync('git', ['push', 'origin', branch], { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
     actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to origin` });
   } catch {
     // push may fail if origin doesn't accept pushes; the changes remain in the clone
