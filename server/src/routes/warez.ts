@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync, execFileSync } from 'child_process';
+import { execSync, execFileSync, spawn } from 'child_process';
+import express from 'express';
 import { isBareRepo } from '../services/agent';
 
 const router = Router();
@@ -172,12 +173,123 @@ router.get('/repos/:name', (req: Request, res: Response) => {
       return a.name.localeCompare(b.name);
     });
 
-    // Clone URL for any git repo (bare or non-bare)
-    const cloneUrl = repo.isGitRepo ? repo.path : undefined;
+    // Clone URL: HTTP-based so it works remotely
+    const protocol = req.protocol;
+    const host = req.get('host') || 'localhost';
+    const cloneUrl = repo.isGitRepo
+      ? `${protocol}://${host}/api/warez/git/${encodeURIComponent(repo.name)}`
+      : undefined;
 
     res.json({ ...repo, readme, files, cloneUrl });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get repo details', details: String(err) });
+  }
+});
+
+// --- Git Smart HTTP Protocol ---
+// Enables `git clone/fetch/push http://host/api/warez/git/<repo>`
+
+function resolveRepoPath(name: string): string | null {
+  if (!name || name.includes('/') || name.includes('\\') || name === '..' || name === '.') return null;
+  for (const warezPath of warezPaths) {
+    const fullPath = path.join(warezPath, name);
+    if (fs.existsSync(fullPath) && (fs.existsSync(path.join(fullPath, '.git')) || isBareRepo(fullPath))) {
+      return fullPath;
+    }
+  }
+  return null;
+}
+
+// Pkt-line helper: encode a single pkt-line string
+function pktLine(data: string): string {
+  const len = (data.length + 4).toString(16).padStart(4, '0');
+  return `${len}${data}`;
+}
+
+// GET /git/:name/info/refs?service=git-upload-pack|git-receive-pack
+router.get('/git/:name/info/refs', (req: Request, res: Response) => {
+  const service = req.query.service as string;
+  if (service !== 'git-upload-pack' && service !== 'git-receive-pack') {
+    res.status(403).send('Service not supported');
+    return;
+  }
+
+  const repoPath = resolveRepoPath(req.params.name);
+  if (!repoPath) {
+    res.status(404).send('Repository not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', `application/x-${service}-advertisement`);
+  res.setHeader('Cache-Control', 'no-cache');
+
+  // Write service announcement header
+  res.write(pktLine(`# service=${service}\n`));
+  res.write('0000');
+
+  const proc = spawn(service, ['--stateless-rpc', '--advertise-refs', repoPath]);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', (data: Buffer) => {
+    console.error(`[git-http] ${service} stderr:`, data.toString());
+  });
+  proc.on('error', () => {
+    if (!res.headersSent) res.status(500).send('Git process error');
+  });
+});
+
+// POST /git/:name/git-upload-pack (clone/fetch)
+router.post('/git/:name/git-upload-pack', express.raw({ type: 'application/x-git-upload-pack-request', limit: '50mb' }), (req: Request, res: Response) => {
+  const repoPath = resolveRepoPath(req.params.name);
+  if (!repoPath) {
+    res.status(404).send('Repository not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/x-git-upload-pack-result');
+  res.setHeader('Cache-Control', 'no-cache');
+
+  const proc = spawn('git-upload-pack', ['--stateless-rpc', repoPath]);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', (data: Buffer) => {
+    console.error('[git-http] upload-pack stderr:', data.toString());
+  });
+  proc.on('error', () => {
+    if (!res.headersSent) res.status(500).send('Git process error');
+  });
+
+  if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+    proc.stdin.write(req.body);
+    proc.stdin.end();
+  } else {
+    req.pipe(proc.stdin);
+  }
+});
+
+// POST /git/:name/git-receive-pack (push)
+router.post('/git/:name/git-receive-pack', express.raw({ type: 'application/x-git-receive-pack-request', limit: '50mb' }), (req: Request, res: Response) => {
+  const repoPath = resolveRepoPath(req.params.name);
+  if (!repoPath) {
+    res.status(404).send('Repository not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/x-git-receive-pack-result');
+  res.setHeader('Cache-Control', 'no-cache');
+
+  const proc = spawn('git-receive-pack', ['--stateless-rpc', repoPath]);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', (data: Buffer) => {
+    console.error('[git-http] receive-pack stderr:', data.toString());
+  });
+  proc.on('error', () => {
+    if (!res.headersSent) res.status(500).send('Git process error');
+  });
+
+  if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+    proc.stdin.write(req.body);
+    proc.stdin.end();
+  } else {
+    req.pipe(proc.stdin);
   }
 });
 
