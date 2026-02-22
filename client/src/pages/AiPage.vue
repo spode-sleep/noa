@@ -289,7 +289,8 @@ function syncCurrentConversation() {
 function deleteConversation(id: string) {
   if (!confirm('Delete this conversation?')) return
   // Clean up agent workdir on the server
-  fetch(`/api/ai/conversations/${encodeURIComponent(id)}/workdir`, { method: 'DELETE' }).catch(() => {})
+  fetch(`/api/ai/conversations/${encodeURIComponent(id)}/workdir`, { method: 'DELETE' })
+    .catch(err => console.warn('Failed to clean up agent workdir:', err))
   conversations.value = conversations.value.filter(c => c.id !== id)
   saveConversations()
   if (activeConversationId.value === id) {

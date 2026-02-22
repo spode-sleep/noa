@@ -287,7 +287,9 @@ router.post('/chat', async (req: Request, res: Response) => {
       const targetBranch = typeof requestedBranch === 'string' ? requestedBranch.trim() : '';
       const historyArr = Array.isArray(history) ? history : [];
       const isFirstMessage = historyArr.filter((m: any) => m.role === 'assistant').length === 0;
-      const convId = typeof conversationId === 'string' ? conversationId.trim() : `anon-${Date.now()}`;
+      const convId = typeof conversationId === 'string' && conversationId.trim()
+        ? conversationId.trim()
+        : crypto.randomUUID();
       const result = await runAgent(
         selectedModel,
         message,
