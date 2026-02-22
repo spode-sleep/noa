@@ -22,7 +22,7 @@
         <div v-if="repo.cloneUrl" class="clone-url glass">
           <span class="clone-label">Clone:</span>
           <code class="clone-path">git clone {{ repo.cloneUrl }}</code>
-          <button class="btn-copy" @click="copyCloneUrl" :title="copyStatus === 'idle' ? 'Copy' : copyStatus === 'copied' ? 'Copied' : 'Failed'">
+          <button class="btn-copy" @click="copyCloneUrl" :title="copyTitle">
             <Icon v-if="copyStatus === 'idle'" icon="mdi:content-copy" />
             <Icon v-else-if="copyStatus === 'copied'" icon="mdi:check" class="copy-ok" />
             <Icon v-else icon="mdi:close-circle" class="copy-fail" />
@@ -81,6 +81,11 @@ const repo = ref<RepoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
 const copyStatus = ref<'idle' | 'copied' | 'failed'>('idle')
+const copyTitle = computed(() => {
+  if (copyStatus.value === 'copied') return 'Copied'
+  if (copyStatus.value === 'failed') return 'Failed'
+  return 'Copy'
+})
 let copyTimeout: ReturnType<typeof setTimeout> | null = null
 
 function copyCloneUrl() {
