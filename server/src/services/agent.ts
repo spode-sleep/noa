@@ -321,19 +321,34 @@ export async function runAgent(
     }
   }
 
+  const workflowSteps = isFirstMessage
+    ? `1. Explore the repository structure with list_files
+2. Read relevant files to understand the codebase
+3. MANDATORY: Create a new branch with git_create_branch BEFORE any write_file calls
+4. Make changes with write_file
+5. Verify with git_status
+6. Commit with git_commit`
+    : `1. Explore the repository structure with list_files
+2. Read relevant files to understand the codebase
+3. Make changes with write_file
+4. Verify with git_status
+5. Commit with git_commit`;
+
+  const branchRules = isFirstMessage
+    ? `- You MUST create a new branch using git_create_branch before making any changes. This is required.
+- In your response, always mention the name of the new branch you created.`
+    : '- A branch was already created in a previous message. Do NOT create new branches.';
+
   const systemPrompt = `You are NOA Code Agent — an AI assistant that can read, write, and manage code in local git repositories.
 You are currently working with the repository "${repoName}"${branch ? ` on branch "${branch}"` : ''}.
 ${!isGitRepo ? 'This directory is NOT a git repository yet. Git will be auto-initialized when you use any git tool.' : ''}
 
 WORKFLOW for code changes:
-1. First, explore the repository structure with list_files
-2. Read relevant files to understand the codebase
-${isFirstMessage ? '3. MANDATORY: Create a new branch for your changes with git_create_branch BEFORE any write_file calls\n' : ''}4. Make changes with write_file
-5. Verify with git_status
-6. Commit with git_commit
+${workflowSteps}
 
 IMPORTANT RULES:
-${isFirstMessage ? '- You MUST create a new branch using git_create_branch before making any changes. This is required.\n- In your response, always mention the name of the new branch you created.\n' : '- A branch was already created in a previous message. Do NOT create new branches.\n'}- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
+${branchRules}
+- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
 - You can revert to a previous commit using git_revert if needed.
 
@@ -400,7 +415,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
         // Block branch creation after first message
         if (toolName === 'git_create_branch' && !isFirstMessage) {
-          messages.push({ role: 'tool', content: 'Error: branch creation is only allowed in the first message' });
+          messages.push({ role: 'tool', content: 'Error: branch creation is only allowed in the first message. A branch has already been created for this conversation.' });
           continue;
         }
 
