@@ -323,10 +323,12 @@ The AI Librarian includes a built-in code agent mode — similar to GitHub Copil
 ### How to use
 
 1. Open the **AI Librarian** page
-2. Before starting a chat, select a repository from the **Repository** dropdown (repos from WAREZ_LIBRARY_PATH)
-3. Describe the changes you want in natural language
-4. The agent will explore the codebase, create a branch, make changes, and commit — all automatically
-5. If no repository is selected, the AI works as a regular chat assistant with RAG
+2. Optionally select a **Repository** from the dropdown (repos from WAREZ_LIBRARY_PATH)
+3. Optionally select a **Branch** to work on (or leave empty to stay on the current branch)
+4. Describe the changes you want in natural language
+5. The agent will explore the codebase, create a branch, make changes, and commit — all automatically
+
+Both repository and branch are optional — without them the AI works as a regular chat assistant with RAG.
 
 ### Agent capabilities
 

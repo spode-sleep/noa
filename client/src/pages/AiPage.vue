@@ -84,6 +84,7 @@
         <div v-if="availableBranches.length > 0" class="model-selector">
           <label class="model-label">Branch</label>
           <select v-model="selectedBranch" class="model-dropdown">
+            <option value="">None (don't switch branch)</option>
             <option v-for="b in availableBranches" :key="b" :value="b">{{ b }}</option>
           </select>
         </div>
@@ -383,7 +384,7 @@ watch(selectedRepo, async (repoName) => {
     const data = await res.json()
     if (data.branches?.length) {
       availableBranches.value = data.branches
-      selectedBranch.value = data.current || data.branches[0]
+      selectedBranch.value = ''
     }
   } catch { /* ignore */ }
 })
