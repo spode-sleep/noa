@@ -278,6 +278,15 @@ function hasUncommittedChanges(repoPath: string): boolean {
   }
 }
 
+function sanitizeBranchName(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]/g, '-')  // replace non-alphanumeric chars with hyphens
+    .replace(/-+/g, '-')            // collapse consecutive hyphens
+    .replace(/^-|-$/g, '');         // trim leading/trailing hyphens
+}
+
 async function generateBranchName(client: Ollama, model: string, userMessage: string): Promise<string> {
   try {
     const response = await client.chat({
@@ -290,13 +299,24 @@ async function generateBranchName(client: Ollama, model: string, userMessage: st
         { role: 'user', content: userMessage },
       ],
     });
-    const raw = (response.message.content || '').trim().replace(/[^a-z0-9\-]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
-    if (raw.length >= 3 && raw.length <= 60) return raw;
+    const name = sanitizeBranchName(response.message.content || '');
+    if (name.length >= 3 && name.length <= 60) return name;
   } catch {
     // fallback below
   }
   // Fallback: generate from timestamp
   return `agent-${Date.now().toString(36)}`;
+}
+
+function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
+  if (!hasUncommittedChanges(repoPath)) return;
+  try {
+    execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    actions.push({ tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
+  } catch {
+    // ignore commit errors (e.g. nothing to commit)
+  }
 }
 
 export async function runAgent(
@@ -340,12 +360,16 @@ export async function runAgent(
   let createdBranch = '';
   if (isFirstMessage) {
     const branchName = await generateBranchName(client, model, userMessage);
-    try {
-      execSync(`git checkout -b ${branchName}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-      createdBranch = branchName;
-      actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch created: ${branchName}` });
-    } catch (err: any) {
-      actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch creation error: ${err.message}` });
+    if (!/^[\w.\-]+$/.test(branchName)) {
+      actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
+    } else {
+      try {
+        execSync(`git checkout -b ${branchName}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        createdBranch = branchName;
+        actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch created: ${branchName}` });
+      } catch (err: any) {
+        actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: `Branch creation error: ${err.message}` });
+      }
     }
   }
 
@@ -441,15 +465,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     }
 
     // Auto-commit any uncommitted changes
-    if (hasUncommittedChanges(repoPath)) {
-      try {
-        execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        actions.push({ tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
-      } catch {
-        // ignore commit errors (e.g. nothing to commit)
-      }
-    }
+    autoCommitChanges(repoPath, actions);
 
     return {
       response: lastResponse || 'Done.',
@@ -458,15 +474,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     };
   } catch (err: any) {
     // Auto-commit even on error
-    if (hasUncommittedChanges(repoPath)) {
-      try {
-        execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        actions.push({ tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
-      } catch {
-        // ignore
-      }
-    }
+    autoCommitChanges(repoPath, actions);
 
     return {
       response: `Agent error: ${err.message || String(err)}`,
