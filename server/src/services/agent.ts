@@ -21,6 +21,28 @@ interface ParsedToolCall {
   arguments: Record<string, string>;
 }
 
+// Escape literal newlines/tabs/CRs inside JSON string values.
+// Local models often output multiline content with literal line breaks
+// inside JSON strings, which makes JSON.parse fail.
+function escapeJsonStringLiterals(text: string): string {
+  let result = '';
+  let inStr = false;
+  let esc = false;
+  for (let k = 0; k < text.length; k++) {
+    const ch = text[k];
+    if (esc) { result += ch; esc = false; continue; }
+    if (ch === '\\' && inStr) { result += ch; esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; result += ch; continue; }
+    if (inStr) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+    }
+    result += ch;
+  }
+  return result;
+}
+
 function parseToolCallsFromText(text: string): ParsedToolCall[] {
   const results: ParsedToolCall[] = [];
 
@@ -47,7 +69,14 @@ function parseToolCallsFromText(text: string): ParsedToolCall[] {
         depth--;
         if (depth === 0) {
           try {
-            const obj = JSON.parse(cleaned.slice(i, j + 1));
+            const jsonStr = cleaned.slice(i, j + 1);
+            let obj;
+            try {
+              obj = JSON.parse(jsonStr);
+            } catch {
+              // Fix literal newlines inside JSON string values (common with local models)
+              obj = JSON.parse(escapeJsonStringLiterals(jsonStr));
+            }
             if (obj.name && KNOWN_TOOL_NAMES.has(obj.name)) {
               // Some models use "parameters" instead of "arguments"
               results.push({
