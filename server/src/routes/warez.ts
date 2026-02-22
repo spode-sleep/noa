@@ -85,7 +85,7 @@ function readReadmeBare(repoPath: string): string {
   const readmeNames = ['README.md', 'README.MD', 'readme.md', 'README', 'README.txt', 'README.rst'];
   for (const rname of readmeNames) {
     try {
-      return execFileSync('git', ['show', `HEAD:${rname}`], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+      return execFileSync('git', ['show', `HEAD:${rname}`], { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] });
     } catch {
       // file doesn't exist at HEAD, try next
     }
