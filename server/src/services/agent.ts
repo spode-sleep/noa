@@ -74,7 +74,7 @@ function parseToolCallsFromText(text: string): ParsedToolCall[] {
             try {
               obj = JSON.parse(jsonStr);
             } catch {
-              // Fix literal newlines inside JSON string values (common with local models)
+              // Literal newlines inside JSON strings are invalid; try escaping them
               obj = JSON.parse(escapeJsonStringLiterals(jsonStr));
             }
             if (obj.name && KNOWN_TOOL_NAMES.has(obj.name)) {
