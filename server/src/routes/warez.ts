@@ -233,7 +233,7 @@ router.get('/git/:name/info/refs', (req: Request, res: Response) => {
     return;
   }
 
-  const repoPath = resolveRepoPath(req.params.name);
+  const repoPath = resolveRepoPath(req.params.name as string);
   if (!repoPath) {
     res.status(404).send('Repository not found');
     return;
@@ -251,7 +251,7 @@ router.get('/git/:name/info/refs', (req: Request, res: Response) => {
 
 // POST /git/:name/git-upload-pack (clone/fetch)
 router.post('/git/:name/git-upload-pack', express.raw({ type: 'application/x-git-upload-pack-request', limit: '50mb' }), (req: Request, res: Response) => {
-  const repoPath = resolveRepoPath(req.params.name);
+  const repoPath = resolveRepoPath(req.params.name as string);
   if (!repoPath) {
     res.status(404).send('Repository not found');
     return;
@@ -271,7 +271,7 @@ router.post('/git/:name/git-upload-pack', express.raw({ type: 'application/x-git
 
 // POST /git/:name/git-receive-pack (push)
 router.post('/git/:name/git-receive-pack', express.raw({ type: 'application/x-git-receive-pack-request', limit: '50mb' }), (req: Request, res: Response) => {
-  const repoPath = resolveRepoPath(req.params.name);
+  const repoPath = resolveRepoPath(req.params.name as string);
   if (!repoPath) {
     res.status(404).send('Repository not found');
     return;
