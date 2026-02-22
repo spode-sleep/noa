@@ -257,9 +257,10 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
   }
 }
 
-// --- Agent workspace (clone-based) ---
-// The agent operates on a local clone of the original repo, so user's
-// working tree is never affected. Clones live in <data>/agent-workdirs/<repo>.
+// --- Agent workspace (worktree-based) ---
+// The agent operates in a git worktree linked to the original repo.
+// Commits go directly into the shared git database — no push needed.
+// Worktrees live in <data>/agent-workdirs/<repo>.
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
 const WORKDIR_BASE = path.join(dataPath, 'agent-workdirs');
@@ -268,16 +269,11 @@ function getWorkdir(repoName: string): string {
   return path.join(WORKDIR_BASE, repoName);
 }
 
-function ensureWorkdir(originalPath: string, repoName: string, actions: AgentAction[]): string {
+function ensureWorktree(originalPath: string, repoName: string, actions: AgentAction[]): string {
   const workdir = getWorkdir(repoName);
 
-  // If clone already exists, just fetch latest
+  // If worktree already exists, return it
   if (fs.existsSync(path.join(workdir, '.git'))) {
-    try {
-      execSync('git fetch origin', { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-    } catch {
-      // fetch may fail if origin is unreachable (offline), continue anyway
-    }
     return workdir;
   }
 
@@ -291,13 +287,14 @@ function ensureWorkdir(originalPath: string, repoName: string, actions: AgentAct
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
   }
 
-  // Clone the original repo using execFileSync to safely handle paths with spaces
+  // Create a worktree (detached HEAD) from the original repo
   try {
-    execFileSync('git', ['clone', originalPath, workdir], { encoding: 'utf-8', timeout: 60000 });
-    actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Cloned into agent workspace` });
+    execFileSync('git', ['worktree', 'add', '--detach', workdir],
+      { cwd: originalPath, encoding: 'utf-8', timeout: 30000 });
+    actions.push({ tool: 'git_worktree', args: { source: repoName }, result: 'Created agent worktree' });
   } catch (err: any) {
-    actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
-    // Fall back to original path if clone fails
+    actions.push({ tool: 'git_worktree', args: { source: repoName }, result: `Worktree error: ${err.message}` });
+    // Fall back to original path if worktree creation fails
     return originalPath;
   }
 
@@ -395,17 +392,6 @@ function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
   }
 }
 
-function pushToOrigin(workdir: string, actions: AgentAction[]) {
-  try {
-    const branch = getCurrentBranch(workdir);
-    if (!branch) return;
-    execFileSync('git', ['push', 'origin', branch], { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-    actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to origin` });
-  } catch {
-    // push may fail if origin doesn't accept pushes; the changes remain in the clone
-  }
-}
-
 export async function runAgent(
   model: string,
   userMessage: string,
@@ -425,27 +411,16 @@ export async function runAgent(
     },
   });
 
-  // Set up agent workspace (clone of original repo)
-  const workdir = ensureWorkdir(repoPath, repoName, actions);
+  // Set up agent workspace (worktree linked to original repo)
+  const workdir = ensureWorktree(repoPath, repoName, actions);
 
   // Checkout the requested branch if specified
   if (branch && /^[\w.\-/]+$/.test(branch)) {
     try {
       const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
-        // Try local branch first, then remote tracking branch
-        try {
-          execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
-        } catch {
-          execSync(`git checkout -b ${branch} origin/${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
-        }
+        execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
-      }
-      // Pull latest changes from origin
-      try {
-        execSync(`git pull origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-      } catch {
-        // pull may fail if branch doesn't exist on origin yet, continue
       }
     } catch (err: any) {
       actions.push({ tool: 'git_checkout', args: { branch }, result: `Checkout error: ${err.message}` });
@@ -565,9 +540,6 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
     // Auto-commit any uncommitted changes
     autoCommitChanges(workdir, actions);
-
-    // Push changes back to original repo
-    pushToOrigin(workdir, actions);
 
     return {
       response: lastResponse || 'Done.',
