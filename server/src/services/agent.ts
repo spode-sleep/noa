@@ -257,29 +257,76 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
   }
 }
 
-// --- Agent workspace (worktree-based) ---
-// The agent operates in a git worktree linked to the original repo.
-// Commits go directly into the shared git database — no push needed.
-// Worktrees live in <data>/agent-workdirs/<repo>.
+// --- Agent workspace (bare hub architecture) ---
+// User's Repo (warez/) ←push→ Bare Hub (bare-repos/) ←clone→ Agent Workdir (agent-workdirs/)
+// Bare repos always accept pushes — no "checked out branch" errors.
+// User connects via: git remote add noa <bare-hub-path>
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
+const BARE_HUB_BASE = path.join(dataPath, 'bare-repos');
 const WORKDIR_BASE = path.join(dataPath, 'agent-workdirs');
+
+export function getBareHubPath(repoName: string): string {
+  return path.join(BARE_HUB_BASE, `${repoName}.git`);
+}
 
 function getWorkdir(repoName: string): string {
   return path.join(WORKDIR_BASE, repoName);
 }
 
-function ensureWorktree(originalPath: string, repoName: string, actions: AgentAction[]): string {
-  const workdir = getWorkdir(repoName);
-
-  // If worktree already exists, return it
-  if (fs.existsSync(path.join(workdir, '.git'))) {
-    return workdir;
-  }
+function ensureBareHub(originalPath: string, repoName: string, actions: AgentAction[]): string {
+  const barePath = getBareHubPath(repoName);
 
   // Ensure the original repo has git initialized
   if (!fs.existsSync(path.join(originalPath, '.git'))) {
     autoInitGit(originalPath, actions);
+  }
+
+  // Create bare hub if it doesn't exist
+  if (!fs.existsSync(barePath)) {
+    if (!fs.existsSync(BARE_HUB_BASE)) {
+      fs.mkdirSync(BARE_HUB_BASE, { recursive: true });
+    }
+    try {
+      execFileSync('git', ['clone', '--bare', originalPath, barePath],
+        { encoding: 'utf-8', timeout: 60000 });
+      actions.push({ tool: 'git_hub', args: { repo: repoName }, result: 'Created bare hub' });
+    } catch (err: any) {
+      actions.push({ tool: 'git_hub', args: { repo: repoName }, result: `Bare hub error: ${err.message}` });
+      return '';
+    }
+
+    // Add 'noa' remote to user's repo pointing to bare hub
+    try {
+      execFileSync('git', ['remote', 'add', 'noa', barePath],
+        { cwd: originalPath, encoding: 'utf-8', timeout: 10000 });
+    } catch {
+      // 'noa' remote may already exist
+    }
+  }
+
+  // Sync latest from user's repo to bare hub
+  try {
+    execFileSync('git', ['push', 'noa', '--all'],
+      { cwd: originalPath, encoding: 'utf-8', timeout: 30000 });
+  } catch {
+    // push may fail if nothing new, continue
+  }
+
+  return barePath;
+}
+
+function ensureAgentWorkdir(barePath: string, repoName: string, actions: AgentAction[]): string {
+  const workdir = getWorkdir(repoName);
+
+  // If clone already exists, fetch latest from bare hub
+  if (fs.existsSync(path.join(workdir, '.git'))) {
+    try {
+      execSync('git fetch origin', { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    } catch {
+      // fetch may fail, continue
+    }
+    return workdir;
   }
 
   // Create workdir base
@@ -287,15 +334,14 @@ function ensureWorktree(originalPath: string, repoName: string, actions: AgentAc
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
   }
 
-  // Create a worktree (detached HEAD) from the original repo
+  // Clone from bare hub
   try {
-    execFileSync('git', ['worktree', 'add', '--detach', workdir],
-      { cwd: originalPath, encoding: 'utf-8', timeout: 30000 });
-    actions.push({ tool: 'git_worktree', args: { source: repoName }, result: 'Created agent worktree' });
+    execFileSync('git', ['clone', barePath, workdir],
+      { encoding: 'utf-8', timeout: 60000 });
+    actions.push({ tool: 'git_clone', args: { source: repoName }, result: 'Cloned from bare hub' });
   } catch (err: any) {
-    actions.push({ tool: 'git_worktree', args: { source: repoName }, result: `Worktree error: ${err.message}` });
-    // Fall back to original path if worktree creation fails
-    return originalPath;
+    actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
+    return '';
   }
 
   return workdir;
@@ -326,6 +372,7 @@ export interface AgentResult {
   response: string;
   actions: AgentAction[];
   currentBranch: string;
+  bareHubPath: string;
 }
 
 // --- Main agent runner using official Ollama client ---
@@ -392,6 +439,18 @@ function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
   }
 }
 
+function pushToBareHub(workdir: string, actions: AgentAction[]) {
+  try {
+    const branch = getCurrentBranch(workdir);
+    if (!branch) return;
+    execFileSync('git', ['push', 'origin', branch],
+      { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to hub` });
+  } catch {
+    // push may fail if nothing to push
+  }
+}
+
 export async function runAgent(
   model: string,
   userMessage: string,
@@ -411,15 +470,27 @@ export async function runAgent(
     },
   });
 
-  // Set up agent workspace (worktree linked to original repo)
-  const workdir = ensureWorktree(repoPath, repoName, actions);
+  // Set up bare hub and agent workspace
+  const barePath = ensureBareHub(repoPath, repoName, actions);
+  if (!barePath) {
+    return { response: 'Error: could not create bare hub for repository.', actions, currentBranch: '', bareHubPath: '' };
+  }
+  const workdir = ensureAgentWorkdir(barePath, repoName, actions);
+  if (!workdir) {
+    return { response: 'Error: could not create agent workspace.', actions, currentBranch: '', bareHubPath: barePath };
+  }
 
   // Checkout the requested branch if specified
   if (branch && /^[\w.\-/]+$/.test(branch)) {
     try {
       const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
-        execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+        // Try local branch first, then remote tracking branch
+        try {
+          execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+        } catch {
+          execSync(`git checkout -b ${branch} origin/${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+        }
         actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
       }
     } catch (err: any) {
@@ -541,20 +612,25 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     // Auto-commit any uncommitted changes
     autoCommitChanges(workdir, actions);
 
+    // Push to bare hub so changes are visible from user's repo
+    pushToBareHub(workdir, actions);
+
     return {
       response: lastResponse || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
+      bareHubPath: barePath,
     };
   } catch (err: any) {
     // Auto-commit even on error
     autoCommitChanges(workdir, actions);
-    pushToOrigin(workdir, actions);
+    pushToBareHub(workdir, actions);
 
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,
       currentBranch: getCurrentBranch(workdir),
+      bareHubPath: barePath,
     };
   }
 }

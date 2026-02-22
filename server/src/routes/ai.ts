@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from '../services/rag';
-import { runAgent } from '../services/agent';
+import { runAgent, getBareHubPath } from '../services/agent';
 
 const router = Router();
 
@@ -302,6 +302,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         actions: result.actions,
         currentBranch: result.currentBranch,
         parentBranch: targetBranch || repo.branch,
+        bareHubPath: result.bareHubPath,
         sources: [],
       });
     } catch (err) {
