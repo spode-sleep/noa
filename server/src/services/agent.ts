@@ -6,6 +6,8 @@ import { Ollama, Tool, Message } from 'ollama';
 const MAX_FILE_SIZE_BYTES = 512 * 1024;
 const MAX_TOOL_ITERATIONS = 15;
 const MAX_ACTION_RESULT_LENGTH = 200;
+const MAX_SEARCH_RESULTS = 50;
+const MAX_GIT_LOG_COUNT = 50;
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'list_files', 'search_files',
@@ -268,11 +270,11 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         const searchDir = sanitizeRelativePath(args.dir_path || '.') || '.';
         const fullSearchDir = path.join(repoPath, searchDir);
         if (!fs.existsSync(fullSearchDir)) return `Error: directory not found: ${searchDir}`;
-        // Use git grep for fast, safe, .gitignore-aware search
-        const globArg = args.file_glob ? ` -- ${JSON.stringify(args.file_glob)}` : '';
+        // Use git grep with execFileSync for safe argument passing (no shell quoting issues)
+        const grepArgs = ['grep', '-n', '-I', `--max-count=${MAX_SEARCH_RESULTS}`, '-e', pattern];
+        if (args.file_glob) grepArgs.push('--', args.file_glob);
         try {
-          const result = execSync(
-            `git grep -n -I --max-count=50 -e ${JSON.stringify(pattern)}${globArg}`,
+          const result = execFileSync('git', grepArgs,
             { cwd: fullSearchDir, encoding: 'utf-8', timeout: 15000 }
           ).trim();
           return result || '(no matches)';
@@ -296,7 +298,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
       }
       case 'git_log': {
         const count = parseInt(args.count || '10', 10);
-        const safeCount = Math.min(Math.max(1, count), 50);
+        const safeCount = Math.min(Math.max(1, count), MAX_GIT_LOG_COUNT);
         return execSync(`git log --oneline -n ${safeCount}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)';
       }
       case 'git_revert': {
@@ -661,7 +663,7 @@ IMPORTANT RULES:
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
 - When writing entire files, include ALL the content — do not use placeholders like "// rest of the code".
 - You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
-- Always commit your changes with git_commit when done.
+- ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
 
