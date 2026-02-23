@@ -840,7 +840,6 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
   let lastResponse = '';
   const recentToolNames: string[] = []; // Track tool name history for cycle detection
-  const MAX_CYCLE_WINDOW = 8; // Look at last N tool names for patterns
   let lastToolKey = '';
   let repeatCount = 0;
   const MAX_REPEAT_COUNT = 3;
@@ -916,21 +915,21 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       for (const tc of toolCalls) {
         recentToolNames.push(tc.function.name);
       }
+      // Keep bounded: only need last 9 names max (cycleLen 3 × 3 repetitions)
+      while (recentToolNames.length > 9) recentToolNames.shift();
+
       let cycleDetected = false;
-      if (recentToolNames.length >= MAX_CYCLE_WINDOW) {
-        for (const cycleLen of [2, 3]) {
-          const w = recentToolNames.slice(-cycleLen * 3);
-          if (w.length >= cycleLen * 3) {
-            const pattern = w.slice(0, cycleLen).join(',');
-            const chunk2 = w.slice(cycleLen, cycleLen * 2).join(',');
-            const chunk3 = w.slice(cycleLen * 2, cycleLen * 3).join(',');
-            if (pattern === chunk2 && pattern === chunk3) {
-              console.log(`[agent] Breaking loop: detected cycle pattern [${pattern}] repeating 3 times`);
-              messages.push({ role: 'system', content: `You are stuck in a loop (${pattern} repeating). Stop and try a completely different approach, or commit what you have and finish.` });
-              cycleDetected = true;
-              break;
-            }
-          }
+      for (const cycleLen of [2, 3]) {
+        if (recentToolNames.length < cycleLen * 3) continue;
+        const window = recentToolNames.slice(-cycleLen * 3);
+        const chunk1 = window.slice(0, cycleLen).join(',');
+        const chunk2 = window.slice(cycleLen, cycleLen * 2).join(',');
+        const chunk3 = window.slice(cycleLen * 2, cycleLen * 3).join(',');
+        if (chunk1 === chunk2 && chunk1 === chunk3) {
+          console.log(`[agent] Breaking loop: detected cycle pattern [${chunk1}] repeating 3 times`);
+          messages.push({ role: 'system', content: `You are stuck in a loop (${chunk1} repeating). Stop and try a completely different approach, or commit what you have and finish.` });
+          cycleDetected = true;
+          break;
         }
       }
       if (cycleDetected) break;
