@@ -121,7 +121,7 @@
               <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
             </div>
             <div v-if="msg.actions?.length" class="agent-timeline">
-              <details class="timeline-details" open>
+              <details class="timeline-details">
                 <summary class="timeline-summary">
                   <Icon icon="mdi:robot-outline" width="14" height="14" />
                   Agent activity ({{ msg.actions.filter(a => a.type === 'tool').length }} tool calls)
@@ -142,11 +142,17 @@
                     <template v-else>
                       <details class="tool-details">
                         <summary class="tool-summary">
-                          <Icon icon="mdi:wrench-outline" width="14" height="14" class="step-icon tool-icon" />
+                          <Icon :icon="step.tool?.startsWith('git_') ? 'mdi:source-branch' : 'mdi:wrench-outline'" width="14" height="14" class="step-icon tool-icon" />
                           <span class="tool-name">{{ step.tool }}</span>
-                          <span v-if="step.args && Object.keys(step.args).length" class="tool-args">({{ Object.values(step.args).join(', ') }})</span>
+                          <span v-if="step.args && Object.keys(step.args).length" class="tool-args">({{ formatToolArgs(step) }})</span>
                         </summary>
-                        <pre v-if="step.result" class="tool-result">{{ step.result }}</pre>
+                        <template v-if="step.tool === 'edit_file' && step.args?.old_text">
+                          <div class="diff-block">
+                            <div v-for="(line, li) in step.args.old_text.split('\n')" :key="'d'+li" class="diff-line removed">- {{ line }}</div>
+                            <div v-for="(line, li) in (step.args.new_text || '').split('\n')" :key="'a'+li" class="diff-line added">+ {{ line }}</div>
+                          </div>
+                        </template>
+                        <pre v-else-if="step.result" class="tool-result">{{ step.result }}</pre>
                       </details>
                     </template>
                   </div>
@@ -363,6 +369,13 @@ function finishRename(id: string) {
 }
 
 // --- Existing chat logic ---
+
+function formatToolArgs(step: AgentStep): string {
+  if (!step.args) return ''
+  // For edit_file, only show file_path (old_text/new_text shown in diff block)
+  if (step.tool === 'edit_file') return step.args.file_path || ''
+  return Object.values(step.args).join(', ')
+}
 
 function formatContent(text: string): string {
   // Extract code blocks first to protect them from escaping
@@ -1082,25 +1095,6 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
-.timeline-step::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: 10px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--askew-dark-border);
-}
-
-.timeline-step.thinking::before {
-  background: var(--askew-gold);
-}
-
-.timeline-step.tool::before {
-  background: var(--askew-mint);
-}
-
 .step-thinking {
   display: flex;
   align-items: flex-start;
@@ -1165,6 +1159,33 @@ onBeforeUnmount(() => {
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.diff-block {
+  margin: 4px 0 2px 18px;
+  padding: 4px 0;
+  background: var(--askew-tab-inactive);
+  border: 1px solid var(--askew-dark-border);
+  font-family: monospace;
+  font-size: 0.68rem;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.diff-line {
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.diff-line.removed {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.diff-line.added {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
 }
 
 .index-btn {

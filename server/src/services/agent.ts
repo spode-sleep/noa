@@ -744,7 +744,8 @@ export async function runAgent(
       // Always pull latest changes (even if already on the branch)
       try {
         console.log(`[agent] Pulling latest changes for branch: ${branch}`);
-        execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        const pullOutput = execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        actions.push({ type: 'tool', tool: 'git_pull', args: { branch }, result: pullOutput.trim() || 'Already up to date' });
       } catch {
         // Pull/rebase may fail due to conflicts or local-only branch
         // Abort any in-progress rebase to leave workdir clean
