@@ -377,23 +377,50 @@ function runAiderProcess(
     const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
     const modelArg = buildAiderModelArg(model);
 
-    // Prepend system prompt to message — most compatible approach, no extra flags needed
+    // Write message to a temp file — avoids shell arg length issues with embedded system prompt
     const fullMessage = `${AIDER_SYSTEM_PROMPT}\n\n---\n\nUser request:\n${message}`;
+    const messageFile = path.join(workdir, '.aider-message.tmp');
+    try {
+      fs.writeFileSync(messageFile, fullMessage, 'utf-8');
+    } catch (err: any) {
+      console.error(`[agent] Failed to write message file: ${err.message}`);
+    }
 
-    // Only use flags that exist in all aider versions (0.50+)
+    // Core CLI flags only — all "disable" settings go via env vars for max compatibility
     const args = [
       '--model', modelArg,
-      '--yes-always',
-      '--no-stream',
+      '--yes',
       '--auto-commits',
-      '--message', fullMessage,
     ];
+
+    // Use --message-file if the file was written, otherwise fall back to --message
+    if (fs.existsSync(messageFile)) {
+      args.push('--message-file', messageFile);
+    } else {
+      args.push('--message', fullMessage);
+    }
 
     console.log(`[agent] Running aider in: ${workdir} (model: ${modelArg})`);
 
+    // Environment variables to prevent browser opening, sudo requests, and hangs.
+    // Env vars are the most compatible way to configure aider across all versions.
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
       OLLAMA_API_BASE: ollamaHost,
+      // Prevent aider from checking for updates (which triggers sudo pip install and browser)
+      AIDER_CHECK_UPDATE: 'false',
+      // Prevent aider from showing release notes (which opens browser)
+      AIDER_SHOW_RELEASE_NOTES: 'false',
+      // Prevent aider from suggesting shell commands
+      AIDER_SUGGEST_SHELL_COMMANDS: 'false',
+      // Disable streaming for subprocess capture
+      AIDER_STREAM: 'false',
+      // Prevent any browser from opening
+      BROWSER: 'echo',
+      // Disable terminal colors/formatting
+      NO_COLOR: '1',
+      // Disable analytics
+      AIDER_ANALYTICS_DISABLE: 'true',
     };
 
     const proc = spawn(aiderPath, args, {
@@ -422,14 +449,20 @@ function runAiderProcess(
       }
     });
 
-    // Close stdin immediately — aider runs non-interactively with --message
+    // Close stdin immediately — aider runs non-interactively with --message-file
     proc.stdin.end();
 
+    const cleanup = () => {
+      try { if (fs.existsSync(messageFile)) fs.unlinkSync(messageFile); } catch { /* ignore */ }
+    };
+
     proc.on('close', (code) => {
+      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
     });
 
     proc.on('error', (err) => {
+      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + `\nProcess error: ${err.message}`, exitCode: 1 }); }
     });
 
@@ -437,6 +470,7 @@ function runAiderProcess(
     setTimeout(() => {
       if (!resolved) {
         resolved = true;
+        cleanup();
         try { proc.kill('SIGTERM'); } catch { /* ignore */ }
         resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
       }
