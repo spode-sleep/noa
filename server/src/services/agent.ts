@@ -296,7 +296,14 @@ function buildHistoryContext(history: Array<{ role: string; content: string }>):
 }
 
 /** System prompt appended to every aider request to enforce efficient, commit-oriented behavior */
-const AIDER_SYSTEM_PROMPT = `CRITICAL RULES — follow strictly:
+const AIDER_SYSTEM_PROMPT = `WORKFLOW (follow in order):
+1. UNDERSTAND: Read relevant files and explore the codebase before making any changes
+2. PLAN: Think about what changes are needed and explain your approach
+3. IMPLEMENT: Make changes using edit_file for targeted edits or write_file for new files
+4. VERIFY: Check your changes with git_status and git_diff, and run tests/builds with run_command if applicable
+5. COMMIT: Always commit with git_commit when done
+
+CRITICAL RULES — follow strictly:
 
 1. EVERY session MUST produce a git commit unless the user explicitly says "don't commit" or "no commit".
    If you changed any file, you MUST commit before finishing. Never end with uncommitted changes.
