@@ -291,6 +291,11 @@ interface ToolResult {
   diff?: { before: string; after: string };
 }
 
+/** Force git to re-read file mtimes and detect changes made within the same second (racy git fix) */
+function refreshGitIndex(repoPath: string) {
+  try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+}
+
 function executeTool(toolName: string, args: Record<string, string>, repoPath: string): ToolResult {
   try {
     switch (toolName) {
@@ -339,11 +344,12 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         const fullPath = path.join(repoPath, rel);
         if (!fs.existsSync(fullPath)) return { text: `Error: directory not found: ${rel}` };
         const entries = fs.readdirSync(fullPath, { withFileTypes: true });
-        return { text: entries
+        const listing = entries
           .filter(e => e.name !== '.git')
           .map(e => `${e.isDirectory() ? '[dir] ' : '      '}${e.name}`)
           .sort()
-          .join('\n') || '(empty directory)' };
+          .join('\n') || '(empty directory)';
+        return { text: listing };
       }
       case 'search_files': {
         const pattern = args.pattern || '';
@@ -387,14 +393,14 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         }
       }
       case 'git_status':
-        try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+        refreshGitIndex(repoPath);
         return { text: execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)' };
       case 'git_diff':
-        try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+        refreshGitIndex(repoPath);
         return { text: execSync('git diff', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)' };
       case 'git_commit': {
         const message = args.message || 'Agent commit';
-        try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+        refreshGitIndex(repoPath);
         execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
         if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
@@ -602,8 +608,7 @@ function getCurrentBranch(repoPath: string): string {
 
 function hasUncommittedChanges(repoPath: string): boolean {
   try {
-    // Refresh stat cache to detect changes made within the same second (racy git)
-    try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+    refreshGitIndex(repoPath);
     const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
     return status.length > 0;
   } catch {
