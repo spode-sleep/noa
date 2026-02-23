@@ -659,7 +659,7 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
     // Check if there are any commits to push (local ahead of remote or no upstream)
     let hasUnpushed = false;
     try {
-      const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 }).trim();
+      const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
       hasUnpushed = log.length > 0;
     } catch {
       // No upstream tracking branch yet — means everything is unpushed
@@ -822,7 +822,9 @@ IMPORTANT RULES:
 - Prefer edit_file over write_file for existing files — it is safer and preserves unchanged parts.
 - If a tool returns an error, explain what went wrong and try a different approach. If edit_file fails twice, switch to write_file.
 - Do NOT re-read a file right after editing it — the edit_file/write_file result already confirms the change. Move on to the next task.
+- Do NOT read the same file more than once — you already have its content from the first read. Use the content you received immediately.
 - AVOID loops: if you find yourself calling the same tools repeatedly, STOP and either try a different approach or finish up.
+- Every tool call MUST make concrete progress toward completing the task. If a tool call wouldn't change anything, don't make it.
 - You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
 - ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes.
 - Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.
@@ -951,8 +953,14 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         const result = executeTool(toolName, toolArgs, workdir);
         actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.text.slice(0, MAX_ACTION_RESULT_LENGTH), diff: result.diff });
 
-        // Add tool result to conversation (truncated to prevent token overflow)
-        messages.push({ role: 'tool', content: truncateToolResult(result.text) });
+        // Add tool result to conversation
+        // For text-parsed tool calls, use 'user' role so the model actually sees the result
+        // (models may ignore 'tool' role when they didn't emit structured tool_calls)
+        const resultRole = parsedFromText ? 'user' : 'tool';
+        const resultContent = parsedFromText
+          ? `[Tool result for ${toolName}]: ${truncateToolResult(result.text)}`
+          : truncateToolResult(result.text);
+        messages.push({ role: resultRole, content: resultContent });
       }
     }
 
