@@ -377,9 +377,10 @@ function runAiderProcess(
     const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
     const modelArg = buildAiderModelArg(model);
 
-    // Write message to a temp file — avoids shell arg length issues with embedded system prompt
+    // Write message to a temp file — avoids shell arg length issues with embedded system prompt.
+    // Use path.resolve() to get absolute path — workdir may be relative (e.g. ../data/...)
     const fullMessage = `${AIDER_SYSTEM_PROMPT}\n\n---\n\nUser request:\n${message}`;
-    const messageFile = path.join(workdir, '.aider-message.tmp');
+    const messageFile = path.resolve(workdir, '.aider-message.tmp');
     try {
       fs.writeFileSync(messageFile, fullMessage, 'utf-8');
     } catch (err: any) {
@@ -424,7 +425,7 @@ function runAiderProcess(
     };
 
     const proc = spawn(aiderPath, args, {
-      cwd: workdir,
+      cwd: path.resolve(workdir),
       env,
       // stdin='ignore' → /dev/null, avoids "Input is not a terminal" warning and hangs
       stdio: ['ignore', 'pipe', 'pipe'],
