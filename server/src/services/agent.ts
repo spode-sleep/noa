@@ -377,40 +377,16 @@ function runAiderProcess(
     const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
     const modelArg = buildAiderModelArg(model);
 
-    // Write config file in workdir — more compatible than CLI flags across aider versions
-    const configFile = path.join(workdir, '.aider.conf.yml');
-    const promptFile = path.join(workdir, '.aider.system-prompt.md');
-    try {
-      fs.writeFileSync(promptFile, AIDER_SYSTEM_PROMPT, 'utf-8');
-    } catch (err: any) {
-      console.error(`[agent] Failed to write system prompt file: ${err.message}`);
-    }
-    try {
-      const config = [
-        `model: "${modelArg}"`,
-        'yes-always: true',
-        'auto-commits: true',
-        'stream: false',
-        'pretty: false',
-        'check-update: false',
-        'show-model-warnings: false',
-        'auto-lint: false',
-        'suggest-shell-commands: false',
-        'subtree-only: true',
-        'detect-urls: false',
-      ];
-      if (fs.existsSync(promptFile)) {
-        const escapedPath = promptFile.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        config.push(`system-prompt-extras: "${escapedPath}"`);
-      }
-      fs.writeFileSync(configFile, config.join('\n') + '\n', 'utf-8');
-    } catch (err: any) {
-      console.error(`[agent] Failed to write aider config file: ${err.message}`);
-    }
+    // Prepend system prompt to message — most compatible approach, no extra flags needed
+    const fullMessage = `${AIDER_SYSTEM_PROMPT}\n\n---\n\nUser request:\n${message}`;
 
-    // Use only --message as CLI arg; everything else is in .aider.conf.yml
+    // Only use flags that exist in all aider versions (0.50+)
     const args = [
-      '--message', message,
+      '--model', modelArg,
+      '--yes-always',
+      '--no-stream',
+      '--auto-commits',
+      '--message', fullMessage,
     ];
 
     console.log(`[agent] Running aider in: ${workdir} (model: ${modelArg})`);
@@ -449,18 +425,11 @@ function runAiderProcess(
     // Close stdin immediately — aider runs non-interactively with --message
     proc.stdin.end();
 
-    const cleanup = () => {
-      try { if (fs.existsSync(promptFile)) fs.unlinkSync(promptFile); } catch { /* ignore */ }
-      try { if (fs.existsSync(configFile)) fs.unlinkSync(configFile); } catch { /* ignore */ }
-    };
-
     proc.on('close', (code) => {
-      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
     });
 
     proc.on('error', (err) => {
-      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + `\nProcess error: ${err.message}`, exitCode: 1 }); }
     });
 
@@ -468,7 +437,6 @@ function runAiderProcess(
     setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        cleanup();
         try { proc.kill('SIGTERM'); } catch { /* ignore */ }
         resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
       }
