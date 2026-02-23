@@ -312,9 +312,12 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
   const steps: AgentStep[] = [];
   const resolvedWorkdir = path.resolve(workdir);
 
+  // Validate oldSha is a valid hex commit hash (prevents argument injection)
+  if (!/^[a-f0-9]{7,40}$/.test(oldSha)) return steps;
+
   // Get commits made since oldSha
   try {
-    const log = execSync(`git log --oneline ${oldSha}..HEAD`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const log = execFileSync('git', ['log', '--oneline', `${oldSha}..HEAD`], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
     if (log) {
       for (const line of log.split('\n')) {
         if (line.trim()) {
@@ -326,12 +329,12 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
 
   // Get per-file diffs since oldSha (committed changes)
   try {
-    const changedFiles = execSync(`git diff --name-only ${oldSha}..HEAD`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const changedFiles = execFileSync('git', ['diff', '--name-only', `${oldSha}..HEAD`], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
     if (changedFiles) {
       for (const file of changedFiles.split('\n')) {
         if (!file.trim()) continue;
         try {
-          const fileDiff = execSync(`git diff ${oldSha}..HEAD -- ${JSON.stringify(file)}`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
+          const fileDiff = execFileSync('git', ['diff', `${oldSha}..HEAD`, '--', file], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
           const { before, after } = parseUnifiedDiffHunks(fileDiff);
           steps.push({
             type: 'tool',
@@ -349,15 +352,15 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
 
   // Also check for uncommitted changes (staged + unstaged)
   try {
-    const uncommitted = execSync('git diff HEAD --name-only', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
-    const staged = execSync('git diff --cached --name-only', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const uncommitted = execFileSync('git', ['diff', 'HEAD', '--name-only'], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const staged = execFileSync('git', ['diff', '--cached', '--name-only'], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
     const allUncommitted = new Set([
       ...uncommitted.split('\n').filter(Boolean),
       ...staged.split('\n').filter(Boolean),
     ]);
     for (const file of allUncommitted) {
       try {
-        const fileDiff = execSync(`git diff HEAD -- ${JSON.stringify(file)}`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
+        const fileDiff = execFileSync('git', ['diff', 'HEAD', '--', file], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
         const { before, after } = parseUnifiedDiffHunks(fileDiff);
         steps.push({
           type: 'tool',
