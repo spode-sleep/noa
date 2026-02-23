@@ -782,8 +782,8 @@ function extractAiderResponse(output: string): string {
 
     // Skip diff blocks (@@, +, -, unified diff content)
     if (/^@@\s/.test(trimmed)) { inDiff = true; continue; }
-    if (inDiff && /^[+\- ]/.test(line)) continue;
-    if (inDiff && !/^[+\- ]/.test(line)) inDiff = false;
+    if (inDiff && /^[+\-]/.test(trimmed)) continue;
+    if (inDiff) inDiff = false; // Non-diff line ends the diff block
 
     // Skip SEARCH/REPLACE markers
     if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) continue;
