@@ -18,7 +18,7 @@ const AGENT_GIT_AUTHOR = 'AI Librarian <ai-librarian@box.local>';
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
-  'run_command', 'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
+  'run_command', 'git_status', 'git_diff', 'git_commit', 'git_push', 'git_revert', 'git_log',
 ]);
 
 // --- Text-based tool call parser ---
@@ -259,6 +259,14 @@ const AGENT_TOOLS: Tool[] = [
   {
     type: 'function',
     function: {
+      name: 'git_push',
+      description: 'Push the current branch to the remote hub. Call this after git_commit to publish your changes.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'git_log',
       description: 'Show recent commit history (last 10 commits by default)',
       parameters: {
@@ -407,6 +415,22 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
         execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return { text: `Changes committed: ${message}` };
+      }
+      case 'git_push': {
+        const branch = getCurrentBranch(repoPath);
+        if (!branch) return { text: 'Error: not on any branch' };
+        try {
+          execFileSync('git', ['push', '-u', 'origin', branch], { cwd: repoPath, encoding: 'utf-8', timeout: 30000 });
+        } catch {
+          try {
+            execSync(`git pull --rebase origin ${branch}`, { cwd: repoPath, encoding: 'utf-8', timeout: 30000 });
+            execFileSync('git', ['push', '-u', 'origin', branch], { cwd: repoPath, encoding: 'utf-8', timeout: 30000 });
+          } catch {
+            try { execSync('git rebase --abort', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }); } catch { /* ignore */ }
+            execFileSync('git', ['push', '--force-with-lease', '-u', 'origin', branch], { cwd: repoPath, encoding: 'utf-8', timeout: 30000 });
+          }
+        }
+        return { text: `Pushed branch ${branch} to hub` };
       }
       case 'git_log': {
         const count = parseInt(args.count || '10', 10);
@@ -836,7 +860,7 @@ IMPORTANT RULES:
 - You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
 - ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes.
 - Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.
-- YOUR FINAL TOOL CALL MUST be git_commit if you made ANY file changes. Check with git_status first. Absolutely no uncommitted changes may remain. Push happens automatically after you finish.
+- If you made ANY file changes, you MUST call git_commit then git_push as your final actions. Check with git_status first. Absolutely no uncommitted or unpushed changes may remain.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
 
