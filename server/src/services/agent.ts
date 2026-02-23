@@ -295,6 +295,32 @@ function buildHistoryContext(history: Array<{ role: string; content: string }>):
   return `\n\nPrevious conversation context:\n${ctx}\n\n`;
 }
 
+/** System prompt appended to every aider request to enforce efficient, commit-oriented behavior */
+const AIDER_SYSTEM_PROMPT = `CRITICAL RULES — follow strictly:
+
+1. EVERY session MUST produce a git commit unless the user explicitly says "don't commit" or "no commit".
+   If you changed any file, you MUST commit before finishing. Never end with uncommitted changes.
+
+2. Be EFFICIENT. Before editing, plan your changes. Do NOT:
+   - Read files you won't modify
+   - Re-read files you already read
+   - Make empty edits or no-op changes
+   - Suggest changes without applying them
+   - Repeat the same edit that already failed
+
+3. AVOID LOOPING. If an edit fails (search block not found), try a DIFFERENT approach:
+   - Use a different search block with more context
+   - Or rewrite the whole file
+   - Do NOT retry the same failed edit more than once
+
+4. Make REAL changes. Every response must either:
+   - Apply concrete file edits, OR
+   - Explain why no changes are needed (only if the task is truly complete or impossible)
+
+5. Be CONCISE in explanations. Focus on what you changed and why. Skip lengthy preambles.
+
+6. Answer in the SAME LANGUAGE as the user's message.`;
+
 /** Run aider as a subprocess and capture its output */
 function runAiderProcess(
   aiderPath: string,
@@ -306,6 +332,14 @@ function runAiderProcess(
     const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
     const modelArg = buildAiderModelArg(model);
 
+    // Write system prompt to a temporary file in the workdir
+    const promptFile = path.join(workdir, '.aider.system-prompt.md');
+    try {
+      fs.writeFileSync(promptFile, AIDER_SYSTEM_PROMPT, 'utf-8');
+    } catch (err: any) {
+      console.error(`[agent] Failed to write system prompt file: ${err.message}`);
+    }
+
     const args = [
       '--model', modelArg,
       '--yes-always',
@@ -314,9 +348,17 @@ function runAiderProcess(
       '--no-check-update',
       '--no-show-model-warnings',
       '--no-auto-lint',
+      '--no-suggest-shell-commands',
       '--auto-commits',
-      '--message', message,
+      '--subtree-only',
     ];
+
+    // Add system prompt extras file if it was written successfully
+    if (fs.existsSync(promptFile)) {
+      args.push('--system-prompt-extras', promptFile);
+    }
+
+    args.push('--message', message);
 
     console.log(`[agent] Running aider: ${aiderPath} ${args.map(a => a === message ? '"<message>"' : a).join(' ')}`);
 
@@ -354,11 +396,17 @@ function runAiderProcess(
     // Close stdin immediately — aider runs non-interactively with --message
     proc.stdin.end();
 
+    const cleanup = () => {
+      try { if (fs.existsSync(promptFile)) fs.unlinkSync(promptFile); } catch { /* ignore */ }
+    };
+
     proc.on('close', (code) => {
+      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
     });
 
     proc.on('error', (err) => {
+      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + `\nProcess error: ${err.message}`, exitCode: 1 }); }
     });
 
@@ -366,6 +414,7 @@ function runAiderProcess(
     setTimeout(() => {
       if (!resolved) {
         resolved = true;
+        cleanup();
         try { proc.kill('SIGTERM'); } catch { /* ignore */ }
         resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
       }

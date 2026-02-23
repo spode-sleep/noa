@@ -98,14 +98,19 @@ curl http://localhost:11434/api/tags
 [Aider](https://aider.chat/) is a production-grade AI pair programming tool that powers the code agent. It supports 100+ programming languages and provides stable, reliable code editing.
 
 ```bash
-# Install aider (requires Python 3.9+)
-pip install aider-chat
-# or using pipx (recommended for isolated install)
+# Install pipx (isolated Python app manager) — available in Linux Mint/Ubuntu repos
+sudo apt install -y pipx
+pipx ensurepath
+source ~/.bashrc
+
+# Install aider via pipx (recommended — isolated from system Python)
 pipx install aider-chat
 
 # Verify installation
 aider --version
 ```
+
+> **Alternative** (if pipx is not available): `pip install --user aider-chat` — but pipx is preferred to avoid dependency conflicts.
 
 Aider connects to your local Ollama instance automatically. No additional configuration is needed.
 
@@ -343,11 +348,11 @@ The AI Librarian includes a built-in code agent mode powered by [**aider**](http
 
 ### Prerequisites
 
-Install aider (requires Python 3.9+):
+Install aider via pipx (recommended on Linux Mint):
 
 ```bash
-pip install aider-chat
-# or
+sudo apt install -y pipx
+pipx ensurepath && source ~/.bashrc
 pipx install aider-chat
 
 # Verify installation
