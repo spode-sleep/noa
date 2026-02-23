@@ -8,8 +8,8 @@ const MAX_TOOL_ITERATIONS = 15;
 const MAX_ACTION_RESULT_LENGTH = 200;
 
 const KNOWN_TOOL_NAMES = new Set([
-  'read_file', 'write_file', 'list_files',
-  'git_status', 'git_diff', 'git_commit', 'git_revert',
+  'read_file', 'write_file', 'list_files', 'search_files',
+  'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
 ]);
 
 // --- Text-based tool call parser ---
@@ -155,6 +155,22 @@ const AGENT_TOOLS: Tool[] = [
   {
     type: 'function',
     function: {
+      name: 'search_files',
+      description: 'Search for a text pattern (regex supported) across files in the repository. Returns matching lines with file paths and line numbers.',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Text or regex pattern to search for' },
+          dir_path: { type: 'string', description: 'Relative directory to search in (use "." for entire repository)' },
+          file_glob: { type: 'string', description: 'Optional glob to filter files, e.g. "*.ts", "*.py"' },
+        },
+        required: ['pattern'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'git_status',
       description: 'Show the current git status (changed, staged, untracked files)',
       parameters: { type: 'object', properties: {} },
@@ -185,8 +201,21 @@ const AGENT_TOOLS: Tool[] = [
   {
     type: 'function',
     function: {
+      name: 'git_log',
+      description: 'Show recent commit history (last 10 commits by default)',
+      parameters: {
+        type: 'object',
+        properties: {
+          count: { type: 'string', description: 'Number of commits to show (default: 10)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'git_revert',
-      description: 'Revert the repository to a specific commit (hard reset). Use git_status to see recent changes first.',
+      description: 'Revert the repository to a specific commit (hard reset). Use git_log to find commits first.',
       parameters: {
         type: 'object',
         properties: {
@@ -233,6 +262,26 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
           .sort()
           .join('\n') || '(empty directory)';
       }
+      case 'search_files': {
+        const pattern = args.pattern || '';
+        if (!pattern) return 'Error: pattern is required';
+        const searchDir = sanitizeRelativePath(args.dir_path || '.') || '.';
+        const fullSearchDir = path.join(repoPath, searchDir);
+        if (!fs.existsSync(fullSearchDir)) return `Error: directory not found: ${searchDir}`;
+        // Use git grep for fast, safe, .gitignore-aware search
+        const globArg = args.file_glob ? ` -- ${JSON.stringify(args.file_glob)}` : '';
+        try {
+          const result = execSync(
+            `git grep -n -I --max-count=50 -e ${JSON.stringify(pattern)}${globArg}`,
+            { cwd: fullSearchDir, encoding: 'utf-8', timeout: 15000 }
+          ).trim();
+          return result || '(no matches)';
+        } catch (err: any) {
+          // git grep returns exit code 1 for no matches
+          if (err.status === 1) return '(no matches)';
+          return `Error: ${err.message || String(err)}`;
+        }
+      }
       case 'git_status':
         return execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)';
       case 'git_diff':
@@ -244,6 +293,11 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         if (!status) return 'Nothing to commit -- working tree is clean. No action needed.';
         execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return `Changes committed: ${message}`;
+      }
+      case 'git_log': {
+        const count = parseInt(args.count || '10', 10);
+        const safeCount = Math.min(Math.max(1, count), 50);
+        return execSync(`git log --oneline -n ${safeCount}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)';
       }
       case 'git_revert': {
         const hash = args.commit_hash || '';
@@ -460,11 +514,27 @@ function pushToWarez(workdir: string, actions: AgentAction[]) {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
     console.log(`[agent] Pushing branch ${branch} to warez`);
-    execFileSync('git', ['push', 'origin', branch],
-      { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    try {
+      execFileSync('git', ['push', 'origin', branch],
+        { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+    } catch {
+      // Push rejected (non-fast-forward) — pull --rebase and retry once
+      console.log(`[agent] Push rejected, attempting pull --rebase and retry`);
+      try {
+        execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        execFileSync('git', ['push', 'origin', branch],
+          { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+      } catch {
+        // Rebase conflict — abort and force push as last resort
+        try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* ignore */ }
+        console.log(`[agent] Rebase failed, force pushing`);
+        execFileSync('git', ['push', '--force-with-lease', 'origin', branch],
+          { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+      }
+    }
     actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to hub` });
-  } catch {
-    // push may fail if nothing to push
+  } catch (err: any) {
+    console.error(`[agent] Push failed: ${err.message}`);
   }
 }
 
@@ -528,9 +598,13 @@ export async function runAgent(
       // Always pull latest changes (even if already on the branch)
       try {
         console.log(`[agent] Pulling latest changes for branch: ${branch}`);
-        execSync(`git pull origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
       } catch {
-        // pull may fail if branch is local-only, continue
+        // Pull/rebase may fail due to conflicts or local-only branch
+        // Abort any in-progress rebase to leave workdir clean
+        try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* no rebase in progress */ }
+        try { execSync('git merge --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* no merge in progress */ }
+        console.log(`[agent] Pull failed (conflict or local-only branch), continuing with local state`);
       }
     } catch (err: any) {
       actions.push({ tool: 'git_checkout', args: { branch }, result: `Checkout error: ${err.message}` });
@@ -575,15 +649,18 @@ ${branchInfo}
 WORKFLOW for code changes:
 1. Explore the repository structure with list_files
 2. Read relevant files to understand the codebase
-3. Make changes with write_file
-4. Verify with git_status and git_diff
-5. Commit with git_commit
+3. Use search_files to find specific patterns, functions, or usages across files
+4. Make changes with write_file
+5. Verify with git_status and git_diff
+6. Commit with git_commit
+7. Use git_log to review recent commit history when needed
 
 IMPORTANT RULES:
 - Do NOT create new branches. The branch has already been created for you.
 - After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.${createdBranch ? `\n- Mention that changes were made on branch "${createdBranch}".` : ''}
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
-- You can revert to a previous commit using git_revert if needed.
+- When writing entire files, include ALL the content — do not use placeholders like "// rest of the code".
+- You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
 - Always commit your changes with git_commit when done.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
