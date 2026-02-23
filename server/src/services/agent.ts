@@ -377,36 +377,43 @@ function runAiderProcess(
     const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
     const modelArg = buildAiderModelArg(model);
 
-    // Write system prompt to a temporary file in the workdir
+    // Write config file in workdir — more compatible than CLI flags across aider versions
+    const configFile = path.join(workdir, '.aider.conf.yml');
     const promptFile = path.join(workdir, '.aider.system-prompt.md');
     try {
       fs.writeFileSync(promptFile, AIDER_SYSTEM_PROMPT, 'utf-8');
     } catch (err: any) {
       console.error(`[agent] Failed to write system prompt file: ${err.message}`);
     }
-
-    const args = [
-      '--model', modelArg,
-      '--yes-always',
-      '--no-pretty',
-      '--no-stream',
-      '--no-check-update',
-      '--no-show-model-warnings',
-      '--no-auto-lint',
-      '--no-suggest-shell-commands',
-      '--auto-commits',
-      '--subtree-only',
-    ];
-
-    // Add system prompt extras file if it was written successfully
-    if (fs.existsSync(promptFile)) {
-      args.push('--system-prompt-extras', promptFile);
+    try {
+      const config = [
+        `model: ${modelArg}`,
+        'yes-always: true',
+        'auto-commits: true',
+        'stream: false',
+        'pretty: false',
+        'check-update: false',
+        'show-model-warnings: false',
+        'auto-lint: false',
+        'suggest-shell-commands: false',
+        'subtree-only: true',
+        'detect-urls: false',
+      ];
+      if (fs.existsSync(promptFile)) {
+        config.push(`system-prompt-extras: ${promptFile}`);
+      }
+      fs.writeFileSync(configFile, config.join('\n') + '\n', 'utf-8');
+    } catch (err: any) {
+      console.error(`[agent] Failed to write aider config file: ${err.message}`);
     }
 
-    // --message must be last since its value may contain dashes that look like flags
-    args.push('--message', message);
+    // Use only universally supported CLI flags; everything else is in .aider.conf.yml
+    const args = [
+      '--yes-always',
+      '--message', message,
+    ];
 
-    console.log(`[agent] Running aider: ${aiderPath} ${args.map(a => a === message ? '"<message>"' : a).join(' ')}`);
+    console.log(`[agent] Running aider in: ${workdir} (model: ${modelArg})`);
 
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
@@ -444,6 +451,7 @@ function runAiderProcess(
 
     const cleanup = () => {
       try { if (fs.existsSync(promptFile)) fs.unlinkSync(promptFile); } catch { /* ignore */ }
+      try { if (fs.existsSync(configFile)) fs.unlinkSync(configFile); } catch { /* ignore */ }
     };
 
     proc.on('close', (code) => {
