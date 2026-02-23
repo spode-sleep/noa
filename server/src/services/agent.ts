@@ -642,14 +642,21 @@ async function generateBranchName(client: Ollama, model: string, userMessage: st
 }
 
 function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
-  if (!hasUncommittedChanges(repoPath)) return;
-  console.log(`[agent] Auto-committing uncommitted changes`);
   try {
+    // Always stage everything first, then check
+    refreshGitIndex(repoPath);
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (!status) return;
+    console.log(`[agent] Auto-committing uncommitted changes`);
     execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m "Agent: auto-commit changes"`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     actions.push({ type: 'tool', tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
-  } catch {
-    // ignore commit errors (e.g. nothing to commit)
+  } catch (err: any) {
+    console.error(`[agent] Auto-commit failed: ${err.message || String(err)}`);
+  }
+  // Safety check: warn if changes still remain
+  if (hasUncommittedChanges(repoPath)) {
+    console.warn(`[agent] WARNING: uncommitted changes still present after auto-commit`);
   }
 }
 
@@ -829,6 +836,7 @@ IMPORTANT RULES:
 - You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
 - ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes.
 - Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.
+- YOUR FINAL TOOL CALL MUST be git_commit if you made ANY file changes. Check with git_status first. Absolutely no uncommitted changes may remain. Push happens automatically after you finish.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
 
