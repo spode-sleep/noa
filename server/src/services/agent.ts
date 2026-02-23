@@ -387,11 +387,14 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         }
       }
       case 'git_status':
+        try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
         return { text: execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)' };
       case 'git_diff':
+        try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
         return { text: execSync('git diff', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)' };
       case 'git_commit': {
         const message = args.message || 'Agent commit';
+        try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
         execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
         if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
@@ -599,6 +602,8 @@ function getCurrentBranch(repoPath: string): string {
 
 function hasUncommittedChanges(repoPath: string): boolean {
   try {
+    // Refresh stat cache to detect changes made within the same second (racy git)
+    try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
     const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
     return status.length > 0;
   } catch {
