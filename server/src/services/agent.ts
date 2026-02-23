@@ -254,14 +254,16 @@ function buildAiderModelArg(model: string): string {
 /** Parse aider SEARCH/REPLACE blocks from output into edit steps with diffs */
 function parseSearchReplaceBlocks(output: string): AgentStep[] {
   const steps: AgentStep[] = [];
-  // Pattern: filename\n<<<<<<< SEARCH\n...old...\n=======\n...new...\n>>>>>>> REPLACE
+  // Aider outputs: filename\n<<<<<<< SEARCH\n...old...\n=======\n...new...\n>>>>>>> REPLACE
+  // The gm flags let ^ match at line starts, so this works even mid-output
   const blockRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/gm;
   let match;
   while ((match = blockRegex.exec(output)) !== null) {
     const filePath = match[1].trim();
     const before = match[2];
     const after = match[3];
-    // Skip if the "filename" line looks like noise (too long, has spaces suggesting it's prose)
+    // Heuristic: skip if the line above SEARCH looks like prose, not a filepath
+    // (real paths are short and don't have multiple consecutive spaces)
     if (filePath.length > 200 || /\s{2,}/.test(filePath)) continue;
     steps.push({
       type: 'tool',
@@ -307,8 +309,8 @@ function parseAiderOutput(output: string): AgentStep[] {
       steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: trimmed });
     } else if (/^Git repo.*found/.test(trimmed) || /^Repo-map/.test(trimmed)) {
       // Skip internal aider messages
-    } else if (/^<<<<<<< SEARCH/.test(trimmed) || /^=======/.test(trimmed) || /^>>>>>>> REPLACE/.test(trimmed)) {
-      // Skip SEARCH/REPLACE markers (already parsed above)
+    } else if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) {
+      // Skip SEARCH/REPLACE markers (already parsed by parseSearchReplaceBlocks)
     } else if (/^>\s+/.test(trimmed)) {
       // User prompt echo — skip
     } else if (trimmed.length > 10 && !trimmed.startsWith('─') && !trimmed.startsWith('Warning')) {
