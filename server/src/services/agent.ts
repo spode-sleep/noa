@@ -241,7 +241,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         const message = args.message || 'Agent commit';
         execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
-        if (!status) return 'Nothing to commit — working tree is clean. No action needed.';
+        if (!status) return 'Nothing to commit -- working tree is clean. No action needed.';
         execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return `Changes committed: ${message}`;
       }
@@ -600,7 +600,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
   let lastResponse = '';
   let lastToolKey = '';
   let repeatCount = 0;
-  const MAX_REPEATS = 2;
+  const MAX_REPEAT_COUNT = 3;
 
   try {
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
@@ -636,7 +636,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       const toolKey = toolCalls.map(tc => `${tc.function.name}(${JSON.stringify(tc.function.arguments)})`).join(';');
       if (toolKey === lastToolKey) {
         repeatCount++;
-        if (repeatCount >= MAX_REPEATS) {
+        if (repeatCount >= MAX_REPEAT_COUNT) {
           console.log(`[agent] Breaking loop: same tool call repeated ${repeatCount + 1} times`);
           break;
         }
