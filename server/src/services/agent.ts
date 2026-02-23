@@ -4,14 +4,17 @@ import { execSync, execFileSync } from 'child_process';
 import { Ollama, Tool, Message } from 'ollama';
 
 const MAX_FILE_SIZE_BYTES = 512 * 1024;
-const MAX_TOOL_ITERATIONS = 15;
+const MAX_TOOL_ITERATIONS = 20;
 const MAX_ACTION_RESULT_LENGTH = 200;
+const MAX_TOOL_RESULT_CHARS = 8000;
 const MAX_SEARCH_RESULTS = 50;
 const MAX_GIT_LOG_COUNT = 50;
+const MAX_RUN_COMMAND_TIMEOUT = 30000;
+const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'sh', 'bash', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
 
 const KNOWN_TOOL_NAMES = new Set([
-  'read_file', 'write_file', 'list_files', 'search_files',
-  'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
+  'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
+  'run_command', 'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
 ]);
 
 // --- Text-based tool call parser ---
@@ -129,7 +132,7 @@ const AGENT_TOOLS: Tool[] = [
     type: 'function',
     function: {
       name: 'write_file',
-      description: 'Write content to a file in the repository (creates or overwrites)',
+      description: 'Write content to a file in the repository (creates or overwrites). Use for NEW files or when rewriting the entire file.',
       parameters: {
         type: 'object',
         properties: {
@@ -137,6 +140,22 @@ const AGENT_TOOLS: Tool[] = [
           content: { type: 'string', description: 'Full file content to write' },
         },
         required: ['file_path', 'content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'edit_file',
+      description: 'Make a targeted edit to an existing file by replacing a specific text block. More efficient than write_file for small changes. The old_text must match EXACTLY (including whitespace and indentation).',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: 'Relative path to the file from repository root' },
+          old_text: { type: 'string', description: 'The exact text block to find and replace (must match exactly)' },
+          new_text: { type: 'string', description: 'The replacement text' },
+        },
+        required: ['file_path', 'old_text', 'new_text'],
       },
     },
   },
@@ -173,9 +192,15 @@ const AGENT_TOOLS: Tool[] = [
   {
     type: 'function',
     function: {
-      name: 'git_status',
-      description: 'Show the current git status (changed, staged, untracked files)',
-      parameters: { type: 'object', properties: {} },
+      name: 'run_command',
+      description: 'Execute a shell command in the repository directory. Use for builds, tests, linters, or any command-line operation. Commands are restricted to a safe allowlist.',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Shell command to execute (e.g. "npm test", "python main.py", "make build")' },
+        },
+        required: ['command'],
+      },
     },
   },
   {
@@ -252,6 +277,24 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         fs.writeFileSync(fullPath, args.content || '', 'utf-8');
         return `File written: ${rel}`;
       }
+      case 'edit_file': {
+        const rel = sanitizeRelativePath(args.file_path || '');
+        if (!rel) return 'Error: invalid file path';
+        const fullPath = path.join(repoPath, rel);
+        if (!fs.existsSync(fullPath)) return `Error: file not found: ${rel}`;
+        const oldText = args.old_text || '';
+        const newText = args.new_text ?? '';
+        if (!oldText) return 'Error: old_text is required';
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        const idx = content.indexOf(oldText);
+        if (idx === -1) return `Error: old_text not found in ${rel}. Make sure the text matches exactly including whitespace.`;
+        // Ensure only one occurrence to avoid ambiguous edits
+        const secondIdx = content.indexOf(oldText, idx + 1);
+        if (secondIdx !== -1) return `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.`;
+        const updated = content.slice(0, idx) + newText + content.slice(idx + oldText.length);
+        fs.writeFileSync(fullPath, updated, 'utf-8');
+        return `File edited: ${rel} (replaced ${oldText.split('\n').length} lines)`;
+      }
       case 'list_files': {
         const rel = sanitizeRelativePath(args.dir_path || '.');
         if (!rel) return 'Error: invalid directory path';
@@ -282,6 +325,28 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
           // git grep returns exit code 1 for no matches
           if (err.status === 1) return '(no matches)';
           return `Error: ${err.message || String(err)}`;
+        }
+      }
+      case 'run_command': {
+        const cmd = (args.command || '').trim();
+        if (!cmd) return 'Error: command is required';
+        // Extract the base command (first word) and validate against allowlist
+        const baseCmd = cmd.split(/\s+/)[0].replace(/^\.\//, '');
+        if (!ALLOWED_COMMANDS.includes(baseCmd)) {
+          return `Error: command "${baseCmd}" is not allowed. Allowed: ${ALLOWED_COMMANDS.join(', ')}`;
+        }
+        try {
+          const result = execSync(cmd, {
+            cwd: repoPath,
+            encoding: 'utf-8',
+            timeout: MAX_RUN_COMMAND_TIMEOUT,
+            env: { ...process.env, CI: 'true', NODE_ENV: 'test' },
+          });
+          return result.trim() || '(command completed with no output)';
+        } catch (err: any) {
+          // Include both stdout and stderr for failed commands (useful for test/build output)
+          const output = [err.stdout, err.stderr].filter(Boolean).join('\n').trim();
+          return output || `Error: command failed with exit code ${err.status}`;
         }
       }
       case 'git_status':
@@ -433,6 +498,38 @@ function autoInitGit(repoPath: string, actions: AgentAction[]) {
 }
 
 // --- Agent types ---
+
+// Truncate large tool results to prevent token overflow
+function truncateToolResult(result: string): string {
+  if (result.length <= MAX_TOOL_RESULT_CHARS) return result;
+  const half = Math.floor(MAX_TOOL_RESULT_CHARS / 2);
+  return result.slice(0, half) + `\n\n... (truncated ${result.length - MAX_TOOL_RESULT_CHARS} chars) ...\n\n` + result.slice(-half);
+}
+
+// Compact repo tree for context (max 2 levels deep, excludes .git)
+function getRepoTreeOverview(repoPath: string, prefix = '', depth = 0): string {
+  if (depth > 2) return '';
+  try {
+    const entries = fs.readdirSync(repoPath, { withFileTypes: true })
+      .filter(e => e.name !== '.git' && e.name !== 'node_modules' && e.name !== '__pycache__' && !e.name.startsWith('.'))
+      .sort((a, b) => {
+        if (a.isDirectory() && !b.isDirectory()) return -1;
+        if (!a.isDirectory() && b.isDirectory()) return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 30); // limit per directory
+    let tree = '';
+    for (const entry of entries) {
+      tree += `${prefix}${entry.isDirectory() ? '📁 ' : '   '}${entry.name}\n`;
+      if (entry.isDirectory() && depth < 2) {
+        tree += getRepoTreeOverview(path.join(repoPath, entry.name), prefix + '  ', depth + 1);
+      }
+    }
+    return tree;
+  } catch {
+    return '';
+  }
+}
 
 export interface AgentAction {
   tool: string;
@@ -654,26 +751,39 @@ export async function runAgent(
     ? `A new branch "${createdBranch}" has been automatically created for this task (parent: "${branch}").`
     : '';
 
+  // Get compact repo overview for context on first message
+  const repoTree = isFirstMessage ? getRepoTreeOverview(workdir) : '';
+  const treeSection = repoTree ? `\nREPOSITORY STRUCTURE:\n${repoTree}` : '';
+
   const systemPrompt = `You are NOA Code Agent — an AI assistant that can read, write, and manage code in local git repositories.
 You are currently working with the repository "${repoName}" on branch "${createdBranch || getCurrentBranch(workdir)}".
 ${branchInfo}
+${treeSection}
+WORKFLOW (follow in order):
+1. UNDERSTAND: Read relevant files and explore the codebase before making any changes
+2. PLAN: Think about what changes are needed and explain your approach
+3. IMPLEMENT: Make changes using edit_file for targeted edits or write_file for new files
+4. VERIFY: Check your changes with git_status and git_diff, and run tests/builds with run_command if applicable
+5. COMMIT: Always commit with git_commit when done
 
-WORKFLOW for code changes:
-1. Explore the repository structure with list_files
-2. Read relevant files to understand the codebase
-3. Use search_files to find specific patterns, functions, or usages across files
-4. Make changes with write_file
-5. Verify with git_status and git_diff
-6. Commit with git_commit
-7. Use git_log to review recent commit history when needed
+TOOL SELECTION GUIDE:
+- edit_file: For modifying EXISTING files — replaces a specific text block (search/replace). More precise than write_file.
+- write_file: For CREATING new files or when the entire file needs rewriting
+- search_files: To find where functions/variables/patterns are used across the codebase
+- run_command: To execute builds, tests, linters (e.g. "npm test", "python -m pytest", "make build")
+- list_files: To explore directory structure
+- read_file: To read file contents
 
 IMPORTANT RULES:
 - Do NOT create new branches. The branch has already been created for you.
 - After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.${createdBranch ? `\n- Mention that changes were made on branch "${createdBranch}".` : ''}
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
 - When writing entire files, include ALL the content — do not use placeholders like "// rest of the code".
+- Prefer edit_file over write_file for existing files — it is safer and preserves unchanged parts.
+- If a tool returns an error, explain what went wrong and try a different approach.
 - You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
 - ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes.
+- Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
 
@@ -751,8 +861,8 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         const result = executeTool(toolName, toolArgs, workdir);
         actions.push({ tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
 
-        // Add tool result to conversation
-        messages.push({ role: 'tool', content: result });
+        // Add tool result to conversation (truncated to prevent token overflow)
+        messages.push({ role: 'tool', content: truncateToolResult(result) });
       }
     }
 
