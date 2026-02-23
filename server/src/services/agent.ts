@@ -469,12 +469,15 @@ export function cleanupWorkdirsForConversation(conversationId: string): number {
 }
 
 // Allow pushes to non-bare repos by setting receive.denyCurrentBranch=updateInstead
-function ensureReceivePush(repoPath: string) {
+function ensureReceivePush(repoPath: string): boolean {
   try {
-    execSync('git config receive.denyCurrentBranch updateInstead', { cwd: repoPath, encoding: 'utf-8', timeout: 5000 });
+    execFileSync('git', ['config', 'receive.denyCurrentBranch', 'updateInstead'],
+      { cwd: repoPath, encoding: 'utf-8', timeout: 5000 });
     console.log(`[agent] Set receive.denyCurrentBranch=updateInstead on: ${repoPath}`);
+    return true;
   } catch (err: any) {
     console.error(`[agent] Failed to set receive config: ${err.message}`);
+    return false;
   }
 }
 
