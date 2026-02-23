@@ -358,6 +358,7 @@ function runAiderProcess(
       args.push('--system-prompt-extras', promptFile);
     }
 
+    // --message must be last since its value may contain dashes that look like flags
     args.push('--message', message);
 
     console.log(`[agent] Running aider: ${aiderPath} ${args.map(a => a === message ? '"<message>"' : a).join(' ')}`);
