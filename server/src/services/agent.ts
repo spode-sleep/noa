@@ -439,6 +439,9 @@ function runAiderProcess(
       AIDER_SUGGEST_SHELL_COMMANDS: 'false',
       // Disable streaming for subprocess capture
       AIDER_STREAM: 'false',
+      // Map the entire repo so aider can see all files and their structure
+      // Without this, aider in one-shot mode can't find or list files
+      AIDER_MAP_WHOLE_REPO: 'true',
       // Prevent any browser from opening
       BROWSER: 'echo',
       // Disable terminal colors/formatting
