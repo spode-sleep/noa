@@ -865,23 +865,30 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
       lastResponse = response.message.content || '';
 
-      // Capture inner monologue between tool calls
+      // If no tool calls found (neither structured nor text), this is
+      // the final message — don't add it as thinking, just break
+      if (toolCalls.length === 0) {
+        break;
+      }
+
+      // Capture inner monologue between tool calls (only for intermediate iterations)
       if (parsedFromText && parsedSegments.length > 0) {
         // Interleaved: thinking segments extracted from between tool call JSON blocks
         for (const seg of parsedSegments) {
           if (seg.type === 'thinking' && seg.content) {
-            actions.push({ type: 'thinking', content: seg.content });
+            // Split by double newlines for multiple granular thinking steps
+            for (const para of seg.content.split(/\n\n+/)) {
+              const trimmed = para.trim();
+              if (trimmed) actions.push({ type: 'thinking', content: trimmed });
+            }
           }
-          // Tool steps will be added below during execution
         }
       } else if (lastResponse.trim()) {
-        // Structured tool calls or no tool calls: entire response is thinking
-        actions.push({ type: 'thinking', content: lastResponse.trim() });
-      }
-
-      // If no tool calls found (neither structured nor text), break out of loop
-      if (toolCalls.length === 0) {
-        break;
+        // Structured tool calls: split response text into paragraph-level thinking steps
+        for (const para of lastResponse.split(/\n\n+/)) {
+          const trimmed = para.trim();
+          if (trimmed) actions.push({ type: 'thinking', content: trimmed });
+        }
       }
 
       // Detect repeated identical tool calls to prevent infinite loops
