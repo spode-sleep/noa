@@ -313,6 +313,8 @@ function parseAiderOutput(output: string): AgentStep[] {
       // Skip SEARCH/REPLACE markers (already parsed by parseSearchReplaceBlocks)
     } else if (/^>\s+/.test(trimmed)) {
       // User prompt echo — skip
+    } else if (/^(Aider v|Analytics |You can skip|\.aider|\.gitignore$|No files matched|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped)/.test(trimmed)) {
+      // Skip aider startup/config boilerplate
     } else if (trimmed.length > 10 && !trimmed.startsWith('─') && !trimmed.startsWith('Warning')) {
       // Thinking/explanation text from aider
       steps.push({ type: 'thinking', content: trimmed });
@@ -333,39 +335,6 @@ function buildHistoryContext(history: Array<{ role: string; content: string }>):
   return `\n\nPrevious conversation context:\n${ctx}\n\n`;
 }
 
-/** System prompt appended to every aider request to enforce efficient, commit-oriented behavior */
-const AIDER_SYSTEM_PROMPT = `WORKFLOW (follow in order):
-1. UNDERSTAND: Read relevant files and explore the codebase before making any changes
-2. PLAN: Think about what changes are needed and explain your approach
-3. IMPLEMENT: Make targeted edits to existing files or create new files as needed
-4. VERIFY: Review your changes (check status, diff), run tests or builds if applicable
-5. COMMIT: Always commit your changes when done
-
-CRITICAL RULES — follow strictly:
-
-1. EVERY session MUST produce a git commit unless the user explicitly says "don't commit" or "no commit".
-   If you changed any file, you MUST commit before finishing. Never end with uncommitted changes.
-
-2. Be EFFICIENT. Before editing, plan your changes. Do NOT:
-   - Read files you won't modify
-   - Re-read files you already read
-   - Make empty edits or no-op changes
-   - Suggest changes without applying them
-   - Repeat the same edit that already failed
-
-3. AVOID LOOPING. If an edit fails (search block not found), try a DIFFERENT approach:
-   - Use a different search block with more context
-   - Or rewrite the whole file
-   - Do NOT retry the same failed edit more than once
-
-4. Make REAL changes. Every response must either:
-   - Apply concrete file edits, OR
-   - Explain why no changes are needed (only if the task is truly complete or impossible)
-
-5. Be CONCISE in explanations. Focus on what you changed and why. Skip lengthy preambles.
-
-6. Answer in the SAME LANGUAGE as the user's message.`;
-
 /** Run aider as a subprocess and capture its output */
 function runAiderProcess(
   aiderPath: string,
@@ -377,12 +346,13 @@ function runAiderProcess(
     const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
     const modelArg = buildAiderModelArg(model);
 
-    // Write message to a temp file — avoids shell arg length issues with embedded system prompt.
+    // Write message to a temp file — avoids shell arg length issues.
     // Use path.resolve() to get absolute path — workdir may be relative (e.g. ../data/...)
-    const fullMessage = `${AIDER_SYSTEM_PROMPT}\n\n---\n\nUser request:\n${message}`;
+    // NOTE: Only the user's actual request goes here. Aider has its own internal system prompt
+    // for code editing. Embedding extra "system" instructions causes LLM refusals on local models.
     const messageFile = path.resolve(workdir, '.aider-message.tmp');
     try {
-      fs.writeFileSync(messageFile, fullMessage, 'utf-8');
+      fs.writeFileSync(messageFile, message, 'utf-8');
     } catch (err: any) {
       console.error(`[agent] Failed to write message file: ${err.message}`);
     }
@@ -398,7 +368,7 @@ function runAiderProcess(
     if (fs.existsSync(messageFile)) {
       args.push('--message-file', messageFile);
     } else {
-      args.push('--message', fullMessage);
+      args.push('--message', message);
     }
 
     console.log(`[agent] Running aider in: ${workdir} (model: ${modelArg})`);
@@ -676,8 +646,12 @@ function extractAiderResponse(output: string): string {
 
     const trimmed = line.trim();
 
-    // Skip aider internal markers
+    // Skip aider internal markers and boilerplate
     if (/^(Editing|Applied edit to|Creating|Wrote|Added .* to the chat|Commit [a-f0-9]|Git repo|Repo-map|Use \/|Tokens:|Model:|─|>)/.test(trimmed)) {
+      continue;
+    }
+    // Skip aider startup/version/config messages
+    if (/^(Aider v|Analytics |You can skip|\.aider|\.gitignore$|No files matched|Warning:|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped)/.test(trimmed)) {
       continue;
     }
 
