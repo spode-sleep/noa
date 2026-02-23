@@ -872,23 +872,18 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       }
 
       // Capture inner monologue between tool calls (only for intermediate iterations)
-      if (parsedFromText && parsedSegments.length > 0) {
-        // Interleaved: thinking segments extracted from between tool call JSON blocks
-        for (const seg of parsedSegments) {
-          if (seg.type === 'thinking' && seg.content) {
-            // Split by double newlines for multiple granular thinking steps
-            for (const para of seg.content.split(/\n\n+/)) {
-              const trimmed = para.trim();
-              if (trimmed) actions.push({ type: 'thinking', content: trimmed });
-            }
-          }
-        }
-      } else if (lastResponse.trim()) {
-        // Structured tool calls: split response text into paragraph-level thinking steps
-        for (const para of lastResponse.split(/\n\n+/)) {
+      const addThinkingParagraphs = (text: string) => {
+        for (const para of text.split(/\n\n+/)) {
           const trimmed = para.trim();
           if (trimmed) actions.push({ type: 'thinking', content: trimmed });
         }
+      };
+      if (parsedFromText && parsedSegments.length > 0) {
+        for (const seg of parsedSegments) {
+          if (seg.type === 'thinking' && seg.content) addThinkingParagraphs(seg.content);
+        }
+      } else if (lastResponse.trim()) {
+        addThinkingParagraphs(lastResponse);
       }
 
       // Detect repeated identical tool calls to prevent infinite loops
