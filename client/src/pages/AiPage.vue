@@ -1160,7 +1160,7 @@ onBeforeUnmount(() => {
   border-radius: 0px;
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: var(--askew-text);
   max-height: 150px;
   overflow: auto;
   white-space: pre-wrap;
