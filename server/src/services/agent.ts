@@ -29,6 +29,11 @@ interface ParsedToolCall {
   arguments: Record<string, string>;
 }
 
+interface ParseResult {
+  toolCalls: ParsedToolCall[];
+  segments: Array<{ type: 'thinking' | 'tool'; content?: string; toolIndex?: number }>;
+}
+
 // Escape literal newlines/tabs/CRs inside JSON string values.
 // Local models often output multiline content with literal line breaks
 // inside JSON strings, which makes JSON.parse fail.
@@ -51,14 +56,18 @@ function escapeJsonStringLiterals(text: string): string {
   return result;
 }
 
-function parseToolCallsFromText(text: string): ParsedToolCall[] {
-  const results: ParsedToolCall[] = [];
+function parseToolCallsFromText(text: string): ParseResult {
+  const toolCalls: ParsedToolCall[] = [];
+  const segments: ParseResult['segments'] = [];
 
   // Strip <tool_call> tags and markdown code fences
   const cleaned = text
     .replace(/<\/?tool_call>/g, '')
     .replace(/```(?:json)?\s*/g, '')
     .replace(/```/g, '');
+
+  // Track positions of found tool call JSON blocks
+  const toolSpans: Array<{ start: number; end: number; toolIndex: number }> = [];
 
   // Try to parse JSON objects starting at each '{' by tracking brace depth
   for (let i = 0; i < cleaned.length; i++) {
@@ -87,10 +96,12 @@ function parseToolCallsFromText(text: string): ParsedToolCall[] {
             }
             if (obj.name && KNOWN_TOOL_NAMES.has(obj.name)) {
               // Some models use "parameters" instead of "arguments"
-              results.push({
+              const toolIndex = toolCalls.length;
+              toolCalls.push({
                 name: obj.name,
                 arguments: obj.arguments || obj.parameters || {},
               });
+              toolSpans.push({ start: i, end: j + 1, toolIndex });
             }
           } catch {
             // malformed JSON, skip
@@ -102,7 +113,23 @@ function parseToolCallsFromText(text: string): ParsedToolCall[] {
     }
   }
 
-  return results;
+  // Build interleaved segments: thinking text between tool calls
+  let pos = 0;
+  for (const span of toolSpans) {
+    const thinking = cleaned.slice(pos, span.start).trim();
+    if (thinking) {
+      segments.push({ type: 'thinking', content: thinking });
+    }
+    segments.push({ type: 'tool', toolIndex: span.toolIndex });
+    pos = span.end;
+  }
+  // Trailing thinking after the last tool call
+  const trailing = cleaned.slice(pos).trim();
+  if (trailing) {
+    segments.push({ type: 'thinking', content: trailing });
+  }
+
+  return { toolCalls, segments };
 }
 
 // --- Path safety ---
@@ -821,24 +848,34 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
       let toolCalls = response.message.tool_calls || [];
       let parsedFromText = false;
+      let parsedSegments: ParseResult['segments'] = [];
 
       // Fallback: parse tool calls from text content when model doesn't
       // use structured tool_calls (common with local models)
       if (toolCalls.length === 0 && response.message.content) {
         const parsed = parseToolCallsFromText(response.message.content);
-        if (parsed.length > 0) {
-          toolCalls = parsed.map(p => ({
+        if (parsed.toolCalls.length > 0) {
+          toolCalls = parsed.toolCalls.map(p => ({
             function: { name: p.name, arguments: p.arguments },
           }));
           parsedFromText = true;
+          parsedSegments = parsed.segments;
         }
       }
 
       lastResponse = response.message.content || '';
 
-      // Capture inner monologue: if the model outputs text (with or without tool calls),
-      // record it as a "thinking" step (like GitHub Copilot Agent's reasoning display)
-      if (lastResponse.trim()) {
+      // Capture inner monologue between tool calls
+      if (parsedFromText && parsedSegments.length > 0) {
+        // Interleaved: thinking segments extracted from between tool call JSON blocks
+        for (const seg of parsedSegments) {
+          if (seg.type === 'thinking' && seg.content) {
+            actions.push({ type: 'thinking', content: seg.content });
+          }
+          // Tool steps will be added below during execution
+        }
+      } else if (lastResponse.trim()) {
+        // Structured tool calls or no tool calls: entire response is thinking
         actions.push({ type: 'thinking', content: lastResponse.trim() });
       }
 
