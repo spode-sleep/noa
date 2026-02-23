@@ -10,7 +10,10 @@ const MAX_TOOL_RESULT_CHARS = 8000;
 const MAX_SEARCH_RESULTS = 50;
 const MAX_GIT_LOG_COUNT = 50;
 const MAX_RUN_COMMAND_TIMEOUT = 30000;
-const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'sh', 'bash', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
+const MAX_TREE_ENTRIES_PER_DIR = 30;
+const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
+const SHELL_METACHARACTERS = /[;|&`$(){}><\n\r]/;
+const EXCLUDED_TREE_DIRS = ['.git', 'node_modules', '__pycache__', '.venv', 'dist', 'build', '.next'];
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
@@ -293,7 +296,8 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         if (secondIdx !== -1) return `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.`;
         const updated = content.slice(0, idx) + newText + content.slice(idx + oldText.length);
         fs.writeFileSync(fullPath, updated, 'utf-8');
-        return `File edited: ${rel} (replaced ${oldText.split('\n').length} lines)`;
+        const lineCount = oldText.split('\n').length;
+        return `File edited: ${rel} (replaced ${lineCount} ${lineCount === 1 ? 'line' : 'lines'})`;
       }
       case 'list_files': {
         const rel = sanitizeRelativePath(args.dir_path || '.');
@@ -330,6 +334,10 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
       case 'run_command': {
         const cmd = (args.command || '').trim();
         if (!cmd) return 'Error: command is required';
+        // Reject shell metacharacters to prevent command injection
+        if (SHELL_METACHARACTERS.test(cmd)) {
+          return 'Error: command contains forbidden shell characters (;|&`$(){}><). Use simple commands only.';
+        }
         // Extract the base command (first word) and validate against allowlist
         const baseCmd = cmd.split(/\s+/)[0].replace(/^\.\//, '');
         if (!ALLOWED_COMMANDS.includes(baseCmd)) {
@@ -340,7 +348,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
             cwd: repoPath,
             encoding: 'utf-8',
             timeout: MAX_RUN_COMMAND_TIMEOUT,
-            env: { ...process.env, CI: 'true', NODE_ENV: 'test' },
+            env: { ...process.env, CI: 'true' },
           });
           return result.trim() || '(command completed with no output)';
         } catch (err: any) {
@@ -506,18 +514,18 @@ function truncateToolResult(result: string): string {
   return result.slice(0, half) + `\n\n... (truncated ${result.length - MAX_TOOL_RESULT_CHARS} chars) ...\n\n` + result.slice(-half);
 }
 
-// Compact repo tree for context (max 2 levels deep, excludes .git)
+// Compact repo tree for context (max 2 levels deep, excludes common non-code dirs)
 function getRepoTreeOverview(repoPath: string, prefix = '', depth = 0): string {
   if (depth > 2) return '';
   try {
     const entries = fs.readdirSync(repoPath, { withFileTypes: true })
-      .filter(e => e.name !== '.git' && e.name !== 'node_modules' && e.name !== '__pycache__' && !e.name.startsWith('.'))
+      .filter(e => !EXCLUDED_TREE_DIRS.includes(e.name) && !e.name.startsWith('.'))
       .sort((a, b) => {
         if (a.isDirectory() && !b.isDirectory()) return -1;
         if (!a.isDirectory() && b.isDirectory()) return 1;
         return a.name.localeCompare(b.name);
       })
-      .slice(0, 30); // limit per directory
+      .slice(0, MAX_TREE_ENTRIES_PER_DIR);
     let tree = '';
     for (const entry of entries) {
       tree += `${prefix}${entry.isDirectory() ? '📁 ' : '   '}${entry.name}\n`;
