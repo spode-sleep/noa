@@ -374,8 +374,8 @@ function finishRename(id: string) {
 
 function formatToolArgs(step: AgentStep): string {
   if (!step.args) return ''
-  // For edit_file, only show file_path (old_text/new_text shown in diff block)
-  if (step.tool === 'edit_file') return step.args.file_path || ''
+  // For edit_file/write_file, only show file_path (content shown in diff block)
+  if (step.tool === 'edit_file' || step.tool === 'write_file') return step.args.file_path || ''
   return Object.values(step.args).join(', ')
 }
 
