@@ -136,6 +136,11 @@ export interface AgentResult {
 
 // --- Utility functions ---
 
+/** Force git to re-read file mtimes and detect changes made within the same second (racy git fix) */
+function refreshGitIndex(repoPath: string) {
+  try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+}
+
 function getCurrentBranch(repoPath: string): string {
   try {
     return execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
@@ -146,7 +151,7 @@ function getCurrentBranch(repoPath: string): string {
 
 function hasUncommittedChanges(repoPath: string): boolean {
   try {
-    try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+    refreshGitIndex(repoPath);
     const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
     return status.length > 0;
   } catch {
@@ -165,7 +170,7 @@ function sanitizeBranchName(raw: string): string {
 
 function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
   try {
-    try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+    refreshGitIndex(repoPath);
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
     if (!status) return;
@@ -323,12 +328,12 @@ function runAiderProcess(
     const proc = spawn(aiderPath, args, {
       cwd: workdir,
       env,
-      timeout: AIDER_TIMEOUT_MS,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let stdout = '';
     let stderr = '';
+    let resolved = false;
 
     proc.stdout.on('data', (data: Buffer) => {
       const chunk = data.toString();
@@ -350,18 +355,21 @@ function runAiderProcess(
     proc.stdin.end();
 
     proc.on('close', (code) => {
-      resolve({ stdout, stderr, exitCode: code ?? 1 });
+      if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
     });
 
     proc.on('error', (err) => {
-      resolve({ stdout, stderr: stderr + `\nProcess error: ${err.message}`, exitCode: 1 });
+      if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + `\nProcess error: ${err.message}`, exitCode: 1 }); }
     });
 
     // Safety timeout
     setTimeout(() => {
-      try { proc.kill('SIGTERM'); } catch { /* ignore */ }
-      resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
-    }, AIDER_TIMEOUT_MS + 5000);
+      if (!resolved) {
+        resolved = true;
+        try { proc.kill('SIGTERM'); } catch { /* ignore */ }
+        resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
+      }
+    }, AIDER_TIMEOUT_MS);
   });
 }
 
