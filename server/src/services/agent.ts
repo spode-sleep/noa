@@ -426,7 +426,8 @@ function runAiderProcess(
     const proc = spawn(aiderPath, args, {
       cwd: workdir,
       env,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      // stdin='ignore' → /dev/null, avoids "Input is not a terminal" warning and hangs
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     let stdout = '';
@@ -448,9 +449,6 @@ function runAiderProcess(
         stderr = stderr.slice(-MAX_OUTPUT_CHARS);
       }
     });
-
-    // Close stdin immediately — aider runs non-interactively with --message-file
-    proc.stdin.end();
 
     const cleanup = () => {
       try { if (fs.existsSync(messageFile)) fs.unlinkSync(messageFile); } catch { /* ignore */ }
