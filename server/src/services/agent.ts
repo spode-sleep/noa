@@ -251,34 +251,50 @@ function buildAiderModelArg(model: string): string {
   return `ollama_chat/${model}`;
 }
 
-/** Parse aider SEARCH/REPLACE blocks from output into edit steps with diffs */
-function parseSearchReplaceBlocks(output: string): AgentStep[] {
+/** Aider boilerplate lines that should be skipped in output parsing */
+const AIDER_BOILERPLATE_RE = /^(Aider v|Analytics |You can skip|\.aider\*?|\.gitignore$|No files matched|Warning:|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped|Use \/|Tokens:|Model:|─|Git repo|Repo-map|Added \.aider|Diff since)/;
+
+/** Extract ► THINKING sections from aider stdout as thinking steps */
+function extractThinkingSections(output: string): AgentStep[] {
   const steps: AgentStep[] = [];
-  // Aider outputs: filename\n<<<<<<< SEARCH\n...old...\n=======\n...new...\n>>>>>>> REPLACE
-  const blockRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/gm;
+  const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
+  if (!sectionRegex.test(output)) return steps;
+  sectionRegex.lastIndex = 0;
+
+  let lastIndex = 0;
+  let lastType = 'raw';
   let match;
-  while ((match = blockRegex.exec(output)) !== null) {
-    const filePath = match[1].trim();
-    const before = match[2];
-    const after = match[3];
-    if (filePath.length > 200 || /\s{2,}/.test(filePath)) continue;
-    steps.push({
-      type: 'tool',
-      tool: 'edit_file',
-      args: { file_path: filePath },
-      result: `Applied edit to ${filePath}`,
-      diff: { before, after },
-    });
+  while ((match = sectionRegex.exec(output)) !== null) {
+    if (lastType === 'thinking' && match.index > lastIndex) {
+      const content = output.slice(lastIndex, match.index).trim();
+      if (content) {
+        const cleaned = content.split('\n').filter(l => !AIDER_BOILERPLATE_RE.test(l.trim())).join('\n').trim();
+        if (cleaned) steps.push({ type: 'thinking', content: cleaned });
+      }
+    }
+    lastType = match[1] === 'THINKING' ? 'thinking' : 'answer';
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastType === 'thinking' && lastIndex < output.length) {
+    const content = output.slice(lastIndex).trim();
+    if (content) {
+      const cleaned = content.split('\n').filter(l => !AIDER_BOILERPLATE_RE.test(l.trim())).join('\n').trim();
+      if (cleaned) steps.push({ type: 'thinking', content: cleaned });
+    }
   }
   return steps;
 }
 
-/** Parse unified diff blocks (@@...@@) into before/after text */
-function parseUnifiedDiff(diffLines: string[]): { before: string; after: string } {
+/** Parse a unified diff hunk into before/after text */
+function parseUnifiedDiffHunks(diffOutput: string): { before: string; after: string } {
   const before: string[] = [];
   const after: string[] = [];
-  for (const line of diffLines) {
-    if (line.startsWith('@@')) continue; // skip hunk headers
+  for (const line of diffOutput.split('\n')) {
+    if (line.startsWith('@@')) continue;
+    if (line.startsWith('---') || line.startsWith('+++')) continue;
+    if (line.startsWith('diff --git')) continue;
+    if (line.startsWith('index ')) continue;
+    if (line.startsWith('new file') || line.startsWith('deleted file')) continue;
     if (line.startsWith('-')) {
       before.push(line.slice(1));
     } else if (line.startsWith('+')) {
@@ -291,155 +307,70 @@ function parseUnifiedDiff(diffLines: string[]): { before: string; after: string 
   return { before: before.join('\n'), after: after.join('\n') };
 }
 
-/** Aider boilerplate lines that should be skipped in all output parsing */
-const AIDER_BOILERPLATE_RE = /^(Aider v|Analytics |You can skip|\.aider\*?|\.gitignore$|No files matched|Warning:|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped|Use \/|Tokens:|Model:|─|Git repo|Repo-map|Added \.aider)/;
-
-/** Parse aider output into AgentStep actions for the frontend timeline */
-function parseAiderOutput(output: string): AgentStep[] {
+/** Build timeline steps from git state: commits + per-file diffs since oldSha */
+function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
   const steps: AgentStep[] = [];
+  const resolvedWorkdir = path.resolve(workdir);
 
-  // First, extract SEARCH/REPLACE blocks
-  const editSteps = parseSearchReplaceBlocks(output);
-  const filesWithDiffs = new Set(editSteps.map(s => s.args?.file_path));
-  steps.push(...editSteps);
-
-  // Split output into sections by ► THINKING / ► ANSWER markers
-  const sections: Array<{ type: 'thinking' | 'answer' | 'raw'; content: string }> = [];
-  const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
-  let lastIndex = 0;
-  let lastType: 'thinking' | 'answer' | 'raw' = 'raw';
-  let match;
-
-  // Check if output uses ► markers at all
-  const hasMarkers = sectionRegex.test(output);
-  sectionRegex.lastIndex = 0;
-
-  if (hasMarkers) {
-    while ((match = sectionRegex.exec(output)) !== null) {
-      // Save content before this marker
-      if (match.index > lastIndex) {
-        const content = output.slice(lastIndex, match.index).trim();
-        if (content) sections.push({ type: lastType, content });
-      }
-      lastType = match[1] === 'THINKING' ? 'thinking' : 'answer';
-      lastIndex = match.index + match[0].length;
-    }
-    // Save trailing content
-    if (lastIndex < output.length) {
-      const content = output.slice(lastIndex).trim();
-      if (content) sections.push({ type: lastType, content });
-    }
-  } else {
-    // No markers — treat entire output as raw
-    sections.push({ type: 'raw', content: output });
-  }
-
-  for (const section of sections) {
-    if (section.type === 'thinking') {
-      // Collapse thinking into a single step with the full text
-      const cleaned = section.content
-        .split('\n')
-        .filter(l => !AIDER_BOILERPLATE_RE.test(l.trim()))
-        .join('\n')
-        .trim();
-      if (cleaned) {
-        steps.push({ type: 'thinking', content: cleaned });
-      }
-      continue;
-    }
-
-    // For 'answer' and 'raw' sections — parse file edits, commits, and other markers
-    const lines = section.content.split('\n');
-    let i = 0;
-    while (i < lines.length) {
-      const trimmed = lines[i].trim();
-      if (!trimmed) { i++; continue; }
-
-      // Skip boilerplate
-      if (AIDER_BOILERPLATE_RE.test(trimmed)) { i++; continue; }
-
-      // Skip SEARCH/REPLACE markers (already parsed)
-      if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) { i++; continue; }
-
-      // Skip user prompt echo
-      if (/^>\s+/.test(trimmed)) { i++; continue; }
-
-      // Commit marker
-      if (/^Commit [a-f0-9]+/.test(trimmed)) {
-        steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: trimmed });
-        i++; continue;
-      }
-
-      // File read marker
-      if (/^Added\s+.*to the chat/.test(trimmed)) {
-        const file = trimmed.replace(/^Added\s+/, '').replace(/\s+to the chat.*/, '').trim();
-        steps.push({ type: 'tool', tool: 'read_file', args: { file_path: file }, result: trimmed });
-        i++; continue;
-      }
-
-      // Edit/write markers
-      if (/^(Editing|Applied edit to)\s+/.test(trimmed)) {
-        const file = trimmed.replace(/^(Editing|Applied edit to)\s+/, '').trim();
-        if (!filesWithDiffs.has(file)) {
-          steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: trimmed });
+  // Get commits made since oldSha
+  try {
+    const log = execSync(`git log --oneline ${oldSha}..HEAD`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (log) {
+      for (const line of log.split('\n')) {
+        if (line.trim()) {
+          steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: `Commit ${line.trim()}` });
         }
-        i++; continue;
       }
-      if (/^(Creating|Wrote)\s+/.test(trimmed)) {
-        const file = trimmed.replace(/^(Creating|Wrote)\s+/, '').trim();
-        if (!filesWithDiffs.has(file)) {
-          steps.push({ type: 'tool', tool: 'write_file', args: { file_path: file }, result: trimmed });
-        }
-        i++; continue;
-      }
+    }
+  } catch { /* no new commits — that's fine */ }
 
-      // Unified diff block: filename followed by @@ line (possibly with empty lines between)
-      // Look ahead past empty lines for a diff hunk header
-      let lookAhead = i + 1;
-      while (lookAhead < lines.length && !lines[lookAhead].trim()) lookAhead++;
-      if (lookAhead < lines.length && /^@@\s/.test(lines[lookAhead].trim())) {
-        const filePath = trimmed;
-        i = lookAhead; // skip to @@ line
-        // Collect all diff lines (@@, +, -, space-prefixed context)
-        const diffLines: string[] = [];
-        while (i < lines.length) {
-          const dl = lines[i];
-          if (/^@@\s/.test(dl.trim()) || dl.startsWith('+') || dl.startsWith('-') || dl.startsWith(' ')) {
-            diffLines.push(dl);
-            i++;
-          } else if (!dl.trim()) {
-            // Empty lines inside diff could be context — peek ahead
-            if (i + 1 < lines.length && (lines[i + 1].startsWith('+') || lines[i + 1].startsWith('-') || /^@@\s/.test(lines[i + 1].trim()))) {
-              diffLines.push(dl);
-              i++;
-            } else {
-              break;
-            }
-          } else {
-            break;
-          }
-        }
-        if (diffLines.length > 0 && !filesWithDiffs.has(filePath)) {
-          const { before, after } = parseUnifiedDiff(diffLines);
-          filesWithDiffs.add(filePath);
+  // Get per-file diffs since oldSha (committed changes)
+  try {
+    const changedFiles = execSync(`git diff --name-only ${oldSha}..HEAD`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (changedFiles) {
+      for (const file of changedFiles.split('\n')) {
+        if (!file.trim()) continue;
+        try {
+          const fileDiff = execSync(`git diff ${oldSha}..HEAD -- ${JSON.stringify(file)}`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
+          const { before, after } = parseUnifiedDiffHunks(fileDiff);
           steps.push({
             type: 'tool',
             tool: before ? 'edit_file' : 'write_file',
-            args: { file_path: filePath },
-            result: `${before ? 'Applied edit to' : 'Wrote'} ${filePath}`,
+            args: { file_path: file },
+            result: `${before ? 'Applied edit to' : 'Wrote'} ${file}`,
             diff: { before, after },
           });
+        } catch {
+          steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Changed ${file}` });
         }
-        continue;
       }
-
-      // Everything else that's long enough is thinking/explanation text
-      if (trimmed.length > 5) {
-        steps.push({ type: 'thinking', content: trimmed });
-      }
-      i++;
     }
-  }
+  } catch { /* no changes */ }
+
+  // Also check for uncommitted changes (staged + unstaged)
+  try {
+    const uncommitted = execSync('git diff HEAD --name-only', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const staged = execSync('git diff --cached --name-only', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const allUncommitted = new Set([
+      ...uncommitted.split('\n').filter(Boolean),
+      ...staged.split('\n').filter(Boolean),
+    ]);
+    for (const file of allUncommitted) {
+      try {
+        const fileDiff = execSync(`git diff HEAD -- ${JSON.stringify(file)}`, { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
+        const { before, after } = parseUnifiedDiffHunks(fileDiff);
+        steps.push({
+          type: 'tool',
+          tool: 'edit_file',
+          args: { file_path: file },
+          result: `Uncommitted changes in ${file}`,
+          diff: { before, after },
+        });
+      } catch {
+        steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Uncommitted changes in ${file}` });
+      }
+    }
+  } catch { /* no uncommitted changes */ }
 
   return steps;
 }
@@ -505,8 +436,6 @@ function runAiderProcess(
       AIDER_SUGGEST_SHELL_COMMANDS: 'false',
       // Disable streaming for subprocess capture
       AIDER_STREAM: 'false',
-      // Show unified diffs in output for parsing into frontend diff display
-      AIDER_SHOW_DIFFS: 'true',
       // Prevent any browser from opening
       BROWSER: 'echo',
       // Disable terminal colors/formatting
@@ -690,6 +619,13 @@ export async function runAgent(
     ? `${historyContext}Current request:\n${userMessage}`
     : userMessage;
 
+  // Capture HEAD before aider runs — we'll use git to detect changes afterward
+  const resolvedWorkdir = path.resolve(workdir);
+  let headBefore = '';
+  try {
+    headBefore = execSync('git rev-parse HEAD', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 5000 }).trim();
+  } catch { /* empty repo? */ }
+
   // Run aider
   const aiderPath = resolveAiderPath();
   actions.push({ type: 'tool', tool: 'aider', args: { model }, result: `Running aider with model ${buildAiderModelArg(model)}...` });
@@ -708,21 +644,26 @@ export async function runAgent(
       console.log(`[agent] Aider stderr: ${filteredStderr.slice(0, 500)}`);
     }
 
-    // Parse aider output into timeline steps
-    const aiderSteps = parseAiderOutput(result.stdout);
-    actions.push(...aiderSteps);
+    // 1. Extract thinking sections from stdout (► THINKING markers)
+    const thinkingSteps = extractThinkingSections(result.stdout);
+    actions.push(...thinkingSteps);
 
-    // Extract the meaningful response from aider output
-    // Aider outputs the LLM response mixed with file editing markers
+    // 2. Auto-commit any remaining uncommitted changes before diffing
+    autoCommitChanges(workdir, actions);
+
+    // 3. Build tool call steps from git (commits + per-file diffs since headBefore)
+    if (headBefore) {
+      const gitSteps = buildStepsFromGit(workdir, headBefore);
+      actions.push(...gitSteps);
+    }
+
+    // 4. Extract the last message (LLM's conversational response)
     let response = extractAiderResponse(result.stdout);
 
     if (result.exitCode !== 0 && !response) {
       const errMsg = filteredStderr || 'Aider process failed';
       response = `Aider error (exit code ${result.exitCode}): ${errMsg.slice(0, 1000)}`;
     }
-
-    // Auto-commit any remaining uncommitted changes (aider may leave some)
-    autoCommitChanges(workdir, actions);
 
     // Push to warez
     pushToWarez(workdir, actions);
@@ -746,16 +687,16 @@ export async function runAgent(
   }
 }
 
-/** Extract the main AI response text from aider's output, filtering out tool markers */
+/** Extract the LLM's conversational response from aider stdout, filtering boilerplate and diffs.
+ *  Diffs are now handled by buildStepsFromGit — this only extracts the text message. */
 function extractAiderResponse(output: string): string {
-  // If output has ► THINKING / ► ANSWER markers, extract only answer text
+  // If output has ► THINKING / ► ANSWER markers, extract only ANSWER section text
   const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
   const hasMarkers = sectionRegex.test(output);
   sectionRegex.lastIndex = 0;
 
   let textToProcess = output;
   if (hasMarkers) {
-    // Collect only ANSWER section content (skip THINKING entirely)
     const answerParts: string[] = [];
     let lastIndex = 0;
     let lastType = 'raw';
@@ -780,22 +721,21 @@ function extractAiderResponse(output: string): string {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Skip diff blocks (@@, +, -, unified diff content)
-    if (/^@@\s/.test(trimmed)) { inDiff = true; continue; }
+    // Skip diff blocks entirely (both unified and SEARCH/REPLACE)
+    if (/^(@@\s|diff --git|index [a-f0-9]|---\s+a\/|(\+\+\+)\s+b\/)/.test(trimmed)) { inDiff = true; continue; }
+    if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) { inDiff = true; continue; }
     if (inDiff && /^[+\-]/.test(trimmed)) continue;
-    if (inDiff) inDiff = false; // Non-diff line ends the diff block
+    if (inDiff && !trimmed) continue; // empty lines inside diff
+    if (inDiff) inDiff = false;
 
-    // Skip SEARCH/REPLACE markers
-    if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) continue;
-
-    // Skip aider internal markers and boilerplate
-    if (/^(Editing|Applied edit to|Creating|Wrote|Added .* to the chat|Commit [a-f0-9]|Git repo|Repo-map|Use \/|Tokens:|Model:|─|>)/.test(trimmed)) continue;
+    // Skip aider markers and boilerplate
+    if (/^(Editing|Applied edit to|Creating|Wrote|Added .* to the chat|Commit [a-f0-9]|>)/.test(trimmed)) continue;
     if (AIDER_BOILERPLATE_RE.test(trimmed)) continue;
 
-    // Skip standalone filenames (a line that looks like a path before a diff)
+    // Skip standalone filenames (path-like lines)
     if (/^[\w/\\][\w./\\-]*\.\w+$/.test(trimmed)) continue;
 
-    // Skip section separator lines (--- or dashes)
+    // Skip separator lines
     if (/^-{3,}$/.test(trimmed)) continue;
 
     // Skip empty lines at the beginning
