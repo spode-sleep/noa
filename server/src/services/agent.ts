@@ -606,8 +606,14 @@ export async function runAgent(
     const result = await runAiderProcess(aiderPath, model, fullMessage, workdir);
 
     console.log(`[agent] Aider exited with code ${result.exitCode}`);
-    if (result.stderr) {
-      console.log(`[agent] Aider stderr: ${result.stderr.slice(0, 500)}`);
+    // Filter out harmless "Input is not a terminal" warning from stderr
+    const filteredStderr = result.stderr
+      .split('\n')
+      .filter(line => !line.includes('Input is not a terminal'))
+      .join('\n')
+      .trim();
+    if (filteredStderr) {
+      console.log(`[agent] Aider stderr: ${filteredStderr.slice(0, 500)}`);
     }
 
     // Parse aider output into timeline steps
@@ -619,7 +625,7 @@ export async function runAgent(
     let response = extractAiderResponse(result.stdout);
 
     if (result.exitCode !== 0 && !response) {
-      const errMsg = result.stderr.trim() || 'Aider process failed';
+      const errMsg = filteredStderr || 'Aider process failed';
       response = `Aider error (exit code ${result.exitCode}): ${errMsg.slice(0, 1000)}`;
     }
 
