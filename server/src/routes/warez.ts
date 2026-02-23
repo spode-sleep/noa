@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync, spawn } from 'child_process';
+import express from 'express';
+import { isBareRepo } from '../services/agent';
 
 const router = Router();
 
@@ -19,18 +21,20 @@ interface RepoInfo {
   branch: string;
   commitCount: number;
   isGitRepo: boolean;
+  isBare: boolean;
 }
 
-function getGitInfo(repoPath: string): Partial<RepoInfo> {
+function getGitInfo(repoPath: string, bare: boolean): Partial<RepoInfo> {
   try {
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8' }).trim();
     const lastCommitDate = execSync('git log -1 --format=%ci', { cwd: repoPath, encoding: 'utf-8' }).trim();
     const lastCommitMessage = execSync('git log -1 --format=%s', { cwd: repoPath, encoding: 'utf-8' }).trim();
     const commitCount = parseInt(execSync('git rev-list --count HEAD', { cwd: repoPath, encoding: 'utf-8' }).trim(), 10) || 0;
 
-    // Try to get description from .git/description or first line of README
     let description = '';
-    const descFile = path.join(repoPath, '.git', 'description');
+    const descFile = bare
+      ? path.join(repoPath, 'description')
+      : path.join(repoPath, '.git', 'description');
     if (fs.existsSync(descFile)) {
       const desc = fs.readFileSync(descFile, 'utf-8').trim();
       if (desc && desc !== 'Unnamed repository; edit this file \'description\' to name the repository.') {
@@ -54,10 +58,11 @@ function findRepos(): RepoInfo[] {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const fullPath = path.join(warezPath, entry.name);
-      const gitDir = path.join(fullPath, '.git');
-      const isGitRepo = fs.existsSync(gitDir);
+      const hasGitDir = fs.existsSync(path.join(fullPath, '.git'));
+      const bare = isBareRepo(fullPath);
+      const isGitRepo = hasGitDir || bare;
 
-      const info = isGitRepo ? getGitInfo(fullPath) : {};
+      const info = isGitRepo ? getGitInfo(fullPath, bare) : {};
       repos.push({
         name: entry.name,
         path: fullPath,
@@ -67,6 +72,7 @@ function findRepos(): RepoInfo[] {
         branch: info.branch || '',
         commitCount: info.commitCount || 0,
         isGitRepo,
+        isBare: bare,
       });
     }
   }
@@ -74,7 +80,37 @@ function findRepos(): RepoInfo[] {
   return repos.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// GET /api/warez/repos - List all git repositories
+// Read README from bare repo using git show
+function readReadmeBare(repoPath: string): string {
+  const readmeNames = ['README.md', 'README.MD', 'readme.md', 'README', 'README.txt', 'README.rst'];
+  for (const rname of readmeNames) {
+    try {
+      return execFileSync('git', ['show', `HEAD:${rname}`], { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] });
+    } catch {
+      // file doesn't exist at HEAD, try next
+    }
+  }
+  return '';
+}
+
+// List files at root from bare repo using git ls-tree
+function listFilesBare(repoPath: string): { name: string; type: string }[] {
+  try {
+    const output = execSync('git ls-tree HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (!output) return [];
+    return output.split('\n').map(line => {
+      // Format: <mode> <type> <hash>\t<name>
+      const tabIdx = line.indexOf('\t');
+      const meta = line.slice(0, tabIdx).split(/\s+/);
+      const name = line.slice(tabIdx + 1);
+      return { name, type: meta[1] === 'tree' ? 'directory' : 'file' };
+    });
+  } catch {
+    return [];
+  }
+}
+
+// GET /api/warez/repos - List all repositories
 router.get('/repos', (_req: Request, res: Response) => {
   try {
     const repos = findRepos();
@@ -87,7 +123,6 @@ router.get('/repos', (_req: Request, res: Response) => {
 // GET /api/warez/repos/:name - Get repo details + README
 router.get('/repos/:name', (req: Request, res: Response) => {
   try {
-    // Validate name to prevent path traversal
     const name = req.params.name;
     if (!name || name.includes('/') || name.includes('\\') || name === '..' || name === '.') {
       res.status(400).json({ error: 'Invalid repository name' });
@@ -101,39 +136,156 @@ router.get('/repos/:name', (req: Request, res: Response) => {
       return;
     }
 
-    // Find and read README (limit to 1MB)
     let readme = '';
-    const readmeNames = ['README.md', 'README.MD', 'readme.md', 'README', 'README.txt', 'README.rst'];
-    const MAX_README_SIZE = 1024 * 1024;
-    for (const rname of readmeNames) {
-      const readmePath = path.join(repo.path, rname);
-      if (fs.existsSync(readmePath)) {
-        const stat = fs.statSync(readmePath);
-        if (stat.size <= MAX_README_SIZE) {
-          readme = fs.readFileSync(readmePath, 'utf-8');
+    let files: { name: string; type: string }[] = [];
+
+    if (repo.isBare) {
+      // Bare repo: use git commands
+      readme = readReadmeBare(repo.path);
+      files = listFilesBare(repo.path);
+    } else {
+      // Non-bare: use filesystem
+      const readmeNames = ['README.md', 'README.MD', 'readme.md', 'README', 'README.txt', 'README.rst'];
+      const MAX_README_SIZE = 1024 * 1024;
+      for (const rname of readmeNames) {
+        const readmePath = path.join(repo.path, rname);
+        if (fs.existsSync(readmePath)) {
+          const stat = fs.statSync(readmePath);
+          if (stat.size <= MAX_README_SIZE) {
+            readme = fs.readFileSync(readmePath, 'utf-8');
+          }
+          break;
         }
-        break;
+      }
+
+      const entries = fs.readdirSync(repo.path, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name === '.git') continue;
+        files.push({
+          name: entry.name,
+          type: entry.isDirectory() ? 'directory' : 'file',
+        });
       }
     }
 
-    // Get file tree (top level)
-    const files: { name: string; type: string }[] = [];
-    const entries = fs.readdirSync(repo.path, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === '.git') continue;
-      files.push({
-        name: entry.name,
-        type: entry.isDirectory() ? 'directory' : 'file',
-      });
-    }
     files.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
 
-    res.json({ ...repo, readme, files });
+    // Clone URL: HTTP-based so it works remotely
+    const protocol = req.protocol;
+    const host = req.get('host') || 'localhost';
+    const cloneUrl = repo.isGitRepo
+      ? `${protocol}://${host}/api/warez/git/${encodeURIComponent(repo.name)}`
+      : undefined;
+
+    res.json({ ...repo, readme, files, cloneUrl });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get repo details', details: String(err) });
+  }
+});
+
+// --- Git Smart HTTP Protocol ---
+// Enables `git clone/fetch/push http://host/api/warez/git/<repo>`
+
+function resolveRepoPath(name: string): string | null {
+  if (!name || name.includes('/') || name.includes('\\') || name === '..' || name === '.') return null;
+  for (const warezPath of warezPaths) {
+    const fullPath = path.join(warezPath, name);
+    if (fs.existsSync(fullPath) && (fs.existsSync(path.join(fullPath, '.git')) || isBareRepo(fullPath))) {
+      return fullPath;
+    }
+  }
+  return null;
+}
+
+// Pkt-line helper: encode a single pkt-line string
+function pktLine(data: string): string {
+  const len = (data.length + 4).toString(16).padStart(4, '0');
+  return `${len}${data}`;
+}
+
+// Whitelist mapping for allowed git services
+const GIT_SERVICES: Record<string, string> = {
+  'git-upload-pack': 'git-upload-pack',
+  'git-receive-pack': 'git-receive-pack',
+};
+
+function spawnGitService(serviceBin: string, args: string[], repoPath: string, req: Request, res: Response) {
+  const proc = spawn(serviceBin, args);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', (data: Buffer) => {
+    console.error(`[git-http] ${serviceBin} stderr:`, data.toString());
+  });
+  proc.on('error', (err) => {
+    console.error(`[git-http] ${serviceBin} error:`, err);
+    if (!res.headersSent) res.status(500).send(`${serviceBin} process failed`);
+  });
+  return proc;
+}
+
+// GET /git/:name/info/refs?service=git-upload-pack|git-receive-pack
+router.get('/git/:name/info/refs', (req: Request, res: Response) => {
+  const serviceBin = GIT_SERVICES[req.query.service as string];
+  if (!serviceBin) {
+    res.status(403).send('Service not supported. Expected git-upload-pack or git-receive-pack');
+    return;
+  }
+
+  const repoPath = resolveRepoPath(req.params.name as string);
+  if (!repoPath) {
+    res.status(404).send('Repository not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', `application/x-${serviceBin}-advertisement`);
+  res.setHeader('Cache-Control', 'no-cache');
+
+  // Write service announcement header
+  res.write(pktLine(`# service=${serviceBin}\n`));
+  res.write('0000');
+
+  spawnGitService(serviceBin, ['--stateless-rpc', '--advertise-refs', repoPath], repoPath, req, res);
+});
+
+// POST /git/:name/git-upload-pack (clone/fetch)
+router.post('/git/:name/git-upload-pack', express.raw({ type: 'application/x-git-upload-pack-request', limit: '50mb' }), (req: Request, res: Response) => {
+  const repoPath = resolveRepoPath(req.params.name as string);
+  if (!repoPath) {
+    res.status(404).send('Repository not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/x-git-upload-pack-result');
+  res.setHeader('Cache-Control', 'no-cache');
+
+  const proc = spawnGitService('git-upload-pack', ['--stateless-rpc', repoPath], repoPath, req, res);
+  if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+    proc.stdin.write(req.body);
+    proc.stdin.end();
+  } else {
+    req.pipe(proc.stdin);
+  }
+});
+
+// POST /git/:name/git-receive-pack (push)
+router.post('/git/:name/git-receive-pack', express.raw({ type: 'application/x-git-receive-pack-request', limit: '50mb' }), (req: Request, res: Response) => {
+  const repoPath = resolveRepoPath(req.params.name as string);
+  if (!repoPath) {
+    res.status(404).send('Repository not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/x-git-receive-pack-result');
+  res.setHeader('Cache-Control', 'no-cache');
+
+  const proc = spawnGitService('git-receive-pack', ['--stateless-rpc', repoPath], repoPath, req, res);
+  if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+    proc.stdin.write(req.body);
+    proc.stdin.end();
+  } else {
+    req.pipe(proc.stdin);
   }
 });
 

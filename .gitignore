@@ -6,5 +6,6 @@ dist
 cache/
 *.tsbuildinfo
 chroma_data/
+agent-workdirs/
 steam archiving scripts/results/
 __pycache__/

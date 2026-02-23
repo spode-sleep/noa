@@ -11,12 +11,22 @@
         <div v-if="repo.description" class="repo-desc">{{ repo.description }}</div>
         <div class="repo-meta">
           <span v-if="repo.isGitRepo && repo.branch" class="branch-badge">{{ repo.branch }}</span>
+          <span v-if="!repo.isBare && repo.isGitRepo" class="not-bare-badge">not bare</span>
           <span v-if="!repo.isGitRepo" class="folder-badge">folder</span>
           <span v-if="repo.commitCount" class="meta-item">{{ repo.commitCount }} commits</span>
           <span v-if="repo.lastCommitDate" class="meta-item">{{ formatDate(repo.lastCommitDate) }}</span>
         </div>
         <div v-if="repo.lastCommitMessage" class="last-commit">
           Latest: {{ repo.lastCommitMessage }}
+        </div>
+        <div v-if="repo.cloneUrl" class="clone-url glass">
+          <span class="clone-label">Clone:</span>
+          <code class="clone-path">git clone {{ repo.cloneUrl }}</code>
+          <button class="btn-copy" @click="copyCloneUrl" :title="copyTitle">
+            <Icon v-if="copyStatus === 'idle'" icon="mdi:content-copy" />
+            <Icon v-else-if="copyStatus === 'copied'" icon="mdi:check" class="copy-ok" />
+            <Icon v-else icon="mdi:close-circle" class="copy-fail" />
+          </button>
         </div>
       </div>
 
@@ -25,7 +35,7 @@
         <h2>Files</h2>
         <div class="file-list">
           <div v-for="file in repo.files" :key="file.name" class="file-item">
-            <span class="file-icon">{{ file.type === 'directory' ? '📁' : '📄' }}</span>
+            <span class="file-icon"><Icon :icon="file.type === 'directory' ? 'mdi:folder' : 'mdi:file-document-outline'" /></span>
             <span class="file-name">{{ file.name }}</span>
           </div>
         </div>
@@ -43,6 +53,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 interface RepoFile {
   name: string
@@ -58,8 +69,10 @@ interface RepoDetail {
   branch: string
   commitCount: number
   isGitRepo: boolean
+  isBare: boolean
   readme: string
   files: RepoFile[]
+  cloneUrl?: string
 }
 
 const route = useRoute()
@@ -67,6 +80,26 @@ const router = useRouter()
 const repo = ref<RepoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
+const copyStatus = ref<'idle' | 'copied' | 'failed'>('idle')
+const copyTitle = computed(() => {
+  if (copyStatus.value === 'copied') return 'Copied'
+  if (copyStatus.value === 'failed') return 'Failed'
+  return 'Copy'
+})
+let copyTimeout: ReturnType<typeof setTimeout> | null = null
+
+function copyCloneUrl() {
+  if (!repo.value?.cloneUrl) return
+  navigator.clipboard.writeText(`git clone ${repo.value.cloneUrl}`).then(() => {
+    copyStatus.value = 'copied'
+    if (copyTimeout) clearTimeout(copyTimeout)
+    copyTimeout = setTimeout(() => { copyStatus.value = 'idle' }, 2000)
+  }).catch(() => {
+    copyStatus.value = 'failed'
+    if (copyTimeout) clearTimeout(copyTimeout)
+    copyTimeout = setTimeout(() => { copyStatus.value = 'idle' }, 2000)
+  })
+}
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
@@ -165,6 +198,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.title = 'BOX'
+  if (copyTimeout) clearTimeout(copyTimeout)
 })
 </script>
 
@@ -246,6 +280,58 @@ h1 {
   background: var(--askew-btn-disabled);
   color: var(--text-secondary);
   border: 1px solid #000000;
+}
+
+.not-bare-badge {
+  padding: 2px 10px;
+  border-radius: 0px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(200, 50, 50, 0.3);
+  color: var(--askew-red, #e05050);
+  border: 1px solid var(--askew-red, #e05050);
+}
+
+.clone-url {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.clone-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.clone-path {
+  font-family: var(--font-mono);
+  color: var(--askew-gold);
+  background: var(--askew-btn-disabled);
+  padding: 2px 8px;
+  border: 1px solid var(--glass-border);
+  user-select: all;
+  flex: 1;
+  overflow-x: auto;
+}
+.btn-copy {
+  padding: 2px 10px;
+  background: var(--askew-btn);
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-copy:hover {
+  background: var(--askew-btn-hover);
+}
+.copy-ok {
+  color: var(--askew-neon, #4caf50);
+}
+.copy-fail {
+  color: var(--askew-red, #e05050);
 }
 
 .last-commit {
@@ -389,4 +475,5 @@ h1 {
 .readme-content :deep(strong) {
   color: var(--text-primary);
 }
+
 </style>

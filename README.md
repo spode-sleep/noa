@@ -9,14 +9,14 @@ Offline Knowledge & Media Hub — a fully offline local application for long-ter
 - **📖 Fiction** — PDF/EPUB/FB2 reader with bookmarks and reading position saving
 - **📚 Reference** — ZIM archive browser for offline Wikipedia, WikiHow, iFixIt and more
 - **🔧 Warez** — Local git repository browser with README viewer and file tree
-- **🤖 AI Librarian** — Local AI chat with multi-model selection and RAG-powered knowledge base search (Ollama + ChromaDB)
+- **🤖 AI Librarian** — Local AI agent with multi-model selection, RAG-powered knowledge base search (Ollama + ChromaDB), and code agent mode for automated repository changes
 - **🔊 TTS** — Text-to-speech via Piper TTS for reading AI responses and articles aloud
 
 ## Tech Stack
 
 - **Frontend**: Vue 3, TypeScript, Composition API, Vue Router, Vite
 - **Backend**: Node.js, Express, TypeScript
-- **AI/LLM**: Ollama (local LLM, auto-launched)
+- **AI/LLM**: Ollama (local LLM, auto-launched), `ollama` npm client for AI agent tool-calling
 - **Vector DB**: ChromaDB (for RAG, auto-launched)
 - **TTS**: Piper TTS (local, offline)
 - **Design**: Dark Frutiger Aurora theme, glassmorphism, desktop-first
@@ -313,6 +313,52 @@ Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM arch
 
 ### Warez
 Set WAREZ_LIBRARY_PATH in .env, pointing to directories containing git repositories or other project folders. BOX will display them with git metadata (branch, commits, last commit message) and render README files.
+
+---
+
+## AI Code Agent
+
+The AI Librarian includes a built-in code agent mode — similar to GitHub Copilot Agent, but fully local via Ollama.
+
+### How to use
+
+1. Open the **AI Librarian** page
+2. Optionally select a **Repository** from the dropdown (repos from WAREZ_LIBRARY_PATH)
+3. Optionally select a **Branch** to work on (or leave empty to stay on the current branch)
+4. Describe the changes you want in natural language
+5. The agent will explore the codebase, create a branch, make changes, and commit — all automatically
+
+Both repository and branch are optional — without them the AI works as a regular chat assistant with RAG.
+
+### Agent capabilities
+
+The agent has access to the following tools via Ollama native tool-calling:
+
+| Tool | Description |
+|------|-------------|
+| `list_files` | List files and directories in the repository |
+| `read_file` | Read file contents (max 512KB) |
+| `write_file` | Create or overwrite files |
+| `git_create_branch` | Create a new branch and switch to it |
+| `git_status` | Show changed/staged/untracked files |
+| `git_diff` | Show uncommitted changes |
+| `git_commit` | Stage all changes and commit |
+
+### Auto-init git
+
+If a directory in WAREZ_LIBRARY_PATH is not a git repository, git will be automatically initialized (with an initial commit) when the agent performs any git operation.
+
+### Agent API
+
+```bash
+# Chat with the agent for a specific repository
+curl -X POST http://localhost:3001/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Create a README.md for this project", "repo": "my-project", "history": []}'
+
+# List available repos
+curl http://localhost:3001/api/ai/repos
+```
 
 ---
 

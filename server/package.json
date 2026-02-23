@@ -20,6 +20,7 @@
     "jsmediatags": "^3.9.7",
     "music-metadata": "^10.6.1",
     "node-stream-zip": "^1.15.0",
+    "ollama": "^0.6.3",
     "pdf-parse": "^1.1.1",
     "uuid": "^10.0.0",
     "xml2js": "^0.6.2"

@@ -56,7 +56,7 @@
 
       <!-- Context indicator -->
       <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
-        <span>Connected: {{ activeContextLabel }}</span>
+        <span>{{ activeContextLabel }}</span>
       </div>
 
       <!-- Library switches (visible only before first message) -->
@@ -72,6 +72,22 @@
           <span class="toggle-slider"></span>
           <span class="toggle-text">Fiction Library</span>
         </label>
+        <div v-if="availableRepos.length > 0" class="model-selector">
+          <label class="model-label">Repository</label>
+          <select v-model="selectedRepo" class="model-dropdown">
+            <option value="">None (plain chat)</option>
+            <option v-for="r in availableRepos" :key="r.name" :value="r.name">
+              {{ r.name }}{{ r.isGitRepo ? ` (${r.branch})` : ' (no git)' }}
+            </option>
+          </select>
+        </div>
+        <div v-if="availableBranches.length > 0" class="model-selector">
+          <label class="model-label">Branch</label>
+          <select v-model="selectedBranch" class="model-dropdown">
+            <option value="">None (don't switch branch)</option>
+            <option v-for="b in availableBranches" :key="b" :value="b">{{ b }}</option>
+          </select>
+        </div>
         <div v-if="availableModels.length > 1" class="model-selector">
           <label class="model-label">Model</label>
           <select v-model="selectedModel" class="model-dropdown">
@@ -103,6 +119,47 @@
             <div v-if="msg.sources?.length" class="sources-list">
               <span class="sources-label">Sources:</span>
               <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
+            </div>
+            <div v-if="msg.actions?.length" class="agent-timeline">
+              <details class="timeline-details">
+                <summary class="timeline-summary">
+                  <Icon icon="mdi:robot-outline" width="14" height="14" />
+                  Agent activity ({{ msg.actions.filter(a => a.type === 'tool').length }} tool calls)
+                </summary>
+                <div class="timeline-steps">
+                  <div
+                    v-for="(step, si) in msg.actions"
+                    :key="si"
+                    class="timeline-step"
+                    :class="step.type"
+                  >
+                    <template v-if="step.type === 'thinking'">
+                      <div class="step-thinking">
+                        <Icon icon="mdi:thought-bubble-outline" width="14" height="14" class="step-icon thinking-icon" />
+                        <span class="thinking-text">{{ step.content }}</span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <details class="tool-details">
+                        <summary class="tool-summary">
+                          <Icon :icon="step.tool?.startsWith('git_') ? 'mdi:source-branch' : 'mdi:wrench-outline'" width="14" height="14" class="step-icon tool-icon" />
+                          <span class="tool-name">{{ step.tool }}</span>
+                          <span v-if="step.args && Object.keys(step.args).length" class="tool-args">({{ formatToolArgs(step) }})</span>
+                        </summary>
+                        <template v-if="step.diff">
+                          <div class="diff-block">
+                            <template v-if="step.diff.before">
+                              <div v-for="(line, li) in step.diff.before.split('\n')" :key="'rm-'+li" class="diff-line removed">- {{ line }}</div>
+                            </template>
+                            <div v-for="(line, li) in step.diff.after.split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
+                          </div>
+                        </template>
+                        <pre v-else-if="step.result" class="tool-result">{{ step.result }}</pre>
+                      </details>
+                    </template>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -138,10 +195,19 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
 import { useTtsPlayer } from '../composables/useTtsPlayer'
 
+interface AgentStep {
+  type: 'thinking' | 'tool'
+  content?: string
+  tool?: string
+  args?: Record<string, string>
+  result?: string
+}
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: string[]
+  actions?: AgentStep[]
 }
 
 interface Conversation {
@@ -150,6 +216,10 @@ interface Conversation {
   messages: Message[]
   createdAt: string
   model?: string
+  repo?: string
+  branch?: string
+  agentCurrentBranch?: string
+  agentParentBranch?: string
 }
 
 const { speak } = useTtsPlayer()
@@ -171,7 +241,11 @@ function saveConversations() {
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+  // UUID v4 polyfill for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
 }
 
 const conversations = ref<Conversation[]>(loadConversations())
@@ -193,6 +267,14 @@ const defaultModel = ref('')
 const aiStatus = ref<{ available: boolean; message: string }>({ available: false, message: '' })
 const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean; backend: string }>({ ready: false, chunksIndexed: 0, indexing: false, backend: 'none' })
 
+// Agent repo state
+const availableRepos = ref<Array<{ name: string; branch: string; isGitRepo: boolean }>>([])
+const selectedRepo = ref('')
+const availableBranches = ref<string[]>([])
+const selectedBranch = ref('')
+const agentCurrentBranch = ref('')
+const agentParentBranch = ref('')
+
 const chatAreaRef = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
@@ -200,7 +282,13 @@ const activeContextLabel = computed(() => {
   const parts: string[] = []
   if (musicLibraryEnabled.value) parts.push('Music')
   if (fictionLibraryEnabled.value) parts.push('Fiction')
-  return parts.join(', ')
+  if (selectedRepo.value) {
+    parts.push(`Repo: ${selectedRepo.value}`)
+    if (agentCurrentBranch.value) {
+      parts.push(`Branch: ${agentCurrentBranch.value}`)
+    }
+  }
+  return parts.join(' · ')
 })
 
 // --- Conversation management ---
@@ -225,6 +313,10 @@ function switchConversation(id: string) {
     messages.value = conv.messages
     chatStarted.value = conv.messages.length > 0
     selectedModel.value = conv.model || defaultModel.value
+    selectedRepo.value = conv.repo || ''
+    selectedBranch.value = conv.branch || ''
+    agentCurrentBranch.value = conv.agentCurrentBranch || ''
+    agentParentBranch.value = conv.agentParentBranch || ''
   }
 }
 
@@ -233,12 +325,19 @@ function syncCurrentConversation() {
   if (conv) {
     conv.messages = messages.value
     conv.model = selectedModel.value
+    conv.repo = selectedRepo.value || undefined
+    conv.branch = selectedBranch.value || undefined
+    conv.agentCurrentBranch = agentCurrentBranch.value || undefined
+    conv.agentParentBranch = agentParentBranch.value || undefined
     saveConversations()
   }
 }
 
 function deleteConversation(id: string) {
   if (!confirm('Delete this conversation?')) return
+  // Clean up agent workdir on the server
+  fetch(`/api/ai/conversations/${encodeURIComponent(id)}/workdir`, { method: 'DELETE' })
+    .catch(err => console.warn('Failed to clean up agent workdir:', err))
   conversations.value = conversations.value.filter(c => c.id !== id)
   saveConversations()
   if (activeConversationId.value === id) {
@@ -272,6 +371,13 @@ function finishRename(id: string) {
 }
 
 // --- Existing chat logic ---
+
+function formatToolArgs(step: AgentStep): string {
+  if (!step.args) return ''
+  // For edit_file/write_file, only show file_path (content shown in diff block)
+  if (step.tool === 'edit_file' || step.tool === 'write_file') return step.args.file_path || ''
+  return Object.values(step.args).join(', ')
+}
 
 function formatContent(text: string): string {
   // Extract code blocks first to protect them from escaping
@@ -338,6 +444,23 @@ watch(messages, () => {
   syncCurrentConversation()
 }, { deep: true })
 
+// Load branches when repo selection changes
+watch(selectedRepo, async (repoName) => {
+  availableBranches.value = []
+  selectedBranch.value = ''
+  if (!repoName) return
+  const repo = availableRepos.value.find(r => r.name === repoName)
+  if (!repo?.isGitRepo) return
+  try {
+    const res = await fetch(`/api/ai/repos/${encodeURIComponent(repoName)}/branches`)
+    const data = await res.json()
+    if (data.branches?.length) {
+      availableBranches.value = data.branches
+      selectedBranch.value = ''
+    }
+  } catch { /* ignore */ }
+})
+
 async function sendMessage() {
   const text = input.value.trim()
   if (!text) return
@@ -378,6 +501,9 @@ async function sendMessage() {
         message: text,
         history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
         model: selectedModel.value,
+        repo: selectedRepo.value || undefined,
+        branch: agentCurrentBranch.value || selectedBranch.value || undefined,
+        conversationId: currentConvId,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,
@@ -385,10 +511,13 @@ async function sendMessage() {
       }),
     })
     const data = await res.json()
+    if (data.currentBranch) agentCurrentBranch.value = data.currentBranch
+    if (data.parentBranch) agentParentBranch.value = data.parentBranch
     pushResponse({
       role: 'assistant',
       content: data.content ?? data.response ?? 'No response.',
       sources: data.sources?.length ? data.sources : undefined,
+      actions: data.actions?.length ? data.actions : undefined,
     })
   } catch {
     pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
@@ -405,6 +534,8 @@ function clearChat() {
   createNewConversation()
   musicLibraryEnabled.value = false
   fictionLibraryEnabled.value = false
+  agentCurrentBranch.value = ''
+  agentParentBranch.value = ''
 }
 
 async function buildIndex() {
@@ -466,6 +597,15 @@ onMounted(async () => {
   } catch {
     aiStatus.value = { available: false, message: 'Unable to reach AI service' }
   }
+
+  // Load available repos for agent mode
+  try {
+    const reposRes = await fetch('/api/ai/repos')
+    const reposData = await reposRes.json()
+    if (reposData.repos) {
+      availableRepos.value = reposData.repos
+    }
+  } catch { /* ignore */ }
 })
 
 onBeforeUnmount(() => {
@@ -919,6 +1059,137 @@ onBeforeUnmount(() => {
   background: var(--askew-tab-inactive);
   color: var(--askew-cream);
   border: 1px solid #000000;
+}
+
+.agent-timeline {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--askew-dark-border);
+}
+
+.timeline-details {
+  font-size: 0.78rem;
+}
+
+.timeline-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+.timeline-summary:hover {
+  color: var(--askew-gold);
+}
+
+.timeline-steps {
+  margin-top: 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--askew-dark-border);
+}
+
+.timeline-step {
+  padding: 4px 0 4px 10px;
+  position: relative;
+}
+
+.step-thinking {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.thinking-icon {
+  color: var(--askew-gold);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.thinking-text {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.tool-details {
+  font-size: 0.75rem;
+}
+
+.tool-summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-summary:hover {
+  color: var(--askew-mint);
+}
+
+.tool-icon {
+  color: var(--askew-mint);
+  flex-shrink: 0;
+}
+
+.tool-name {
+  font-weight: 600;
+  color: var(--askew-mint);
+  font-family: monospace;
+}
+
+.tool-args {
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.7rem;
+}
+
+.tool-result {
+  margin: 4px 0 2px 18px;
+  padding: 6px 8px;
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
+  border-radius: 0px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.72rem;
+  color: var(--askew-text);
+  max-height: 150px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.diff-block {
+  margin: 4px 0 2px 18px;
+  padding: 4px 0;
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.diff-line {
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.diff-line.removed {
+  background: rgba(236, 177, 110, 0.12);
+  color: var(--askew-gold);
+}
+
+.diff-line.added {
+  background: rgba(130, 202, 177, 0.12);
+  color: var(--askew-mint);
 }
 
 .index-btn {
