@@ -31,7 +31,7 @@ interface ParsedToolCall {
 
 interface ParseResult {
   toolCalls: ParsedToolCall[];
-  segments: Array<{ type: 'thinking' | 'tool'; content?: string; toolIndex?: number }>;
+  segments: Array<{ type: 'thinking'; content: string } | { type: 'tool'; toolIndex: number }>;
 }
 
 // Escape literal newlines/tabs/CRs inside JSON string values.
