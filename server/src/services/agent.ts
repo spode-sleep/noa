@@ -255,15 +255,12 @@ function buildAiderModelArg(model: string): string {
 function parseSearchReplaceBlocks(output: string): AgentStep[] {
   const steps: AgentStep[] = [];
   // Aider outputs: filename\n<<<<<<< SEARCH\n...old...\n=======\n...new...\n>>>>>>> REPLACE
-  // The gm flags let ^ match at line starts, so this works even mid-output
   const blockRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/gm;
   let match;
   while ((match = blockRegex.exec(output)) !== null) {
     const filePath = match[1].trim();
     const before = match[2];
     const after = match[3];
-    // Heuristic: skip if the line above SEARCH looks like prose, not a filepath
-    // (real paths are short and don't have multiple consecutive spaces)
     if (filePath.length > 200 || /\s{2,}/.test(filePath)) continue;
     steps.push({
       type: 'tool',
@@ -276,53 +273,175 @@ function parseSearchReplaceBlocks(output: string): AgentStep[] {
   return steps;
 }
 
+/** Parse unified diff blocks (@@...@@) into before/after text */
+function parseUnifiedDiff(diffLines: string[]): { before: string; after: string } {
+  const before: string[] = [];
+  const after: string[] = [];
+  for (const line of diffLines) {
+    if (line.startsWith('@@')) continue; // skip hunk headers
+    if (line.startsWith('-')) {
+      before.push(line.slice(1));
+    } else if (line.startsWith('+')) {
+      after.push(line.slice(1));
+    } else if (line.startsWith(' ')) {
+      before.push(line.slice(1));
+      after.push(line.slice(1));
+    }
+  }
+  return { before: before.join('\n'), after: after.join('\n') };
+}
+
+/** Aider boilerplate lines that should be skipped in all output parsing */
+const AIDER_BOILERPLATE_RE = /^(Aider v|Analytics |You can skip|\.aider\*?|\.gitignore$|No files matched|Warning:|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped|Use \/|Tokens:|Model:|─|Git repo|Repo-map|Added \.aider)/;
+
 /** Parse aider output into AgentStep actions for the frontend timeline */
 function parseAiderOutput(output: string): AgentStep[] {
   const steps: AgentStep[] = [];
 
-  // First, extract all SEARCH/REPLACE blocks as edit_file steps with diffs
+  // First, extract SEARCH/REPLACE blocks
   const editSteps = parseSearchReplaceBlocks(output);
-  // Track which files had SEARCH/REPLACE diffs to avoid duplicate "Editing" line steps
   const filesWithDiffs = new Set(editSteps.map(s => s.args?.file_path));
+  steps.push(...editSteps);
 
-  const lines = output.split('\n');
+  // Split output into sections by ► THINKING / ► ANSWER markers
+  const sections: Array<{ type: 'thinking' | 'answer' | 'raw'; content: string }> = [];
+  const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
+  let lastIndex = 0;
+  let lastType: 'thinking' | 'answer' | 'raw' = 'raw';
+  let match;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+  // Check if output uses ► markers at all
+  const hasMarkers = sectionRegex.test(output);
+  sectionRegex.lastIndex = 0;
 
-    // Aider file edit markers (only add if we don't already have a diff for this file)
-    if (/^Editing\s+/.test(trimmed) || /^Applied edit to\s+/.test(trimmed)) {
-      const file = trimmed.replace(/^(Editing|Applied edit to)\s+/, '').trim();
-      if (!filesWithDiffs.has(file)) {
-        steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: trimmed });
+  if (hasMarkers) {
+    while ((match = sectionRegex.exec(output)) !== null) {
+      // Save content before this marker
+      if (match.index > lastIndex) {
+        const content = output.slice(lastIndex, match.index).trim();
+        if (content) sections.push({ type: lastType, content });
       }
-    } else if (/^Creating\s+/.test(trimmed) || /^Wrote\s+/.test(trimmed)) {
-      const file = trimmed.replace(/^(Creating|Wrote)\s+/, '').trim();
-      if (!filesWithDiffs.has(file)) {
-        steps.push({ type: 'tool', tool: 'write_file', args: { file_path: file }, result: trimmed });
+      lastType = match[1] === 'THINKING' ? 'thinking' : 'answer';
+      lastIndex = match.index + match[0].length;
+    }
+    // Save trailing content
+    if (lastIndex < output.length) {
+      const content = output.slice(lastIndex).trim();
+      if (content) sections.push({ type: lastType, content });
+    }
+  } else {
+    // No markers — treat entire output as raw
+    sections.push({ type: 'raw', content: output });
+  }
+
+  for (const section of sections) {
+    if (section.type === 'thinking') {
+      // Collapse thinking into a single step with the full text
+      const cleaned = section.content
+        .split('\n')
+        .filter(l => !AIDER_BOILERPLATE_RE.test(l.trim()))
+        .join('\n')
+        .trim();
+      if (cleaned) {
+        steps.push({ type: 'thinking', content: cleaned });
       }
-    } else if (/^Added\s+.*to the chat/.test(trimmed)) {
-      const file = trimmed.replace(/^Added\s+/, '').replace(/\s+to the chat.*/, '').trim();
-      steps.push({ type: 'tool', tool: 'read_file', args: { file_path: file }, result: trimmed });
-    } else if (/^Commit [a-f0-9]+/.test(trimmed)) {
-      steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: trimmed });
-    } else if (/^Git repo.*found/.test(trimmed) || /^Repo-map/.test(trimmed)) {
-      // Skip internal aider messages
-    } else if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) {
-      // Skip SEARCH/REPLACE markers (already parsed by parseSearchReplaceBlocks)
-    } else if (/^>\s+/.test(trimmed)) {
-      // User prompt echo — skip
-    } else if (/^(Aider v|Analytics |You can skip|\.aider|\.gitignore$|No files matched|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped)/.test(trimmed)) {
-      // Skip aider startup/config boilerplate
-    } else if (trimmed.length > 10 && !trimmed.startsWith('─') && !trimmed.startsWith('Warning')) {
-      // Thinking/explanation text from aider
-      steps.push({ type: 'thinking', content: trimmed });
+      continue;
+    }
+
+    // For 'answer' and 'raw' sections — parse file edits, commits, and other markers
+    const lines = section.content.split('\n');
+    let i = 0;
+    while (i < lines.length) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) { i++; continue; }
+
+      // Skip boilerplate
+      if (AIDER_BOILERPLATE_RE.test(trimmed)) { i++; continue; }
+
+      // Skip SEARCH/REPLACE markers (already parsed)
+      if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) { i++; continue; }
+
+      // Skip user prompt echo
+      if (/^>\s+/.test(trimmed)) { i++; continue; }
+
+      // Commit marker
+      if (/^Commit [a-f0-9]+/.test(trimmed)) {
+        steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: trimmed });
+        i++; continue;
+      }
+
+      // File read marker
+      if (/^Added\s+.*to the chat/.test(trimmed)) {
+        const file = trimmed.replace(/^Added\s+/, '').replace(/\s+to the chat.*/, '').trim();
+        steps.push({ type: 'tool', tool: 'read_file', args: { file_path: file }, result: trimmed });
+        i++; continue;
+      }
+
+      // Edit/write markers
+      if (/^(Editing|Applied edit to)\s+/.test(trimmed)) {
+        const file = trimmed.replace(/^(Editing|Applied edit to)\s+/, '').trim();
+        if (!filesWithDiffs.has(file)) {
+          steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: trimmed });
+        }
+        i++; continue;
+      }
+      if (/^(Creating|Wrote)\s+/.test(trimmed)) {
+        const file = trimmed.replace(/^(Creating|Wrote)\s+/, '').trim();
+        if (!filesWithDiffs.has(file)) {
+          steps.push({ type: 'tool', tool: 'write_file', args: { file_path: file }, result: trimmed });
+        }
+        i++; continue;
+      }
+
+      // Unified diff block: filename followed by @@ line (possibly with empty lines between)
+      // Look ahead past empty lines for a diff hunk header
+      let lookAhead = i + 1;
+      while (lookAhead < lines.length && !lines[lookAhead].trim()) lookAhead++;
+      if (lookAhead < lines.length && /^@@\s/.test(lines[lookAhead].trim())) {
+        const filePath = trimmed;
+        i = lookAhead; // skip to @@ line
+        // Collect all diff lines (@@, +, -, space-prefixed context)
+        const diffLines: string[] = [];
+        while (i < lines.length) {
+          const dl = lines[i];
+          if (/^@@\s/.test(dl.trim()) || dl.startsWith('+') || dl.startsWith('-') || dl.startsWith(' ')) {
+            diffLines.push(dl);
+            i++;
+          } else if (!dl.trim()) {
+            // Empty lines inside diff could be context — peek ahead
+            if (i + 1 < lines.length && (lines[i + 1].startsWith('+') || lines[i + 1].startsWith('-') || /^@@\s/.test(lines[i + 1].trim()))) {
+              diffLines.push(dl);
+              i++;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+        if (diffLines.length > 0 && !filesWithDiffs.has(filePath)) {
+          const { before, after } = parseUnifiedDiff(diffLines);
+          filesWithDiffs.add(filePath);
+          steps.push({
+            type: 'tool',
+            tool: before ? 'edit_file' : 'write_file',
+            args: { file_path: filePath },
+            result: `${before ? 'Applied edit to' : 'Wrote'} ${filePath}`,
+            diff: { before, after },
+          });
+        }
+        continue;
+      }
+
+      // Everything else that's long enough is thinking/explanation text
+      if (trimmed.length > 5) {
+        steps.push({ type: 'thinking', content: trimmed });
+      }
+      i++;
     }
   }
 
-  // Insert edit steps with diffs at the beginning (they represent the core changes)
-  return [...editSteps, ...steps];
+  return steps;
 }
 
 /** Build a context summary from conversation history for aider */
@@ -386,6 +505,8 @@ function runAiderProcess(
       AIDER_SUGGEST_SHELL_COMMANDS: 'false',
       // Disable streaming for subprocess capture
       AIDER_STREAM: 'false',
+      // Show unified diffs in output for parsing into frontend diff display
+      AIDER_SHOW_DIFFS: 'true',
       // Prevent any browser from opening
       BROWSER: 'echo',
       // Disable terminal colors/formatting
@@ -627,33 +748,55 @@ export async function runAgent(
 
 /** Extract the main AI response text from aider's output, filtering out tool markers */
 function extractAiderResponse(output: string): string {
-  const lines = output.split('\n');
+  // If output has ► THINKING / ► ANSWER markers, extract only answer text
+  const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
+  const hasMarkers = sectionRegex.test(output);
+  sectionRegex.lastIndex = 0;
+
+  let textToProcess = output;
+  if (hasMarkers) {
+    // Collect only ANSWER section content (skip THINKING entirely)
+    const answerParts: string[] = [];
+    let lastIndex = 0;
+    let lastType = 'raw';
+    let match;
+    while ((match = sectionRegex.exec(output)) !== null) {
+      if (lastType === 'answer' && match.index > lastIndex) {
+        answerParts.push(output.slice(lastIndex, match.index));
+      }
+      lastType = match[1] === 'THINKING' ? 'thinking' : 'answer';
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastType === 'answer' && lastIndex < output.length) {
+      answerParts.push(output.slice(lastIndex));
+    }
+    textToProcess = answerParts.join('\n');
+  }
+
+  const lines = textToProcess.split('\n');
   const responseLines: string[] = [];
-  let inCodeBlock = false;
+  let inDiff = false;
 
   for (const line of lines) {
-    // Track code blocks
-    if (line.trim().startsWith('```')) {
-      inCodeBlock = !inCodeBlock;
-      responseLines.push(line);
-      continue;
-    }
-
-    if (inCodeBlock) {
-      responseLines.push(line);
-      continue;
-    }
-
     const trimmed = line.trim();
 
+    // Skip diff blocks (@@, +, -, unified diff content)
+    if (/^@@\s/.test(trimmed)) { inDiff = true; continue; }
+    if (inDiff && /^[+\- ]/.test(line)) continue;
+    if (inDiff && !/^[+\- ]/.test(line)) inDiff = false;
+
+    // Skip SEARCH/REPLACE markers
+    if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) continue;
+
     // Skip aider internal markers and boilerplate
-    if (/^(Editing|Applied edit to|Creating|Wrote|Added .* to the chat|Commit [a-f0-9]|Git repo|Repo-map|Use \/|Tokens:|Model:|─|>)/.test(trimmed)) {
-      continue;
-    }
-    // Skip aider startup/version/config messages
-    if (/^(Aider v|Analytics |You can skip|\.aider|\.gitignore$|No files matched|Warning:|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped)/.test(trimmed)) {
-      continue;
-    }
+    if (/^(Editing|Applied edit to|Creating|Wrote|Added .* to the chat|Commit [a-f0-9]|Git repo|Repo-map|Use \/|Tokens:|Model:|─|>)/.test(trimmed)) continue;
+    if (AIDER_BOILERPLATE_RE.test(trimmed)) continue;
+
+    // Skip standalone filenames (a line that looks like a path before a diff)
+    if (/^[\w/\\][\w./\\-]*\.\w+$/.test(trimmed)) continue;
+
+    // Skip section separator lines (--- or dashes)
+    if (/^-{3,}$/.test(trimmed)) continue;
 
     // Skip empty lines at the beginning
     if (responseLines.length === 0 && !trimmed) continue;
