@@ -417,6 +417,22 @@ function runAiderProcess(
       '--auto-commits',
     ];
 
+    // Add all git-tracked files as positional args so aider can see and edit them.
+    // Without this, aider in one-shot mode has no files in context and asks the user to add them.
+    // The repo map (enabled by default) only provides structure summaries, not editable content.
+    try {
+      const trackedFiles = execFileSync('git', ['ls-files'], {
+        cwd: path.resolve(workdir), encoding: 'utf-8', timeout: 10000,
+      }).trim();
+      if (trackedFiles) {
+        for (const f of trackedFiles.split('\n')) {
+          if (f.trim()) args.push(f.trim());
+        }
+      }
+    } catch {
+      console.log('[agent] Could not list tracked files, aider will use repo map only');
+    }
+
     // Use --message-file if the file was written, otherwise fall back to --message
     if (fs.existsSync(messageFile)) {
       args.push('--message-file', messageFile);
@@ -439,9 +455,6 @@ function runAiderProcess(
       AIDER_SUGGEST_SHELL_COMMANDS: 'false',
       // Disable streaming for subprocess capture
       AIDER_STREAM: 'false',
-      // Map the entire repo so aider can see all files and their structure
-      // Without this, aider in one-shot mode can't find or list files
-      AIDER_MAP_WHOLE_REPO: 'true',
       // Prevent any browser from opening
       BROWSER: 'echo',
       // Disable terminal colors/formatting
