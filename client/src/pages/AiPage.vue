@@ -148,8 +148,8 @@
                         </summary>
                         <template v-if="step.tool === 'edit_file' && step.args?.old_text">
                           <div class="diff-block">
-                            <div v-for="(line, li) in step.args.old_text.split('\n')" :key="'d'+li" class="diff-line removed">- {{ line }}</div>
-                            <div v-for="(line, li) in (step.args.new_text || '').split('\n')" :key="'a'+li" class="diff-line added">+ {{ line }}</div>
+                            <div v-for="(line, li) in step.args.old_text.split('\n')" :key="'rm-'+li" class="diff-line removed">- {{ line }}</div>
+                            <div v-for="(line, li) in (step.args.new_text || '').split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
                           </div>
                         </template>
                         <pre v-else-if="step.result" class="tool-result">{{ step.result }}</pre>
