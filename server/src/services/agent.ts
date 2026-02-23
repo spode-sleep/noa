@@ -659,7 +659,7 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
     // Check if there are any commits to push (local ahead of remote or no upstream)
     let hasUnpushed = false;
     try {
-      const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+      const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }).trim();
       hasUnpushed = log.length > 0;
     } catch {
       // No upstream tracking branch yet — means everything is unpushed
