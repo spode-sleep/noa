@@ -120,11 +120,38 @@
               <span class="sources-label">Sources:</span>
               <span v-for="(src, si) in msg.sources" :key="si" class="source-tag">{{ src }}</span>
             </div>
-            <div v-if="msg.actions?.length" class="actions-list">
-              <span class="actions-label">Tools used:</span>
-              <span v-for="(act, ai) in msg.actions" :key="ai" class="action-tag" :title="act.result">
-                {{ act.tool }}
-              </span>
+            <div v-if="msg.actions?.length" class="agent-timeline">
+              <details class="timeline-details" open>
+                <summary class="timeline-summary">
+                  <Icon icon="mdi:robot-outline" width="14" height="14" />
+                  Agent activity ({{ msg.actions.filter(a => a.type === 'tool').length }} tool calls)
+                </summary>
+                <div class="timeline-steps">
+                  <div
+                    v-for="(step, si) in msg.actions"
+                    :key="si"
+                    class="timeline-step"
+                    :class="step.type"
+                  >
+                    <template v-if="step.type === 'thinking'">
+                      <div class="step-thinking">
+                        <Icon icon="mdi:thought-bubble-outline" width="14" height="14" class="step-icon thinking-icon" />
+                        <span class="thinking-text">{{ step.content }}</span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <details class="tool-details">
+                        <summary class="tool-summary">
+                          <Icon icon="mdi:wrench-outline" width="14" height="14" class="step-icon tool-icon" />
+                          <span class="tool-name">{{ step.tool }}</span>
+                          <span v-if="step.args && Object.keys(step.args).length" class="tool-args">({{ Object.values(step.args).join(', ') }})</span>
+                        </summary>
+                        <pre v-if="step.result" class="tool-result">{{ step.result }}</pre>
+                      </details>
+                    </template>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -160,11 +187,19 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
 import { useTtsPlayer } from '../composables/useTtsPlayer'
 
+interface AgentStep {
+  type: 'thinking' | 'tool'
+  content?: string
+  tool?: string
+  args?: Record<string, string>
+  result?: string
+}
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: string[]
-  actions?: Array<{ tool: string; args: Record<string, string>; result: string }>
+  actions?: AgentStep[]
 }
 
 interface Conversation {
@@ -1011,30 +1046,125 @@ onBeforeUnmount(() => {
   border: 1px solid #000000;
 }
 
-.actions-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+.agent-timeline {
+  margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid var(--askew-dark-border);
 }
 
-.actions-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  font-weight: 500;
+.timeline-details {
+  font-size: 0.78rem;
 }
 
-.action-tag {
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 0px;
-  background: var(--askew-tab-inactive);
+.timeline-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+.timeline-summary:hover {
+  color: var(--askew-gold);
+}
+
+.timeline-steps {
+  margin-top: 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--askew-dark-border);
+}
+
+.timeline-step {
+  padding: 4px 0 4px 10px;
+  position: relative;
+}
+
+.timeline-step::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--askew-dark-border);
+}
+
+.timeline-step.thinking::before {
+  background: var(--askew-gold);
+}
+
+.timeline-step.tool::before {
+  background: var(--askew-mint);
+}
+
+.step-thinking {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.thinking-icon {
+  color: var(--askew-gold);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.thinking-text {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.tool-details {
+  font-size: 0.75rem;
+}
+
+.tool-summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-summary:hover {
   color: var(--askew-mint);
-  border: 1px solid #000000;
-  cursor: default;
+}
+
+.tool-icon {
+  color: var(--askew-mint);
+  flex-shrink: 0;
+}
+
+.tool-name {
+  font-weight: 600;
+  color: var(--askew-mint);
+  font-family: monospace;
+}
+
+.tool-args {
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.7rem;
+}
+
+.tool-result {
+  margin: 4px 0 2px 18px;
+  padding: 6px 8px;
+  background: var(--askew-tab-inactive);
+  border: 1px solid var(--askew-dark-border);
+  border-radius: 0px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  max-height: 150px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .index-btn {

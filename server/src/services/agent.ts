@@ -430,7 +430,7 @@ export function cleanupWorkdirsForConversation(conversationId: string): number {
   return count;
 }
 
-function convertToBare(repoPath: string, actions: AgentAction[]): boolean {
+function convertToBare(repoPath: string, actions: AgentStep[]): boolean {
   const tmpPath = repoPath + '-bare-tmp-' + Date.now();
   console.log(`[agent] Converting to bare repo: ${repoPath}`);
   try {
@@ -439,18 +439,18 @@ function convertToBare(repoPath: string, actions: AgentAction[]): boolean {
     fs.rmSync(repoPath, { recursive: true, force: true });
     fs.renameSync(tmpPath, repoPath);
     console.log(`[agent] Converted to bare repository`);
-    actions.push({ tool: 'convert_to_bare', args: {}, result: 'Converted to bare repository' });
+    actions.push({ type: 'tool', tool: 'convert_to_bare', args: {}, result: 'Converted to bare repository' });
     return true;
   } catch (err: any) {
     // Clean up temp if it exists
     try { fs.rmSync(tmpPath, { recursive: true, force: true }); } catch { /* ignore */ }
     console.error(`[agent] Failed to convert to bare: ${err.message}`);
-    actions.push({ tool: 'convert_to_bare', args: {}, result: `Error: ${err.message}` });
+    actions.push({ type: 'tool', tool: 'convert_to_bare', args: {}, result: `Error: ${err.message}` });
     return false;
   }
 }
 
-function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId: string, actions: AgentAction[]): string {
+function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId: string, actions: AgentStep[]): string {
   const workdir = getWorkdir(repoName, conversationId);
 
   // If clone already exists, fetch latest from warez
@@ -481,10 +481,10 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
     execFileSync('git', ['clone', warezPath, workdir],
       { encoding: 'utf-8', timeout: 60000 });
     console.log(`[agent] Cloned successfully`);
-    actions.push({ tool: 'git_clone', args: { source: repoName }, result: 'Cloned from warez' });
+    actions.push({ type: 'tool', tool: 'git_clone', args: { source: repoName }, result: 'Cloned from warez' });
   } catch (err: any) {
     console.error(`[agent] Clone failed: ${err.message}`);
-    actions.push({ tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
+    actions.push({ type: 'tool', tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
     return ''; // empty string signals failure — caller checks with `if (!workdir)`
   }
 
@@ -492,16 +492,16 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
 }
 
 // Auto-init git for non-git directories, then convert to bare
-function autoInitGit(repoPath: string, actions: AgentAction[]) {
+function autoInitGit(repoPath: string, actions: AgentStep[]) {
   if (fs.existsSync(path.join(repoPath, '.git'))) return;
   console.log(`[agent] Initializing git in: ${repoPath}`);
   try {
     execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git commit -m "Initial commit" --allow-empty', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    actions.push({ tool: 'git_init', args: {}, result: 'Git initialized with initial commit' });
+    actions.push({ type: 'tool', tool: 'git_init', args: {}, result: 'Git initialized with initial commit' });
   } catch (err: any) {
-    actions.push({ tool: 'git_init', args: {}, result: `Git init error: ${err.message}` });
+    actions.push({ type: 'tool', tool: 'git_init', args: {}, result: `Git init error: ${err.message}` });
   }
 }
 
@@ -539,15 +539,17 @@ function getRepoTreeOverview(repoPath: string, prefix = '', depth = 0): string {
   }
 }
 
-export interface AgentAction {
-  tool: string;
-  args: Record<string, string>;
-  result: string;
+export interface AgentStep {
+  type: 'thinking' | 'tool';
+  content?: string;
+  tool?: string;
+  args?: Record<string, string>;
+  result?: string;
 }
 
 export interface AgentResult {
   response: string;
-  actions: AgentAction[];
+  actions: AgentStep[];
   currentBranch: string;
 }
 
@@ -604,19 +606,19 @@ async function generateBranchName(client: Ollama, model: string, userMessage: st
   return `agent-${Date.now().toString(36)}`;
 }
 
-function autoCommitChanges(repoPath: string, actions: AgentAction[]) {
+function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
   if (!hasUncommittedChanges(repoPath)) return;
   console.log(`[agent] Auto-committing uncommitted changes`);
   try {
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    actions.push({ tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
+    actions.push({ type: 'tool', tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
   } catch {
     // ignore commit errors (e.g. nothing to commit)
   }
 }
 
-function pushToWarez(workdir: string, actions: AgentAction[]) {
+function pushToWarez(workdir: string, actions: AgentStep[]) {
   try {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
@@ -649,7 +651,7 @@ function pushToWarez(workdir: string, actions: AgentAction[]) {
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
       }
     }
-    actions.push({ tool: 'git_push', args: { branch }, result: `Pushed ${branch} to hub` });
+    actions.push({ type: 'tool', tool: 'git_push', args: { branch }, result: `Pushed ${branch} to hub` });
   } catch (err: any) {
     console.error(`[agent] Push failed: ${err.message}`);
   }
@@ -666,7 +668,7 @@ export async function runAgent(
   isFirstMessage: boolean,
   conversationId: string,
 ): Promise<AgentResult> {
-  const actions: AgentAction[] = [];
+  const actions: AgentStep[] = [];
   console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
   const client = new Ollama({
@@ -710,7 +712,7 @@ export async function runAgent(
         } catch {
           execSync(`git checkout -b ${branch} origin/${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         }
-        actions.push({ tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
+        actions.push({ type: 'tool', tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
       }
       // Always pull latest changes (even if already on the branch)
       try {
@@ -724,7 +726,7 @@ export async function runAgent(
         console.log(`[agent] Pull failed (conflict or local-only branch), continuing with local state`);
       }
     } catch (err: any) {
-      actions.push({ tool: 'git_checkout', args: { branch }, result: `Checkout error: ${err.message}` });
+      actions.push({ type: 'tool', tool: 'git_checkout', args: { branch }, result: `Checkout error: ${err.message}` });
     }
   }
 
@@ -734,7 +736,7 @@ export async function runAgent(
     console.log(`[agent] Generating branch name from prompt...`);
     const branchName = await generateBranchName(client, model, userMessage);
     if (!/^[\w.\-]+$/.test(branchName)) {
-      actions.push({ tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
+      actions.push({ type: 'tool', tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
     } else {
       let uniqueName = branchName;
       try {
@@ -748,9 +750,9 @@ export async function runAgent(
         execFileSync('git', ['checkout', '-b', uniqueName], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         createdBranch = uniqueName;
         console.log(`[agent] Created branch: ${uniqueName}`);
-        actions.push({ tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch created: ${uniqueName}` });
+        actions.push({ type: 'tool', tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch created: ${uniqueName}` });
       } catch (err: any) {
-        actions.push({ tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch creation error: ${err.message}` });
+        actions.push({ type: 'tool', tool: 'git_create_branch', args: { branch_name: uniqueName }, result: `Branch creation error: ${err.message}` });
       }
     }
   }
@@ -839,6 +841,12 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         break;
       }
 
+      // Capture inner monologue: if the model outputs text alongside tool calls,
+      // record it as a "thinking" step (like GitHub Copilot Agent's reasoning display)
+      if (lastResponse.trim() && toolCalls.length > 0) {
+        actions.push({ type: 'thinking', content: lastResponse.trim() });
+      }
+
       // Detect repeated identical tool calls to prevent infinite loops
       const toolKey = toolCalls.map(tc => `${tc.function.name}(${JSON.stringify(tc.function.arguments)})`).join(';');
       if (toolKey === lastToolKey) {
@@ -867,7 +875,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
         console.log(`[agent] Tool: ${toolName}(${Object.values(toolArgs).join(', ')})`);
         const result = executeTool(toolName, toolArgs, workdir);
-        actions.push({ tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
+        actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
 
         // Add tool result to conversation (truncated to prevent token overflow)
         messages.push({ role: 'tool', content: truncateToolResult(result) });
