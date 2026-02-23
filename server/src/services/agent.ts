@@ -836,15 +836,15 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
       lastResponse = response.message.content || '';
 
-      // If no tool calls found (neither structured nor text), break out of loop
-      if (toolCalls.length === 0) {
-        break;
-      }
-
-      // Capture inner monologue: if the model outputs text alongside tool calls,
+      // Capture inner monologue: if the model outputs text (with or without tool calls),
       // record it as a "thinking" step (like GitHub Copilot Agent's reasoning display)
       if (lastResponse.trim()) {
         actions.push({ type: 'thinking', content: lastResponse.trim() });
+      }
+
+      // If no tool calls found (neither structured nor text), break out of loop
+      if (toolCalls.length === 0) {
+        break;
       }
 
       // Detect repeated identical tool calls to prevent infinite loops
