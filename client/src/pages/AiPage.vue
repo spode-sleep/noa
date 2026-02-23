@@ -152,6 +152,11 @@
                             <div v-for="(line, li) in (step.args.new_text || '').split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
                           </div>
                         </template>
+                        <template v-else-if="step.tool === 'write_file' && step.args?.content">
+                          <div class="diff-block">
+                            <div v-for="(line, li) in step.args.content.split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
+                          </div>
+                        </template>
                         <pre v-else-if="step.result" class="tool-result">{{ step.result }}</pre>
                       </details>
                     </template>
@@ -1150,10 +1155,11 @@ onBeforeUnmount(() => {
 .tool-result {
   margin: 4px 0 2px 18px;
   padding: 6px 8px;
-  background: var(--askew-tab-inactive);
-  border: 1px solid var(--askew-dark-border);
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
   border-radius: 0px;
-  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.72rem;
   color: var(--text-muted);
   max-height: 150px;
   overflow: auto;
@@ -1164,10 +1170,11 @@ onBeforeUnmount(() => {
 .diff-block {
   margin: 4px 0 2px 18px;
   padding: 4px 0;
-  background: var(--askew-tab-inactive);
-  border: 1px solid var(--askew-dark-border);
-  font-family: monospace;
-  font-size: 0.68rem;
+  background: var(--askew-btn-disabled);
+  border: 1px solid #000000;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
   max-height: 200px;
   overflow: auto;
 }
@@ -1179,13 +1186,13 @@ onBeforeUnmount(() => {
 }
 
 .diff-line.removed {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: rgba(236, 177, 110, 0.12);
+  color: var(--askew-gold);
 }
 
 .diff-line.added {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
+  background: rgba(130, 202, 177, 0.12);
+  color: var(--askew-mint);
 }
 
 .index-btn {
