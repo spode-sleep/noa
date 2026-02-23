@@ -14,6 +14,7 @@ const MAX_TREE_ENTRIES_PER_DIR = 30;
 const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
 const SHELL_METACHARACTERS = /[;|&`$(){}><\n\r]/;
 const EXCLUDED_TREE_DIRS = ['.git', 'node_modules', '__pycache__', '.venv', 'dist', 'build', '.next'];
+const AGENT_GIT_AUTHOR = 'AI Librarian <ai-librarian@noa.local>';
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
@@ -404,7 +405,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
         if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
-        execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return { text: `Changes committed: ${message}` };
       }
       case 'git_log': {
@@ -529,7 +530,7 @@ function autoInitGit(repoPath: string, actions: AgentStep[]) {
   try {
     execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    execSync('git commit -m "Initial commit" --allow-empty', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m "Initial commit" --allow-empty`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     ensureReceivePush(repoPath);
     actions.push({ type: 'tool', tool: 'git_init', args: {}, result: 'Git initialized with initial commit' });
   } catch (err: any) {
@@ -645,7 +646,7 @@ function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
   console.log(`[agent] Auto-committing uncommitted changes`);
   try {
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    execSync('git commit -m "Agent: auto-commit changes"', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m "Agent: auto-commit changes"`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     actions.push({ type: 'tool', tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
   } catch {
     // ignore commit errors (e.g. nothing to commit)
