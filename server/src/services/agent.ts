@@ -387,7 +387,7 @@ function runAiderProcess(
     }
     try {
       const config = [
-        `model: ${modelArg}`,
+        `model: "${modelArg}"`,
         'yes-always: true',
         'auto-commits: true',
         'stream: false',
@@ -400,16 +400,16 @@ function runAiderProcess(
         'detect-urls: false',
       ];
       if (fs.existsSync(promptFile)) {
-        config.push(`system-prompt-extras: ${promptFile}`);
+        const escapedPath = promptFile.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        config.push(`system-prompt-extras: "${escapedPath}"`);
       }
       fs.writeFileSync(configFile, config.join('\n') + '\n', 'utf-8');
     } catch (err: any) {
       console.error(`[agent] Failed to write aider config file: ${err.message}`);
     }
 
-    // Use only universally supported CLI flags; everything else is in .aider.conf.yml
+    // Use only --message as CLI arg; everything else is in .aider.conf.yml
     const args = [
-      '--yes-always',
       '--message', message,
     ];
 
