@@ -820,7 +820,9 @@ IMPORTANT RULES:
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same language as the file.
 - When writing entire files, include ALL the content — do not use placeholders like "// rest of the code".
 - Prefer edit_file over write_file for existing files — it is safer and preserves unchanged parts.
-- If a tool returns an error, explain what went wrong and try a different approach.
+- If a tool returns an error, explain what went wrong and try a different approach. If edit_file fails twice, switch to write_file.
+- Do NOT re-read a file right after editing it — the edit_file/write_file result already confirms the change. Move on to the next task.
+- AVOID loops: if you find yourself calling the same tools repeatedly, STOP and either try a different approach or finish up.
 - You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
 - ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes.
 - Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.
@@ -837,12 +839,20 @@ Answer in the language the user writes in. Be concise about tool usage but expla
   ];
 
   let lastResponse = '';
+  const recentToolNames: string[] = []; // Track tool name history for cycle detection
+  const MAX_CYCLE_WINDOW = 8; // Look at last N tool names for patterns
   let lastToolKey = '';
   let repeatCount = 0;
   const MAX_REPEAT_COUNT = 3;
+  const WRAP_UP_THRESHOLD = Math.floor(MAX_TOOL_ITERATIONS * 0.75);
 
   try {
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      // Inject "wrap up" hint when running low on iterations
+      if (i === WRAP_UP_THRESHOLD) {
+        messages.push({ role: 'system', content: `You have ${MAX_TOOL_ITERATIONS - i} iterations remaining. Wrap up: commit your changes and finish.` });
+      }
+
       const response = await client.chat({
         model,
         messages,
@@ -901,6 +911,29 @@ Answer in the language the user writes in. Be concise about tool usage but expla
         lastToolKey = toolKey;
         repeatCount = 0;
       }
+
+      // Detect cycling patterns (e.g. read→edit→read→edit)
+      for (const tc of toolCalls) {
+        recentToolNames.push(tc.function.name);
+      }
+      let cycleDetected = false;
+      if (recentToolNames.length >= MAX_CYCLE_WINDOW) {
+        for (const cycleLen of [2, 3]) {
+          const w = recentToolNames.slice(-cycleLen * 3);
+          if (w.length >= cycleLen * 3) {
+            const pattern = w.slice(0, cycleLen).join(',');
+            const chunk2 = w.slice(cycleLen, cycleLen * 2).join(',');
+            const chunk3 = w.slice(cycleLen * 2, cycleLen * 3).join(',');
+            if (pattern === chunk2 && pattern === chunk3) {
+              console.log(`[agent] Breaking loop: detected cycle pattern [${pattern}] repeating 3 times`);
+              messages.push({ role: 'system', content: `You are stuck in a loop (${pattern} repeating). Stop and try a completely different approach, or commit what you have and finish.` });
+              cycleDetected = true;
+              break;
+            }
+          }
+        }
+      }
+      if (cycleDetected) break;
 
       // Add assistant message to history — preserve structured tool_calls
       // when available, use plain content when parsed from text
