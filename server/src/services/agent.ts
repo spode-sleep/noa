@@ -427,8 +427,8 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
 }
 
 // --- Agent workspace ---
-// Warez/ = bare repos (the "GitHub hub"). Agent clones from warez, pushes to warez.
-// Non-bare repos are converted to bare on first agent use.
+// Warez/ = git repos (standard .git). Agent clones from warez, pushes to warez.
+// Non-bare repos accept pushes via receive.denyCurrentBranch=updateInstead.
 // Agent workdirs live in <data>/agent-workdirs/<repo>.
 
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
@@ -468,23 +468,13 @@ export function cleanupWorkdirsForConversation(conversationId: string): number {
   return count;
 }
 
-function convertToBare(repoPath: string, actions: AgentStep[]): boolean {
-  const tmpPath = repoPath + '-bare-tmp-' + Date.now();
-  console.log(`[agent] Converting to bare repo: ${repoPath}`);
+// Allow pushes to non-bare repos by setting receive.denyCurrentBranch=updateInstead
+function ensureReceivePush(repoPath: string) {
   try {
-    execFileSync('git', ['clone', '--bare', repoPath, tmpPath],
-      { encoding: 'utf-8', timeout: 60000 });
-    fs.rmSync(repoPath, { recursive: true, force: true });
-    fs.renameSync(tmpPath, repoPath);
-    console.log(`[agent] Converted to bare repository`);
-    actions.push({ type: 'tool', tool: 'convert_to_bare', args: {}, result: 'Converted to bare repository' });
-    return true;
+    execSync('git config receive.denyCurrentBranch updateInstead', { cwd: repoPath, encoding: 'utf-8', timeout: 5000 });
+    console.log(`[agent] Set receive.denyCurrentBranch=updateInstead on: ${repoPath}`);
   } catch (err: any) {
-    // Clean up temp if it exists
-    try { fs.rmSync(tmpPath, { recursive: true, force: true }); } catch { /* ignore */ }
-    console.error(`[agent] Failed to convert to bare: ${err.message}`);
-    actions.push({ type: 'tool', tool: 'convert_to_bare', args: {}, result: `Error: ${err.message}` });
-    return false;
+    console.error(`[agent] Failed to set receive config: ${err.message}`);
   }
 }
 
@@ -513,7 +503,7 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
   }
 
-  // Clone from warez (bare repo)
+  // Clone from warez repo
   console.log(`[agent] Cloning from warez: ${warezPath} → ${workdir}`);
   try {
     execFileSync('git', ['clone', warezPath, workdir],
@@ -529,7 +519,7 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
   return workdir;
 }
 
-// Auto-init git for non-git directories, then convert to bare
+// Auto-init git for non-git directories and enable push support
 function autoInitGit(repoPath: string, actions: AgentStep[]) {
   if (fs.existsSync(path.join(repoPath, '.git'))) return;
   console.log(`[agent] Initializing git in: ${repoPath}`);
@@ -537,6 +527,7 @@ function autoInitGit(repoPath: string, actions: AgentStep[]) {
     execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     execSync('git commit -m "Initial commit" --allow-empty', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    ensureReceivePush(repoPath);
     actions.push({ type: 'tool', tool: 'git_init', args: {}, result: 'Git initialized with initial commit' });
   } catch (err: any) {
     actions.push({ type: 'tool', tool: 'git_init', args: {}, result: `Git init error: ${err.message}` });
@@ -718,23 +709,18 @@ export async function runAgent(
     },
   });
 
-  // Ensure warez repo is bare (convert if needed)
+  // Ensure warez repo is git-initialized and accepts pushes
   if (!isBareRepo(repoPath)) {
     if (fs.existsSync(path.join(repoPath, '.git'))) {
-      // Non-bare git repo → convert to bare
-      if (!convertToBare(repoPath, actions)) {
-        return { response: 'Error: could not convert repository to bare.', actions, currentBranch: '' };
-      }
+      // Existing non-bare git repo → just enable push support
+      ensureReceivePush(repoPath);
     } else {
-      // Not a git repo at all → init + convert
+      // Not a git repo at all → init with standard .git + enable push
       autoInitGit(repoPath, actions);
-      if (!convertToBare(repoPath, actions)) {
-        return { response: 'Error: could not initialize bare repository.', actions, currentBranch: '' };
-      }
     }
   }
 
-  // Clone from warez (bare) into agent workdir (per-conversation)
+  // Clone from warez into agent workdir (per-conversation)
   const workdir = ensureAgentWorkdir(repoPath, repoName, conversationId, actions);
   if (!workdir) {
     return { response: 'Error: could not create agent workspace.', actions, currentBranch: '' };
