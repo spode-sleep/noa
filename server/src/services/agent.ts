@@ -299,9 +299,9 @@ function buildHistoryContext(history: Array<{ role: string; content: string }>):
 const AIDER_SYSTEM_PROMPT = `WORKFLOW (follow in order):
 1. UNDERSTAND: Read relevant files and explore the codebase before making any changes
 2. PLAN: Think about what changes are needed and explain your approach
-3. IMPLEMENT: Make changes using edit_file for targeted edits or write_file for new files
-4. VERIFY: Check your changes with git_status and git_diff, and run tests/builds with run_command if applicable
-5. COMMIT: Always commit with git_commit when done
+3. IMPLEMENT: Make targeted edits to existing files or create new files as needed
+4. VERIFY: Review your changes (check status, diff), run tests or builds if applicable
+5. COMMIT: Always commit your changes when done
 
 CRITICAL RULES — follow strictly:
 
