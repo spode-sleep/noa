@@ -251,22 +251,55 @@ function buildAiderModelArg(model: string): string {
   return `ollama_chat/${model}`;
 }
 
+/** Parse aider SEARCH/REPLACE blocks from output into edit steps with diffs */
+function parseSearchReplaceBlocks(output: string): AgentStep[] {
+  const steps: AgentStep[] = [];
+  // Pattern: filename\n<<<<<<< SEARCH\n...old...\n=======\n...new...\n>>>>>>> REPLACE
+  const blockRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/gm;
+  let match;
+  while ((match = blockRegex.exec(output)) !== null) {
+    const filePath = match[1].trim();
+    const before = match[2];
+    const after = match[3];
+    // Skip if the "filename" line looks like noise (too long, has spaces suggesting it's prose)
+    if (filePath.length > 200 || /\s{2,}/.test(filePath)) continue;
+    steps.push({
+      type: 'tool',
+      tool: 'edit_file',
+      args: { file_path: filePath },
+      result: `Applied edit to ${filePath}`,
+      diff: { before, after },
+    });
+  }
+  return steps;
+}
+
 /** Parse aider output into AgentStep actions for the frontend timeline */
 function parseAiderOutput(output: string): AgentStep[] {
   const steps: AgentStep[] = [];
+
+  // First, extract all SEARCH/REPLACE blocks as edit_file steps with diffs
+  const editSteps = parseSearchReplaceBlocks(output);
+  // Track which files had SEARCH/REPLACE diffs to avoid duplicate "Editing" line steps
+  const filesWithDiffs = new Set(editSteps.map(s => s.args?.file_path));
+
   const lines = output.split('\n');
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Aider file edit markers
+    // Aider file edit markers (only add if we don't already have a diff for this file)
     if (/^Editing\s+/.test(trimmed) || /^Applied edit to\s+/.test(trimmed)) {
       const file = trimmed.replace(/^(Editing|Applied edit to)\s+/, '').trim();
-      steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: trimmed });
+      if (!filesWithDiffs.has(file)) {
+        steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: trimmed });
+      }
     } else if (/^Creating\s+/.test(trimmed) || /^Wrote\s+/.test(trimmed)) {
       const file = trimmed.replace(/^(Creating|Wrote)\s+/, '').trim();
-      steps.push({ type: 'tool', tool: 'write_file', args: { file_path: file }, result: trimmed });
+      if (!filesWithDiffs.has(file)) {
+        steps.push({ type: 'tool', tool: 'write_file', args: { file_path: file }, result: trimmed });
+      }
     } else if (/^Added\s+.*to the chat/.test(trimmed)) {
       const file = trimmed.replace(/^Added\s+/, '').replace(/\s+to the chat.*/, '').trim();
       steps.push({ type: 'tool', tool: 'read_file', args: { file_path: file }, result: trimmed });
@@ -274,6 +307,8 @@ function parseAiderOutput(output: string): AgentStep[] {
       steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: trimmed });
     } else if (/^Git repo.*found/.test(trimmed) || /^Repo-map/.test(trimmed)) {
       // Skip internal aider messages
+    } else if (/^<<<<<<< SEARCH/.test(trimmed) || /^=======/.test(trimmed) || /^>>>>>>> REPLACE/.test(trimmed)) {
+      // Skip SEARCH/REPLACE markers (already parsed above)
     } else if (/^>\s+/.test(trimmed)) {
       // User prompt echo — skip
     } else if (trimmed.length > 10 && !trimmed.startsWith('─') && !trimmed.startsWith('Warning')) {
@@ -282,7 +317,8 @@ function parseAiderOutput(output: string): AgentStep[] {
     }
   }
 
-  return steps;
+  // Insert edit steps with diffs at the beginning (they represent the core changes)
+  return [...editSteps, ...steps];
 }
 
 /** Build a context summary from conversation history for aider */
