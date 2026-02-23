@@ -843,7 +843,7 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
       // Capture inner monologue: if the model outputs text alongside tool calls,
       // record it as a "thinking" step (like GitHub Copilot Agent's reasoning display)
-      if (lastResponse.trim() && toolCalls.length > 0) {
+      if (lastResponse.trim()) {
         actions.push({ type: 'thinking', content: lastResponse.trim() });
       }
 
