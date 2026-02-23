@@ -515,22 +515,32 @@ function pushToWarez(workdir: string, actions: AgentAction[]) {
   try {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
+    // Check if there are any commits to push (local ahead of remote or no upstream)
+    let hasUnpushed = false;
+    try {
+      const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 }).trim();
+      hasUnpushed = log.length > 0;
+    } catch {
+      // No upstream tracking branch yet — means everything is unpushed
+      hasUnpushed = true;
+    }
+    if (!hasUnpushed) return;
     console.log(`[agent] Pushing branch ${branch} to warez`);
     try {
-      execFileSync('git', ['push', 'origin', branch],
+      execFileSync('git', ['push', '-u', 'origin', branch],
         { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
     } catch {
       // Push rejected (non-fast-forward) — pull --rebase and retry once
       console.log(`[agent] Push rejected, attempting pull --rebase and retry`);
       try {
         execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-        execFileSync('git', ['push', 'origin', branch],
+        execFileSync('git', ['push', '-u', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
       } catch {
         // Rebase conflict — abort and force push as last resort
         try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* ignore */ }
         console.log(`[agent] Rebase failed, force pushing`);
-        execFileSync('git', ['push', '--force-with-lease', 'origin', branch],
+        execFileSync('git', ['push', '--force-with-lease', '-u', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
       }
     }
