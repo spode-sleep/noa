@@ -286,89 +286,92 @@ const AGENT_TOOLS: Tool[] = [
 
 // --- Tool execution ---
 
-function executeTool(toolName: string, args: Record<string, string>, repoPath: string): string {
+interface ToolResult {
+  text: string;
+  diff?: { before: string; after: string };
+}
+
+function executeTool(toolName: string, args: Record<string, string>, repoPath: string): ToolResult {
   try {
     switch (toolName) {
       case 'read_file': {
         const rel = sanitizeRelativePath(args.file_path || '');
-        if (!rel) return 'Error: invalid file path';
+        if (!rel) return { text: 'Error: invalid file path' };
         const fullPath = path.join(repoPath, rel);
-        if (!fs.existsSync(fullPath)) return `Error: file not found: ${rel}`;
+        if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
         const stat = fs.statSync(fullPath);
-        if (stat.size > MAX_FILE_SIZE_BYTES) return 'Error: file too large (max 512KB)';
-        return fs.readFileSync(fullPath, 'utf-8');
+        if (stat.size > MAX_FILE_SIZE_BYTES) return { text: 'Error: file too large (max 512KB)' };
+        return { text: fs.readFileSync(fullPath, 'utf-8') };
       }
       case 'write_file': {
         const rel = sanitizeRelativePath(args.file_path || '');
-        if (!rel) return 'Error: invalid file path';
+        if (!rel) return { text: 'Error: invalid file path' };
         const fullPath = path.join(repoPath, rel);
         const dir = path.dirname(fullPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(fullPath, args.content || '', 'utf-8');
-        return `File written: ${rel}`;
+        const before = fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf-8') : '';
+        const after = args.content || '';
+        fs.writeFileSync(fullPath, after, 'utf-8');
+        return { text: `File written: ${rel}`, diff: { before, after } };
       }
       case 'edit_file': {
         const rel = sanitizeRelativePath(args.file_path || '');
-        if (!rel) return 'Error: invalid file path';
+        if (!rel) return { text: 'Error: invalid file path' };
         const fullPath = path.join(repoPath, rel);
-        if (!fs.existsSync(fullPath)) return `Error: file not found: ${rel}`;
+        if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
         const oldText = args.old_text || '';
         const newText = args.new_text ?? '';
-        if (!oldText) return 'Error: old_text is required';
+        if (!oldText) return { text: 'Error: old_text is required' };
         const content = fs.readFileSync(fullPath, 'utf-8');
         const idx = content.indexOf(oldText);
-        if (idx === -1) return `Error: old_text not found in ${rel}. Make sure the text matches exactly including whitespace.`;
+        if (idx === -1) return { text: `Error: old_text not found in ${rel}. Make sure the text matches exactly including whitespace.` };
         // Ensure only one occurrence to avoid ambiguous edits
         const secondIdx = content.indexOf(oldText, idx + 1);
-        if (secondIdx !== -1) return `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.`;
+        if (secondIdx !== -1) return { text: `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.` };
         const updated = content.slice(0, idx) + newText + content.slice(idx + oldText.length);
         fs.writeFileSync(fullPath, updated, 'utf-8');
         const lineCount = oldText.split('\n').length;
-        return `File edited: ${rel} (replaced ${lineCount} ${lineCount === 1 ? 'line' : 'lines'})`;
+        return { text: `File edited: ${rel} (replaced ${lineCount} ${lineCount === 1 ? 'line' : 'lines'})`, diff: { before: oldText, after: newText } };
       }
       case 'list_files': {
         const rel = sanitizeRelativePath(args.dir_path || '.');
-        if (!rel) return 'Error: invalid directory path';
+        if (!rel) return { text: 'Error: invalid directory path' };
         const fullPath = path.join(repoPath, rel);
-        if (!fs.existsSync(fullPath)) return `Error: directory not found: ${rel}`;
+        if (!fs.existsSync(fullPath)) return { text: `Error: directory not found: ${rel}` };
         const entries = fs.readdirSync(fullPath, { withFileTypes: true });
-        return entries
+        return { text: entries
           .filter(e => e.name !== '.git')
           .map(e => `${e.isDirectory() ? '[dir] ' : '      '}${e.name}`)
           .sort()
-          .join('\n') || '(empty directory)';
+          .join('\n') || '(empty directory)' };
       }
       case 'search_files': {
         const pattern = args.pattern || '';
-        if (!pattern) return 'Error: pattern is required';
+        if (!pattern) return { text: 'Error: pattern is required' };
         const searchDir = sanitizeRelativePath(args.dir_path || '.') || '.';
         const fullSearchDir = path.join(repoPath, searchDir);
-        if (!fs.existsSync(fullSearchDir)) return `Error: directory not found: ${searchDir}`;
-        // Use git grep with execFileSync for safe argument passing (no shell quoting issues)
+        if (!fs.existsSync(fullSearchDir)) return { text: `Error: directory not found: ${searchDir}` };
         const grepArgs = ['grep', '-n', '-I', `--max-count=${MAX_SEARCH_RESULTS}`, '-e', pattern];
         if (args.file_glob) grepArgs.push('--', args.file_glob);
         try {
           const result = execFileSync('git', grepArgs,
             { cwd: fullSearchDir, encoding: 'utf-8', timeout: 15000 }
           ).trim();
-          return result || '(no matches)';
+          return { text: result || '(no matches)' };
         } catch (err: any) {
-          // git grep returns exit code 1 for no matches
-          if (err.status === 1) return '(no matches)';
-          return `Error: ${err.message || String(err)}`;
+          if (err.status === 1) return { text: '(no matches)' };
+          return { text: `Error: ${err.message || String(err)}` };
         }
       }
       case 'run_command': {
         const cmd = (args.command || '').trim();
-        if (!cmd) return 'Error: command is required';
-        // Reject shell metacharacters to prevent command injection
+        if (!cmd) return { text: 'Error: command is required' };
         if (SHELL_METACHARACTERS.test(cmd)) {
-          return 'Error: command contains forbidden shell characters (;|&`$(){}><). Use simple commands only.';
+          return { text: 'Error: command contains forbidden shell characters (;|&`$(){}><). Use simple commands only.' };
         }
-        // Extract the base command (first word) and validate against allowlist
         const baseCmd = cmd.split(/\s+/)[0].replace(/^\.\//, '');
         if (!ALLOWED_COMMANDS.includes(baseCmd)) {
-          return `Error: command "${baseCmd}" is not allowed. Allowed: ${ALLOWED_COMMANDS.join(', ')}`;
+          return { text: `Error: command "${baseCmd}" is not allowed. Allowed: ${ALLOWED_COMMANDS.join(', ')}` };
         }
         try {
           const result = execSync(cmd, {
@@ -377,41 +380,40 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
             timeout: MAX_RUN_COMMAND_TIMEOUT,
             env: { ...process.env, CI: 'true' },
           });
-          return result.trim() || '(command completed with no output)';
+          return { text: result.trim() || '(command completed with no output)' };
         } catch (err: any) {
-          // Include both stdout and stderr for failed commands (useful for test/build output)
           const output = [err.stdout, err.stderr].filter(Boolean).join('\n').trim();
-          return output || `Error: command failed with exit code ${err.status}`;
+          return { text: output || `Error: command failed with exit code ${err.status}` };
         }
       }
       case 'git_status':
-        return execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)';
+        return { text: execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)' };
       case 'git_diff':
-        return execSync('git diff', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)';
+        return { text: execSync('git diff', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)' };
       case 'git_commit': {
         const message = args.message || 'Agent commit';
         execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
-        if (!status) return 'Nothing to commit -- working tree is clean. No action needed.';
+        if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
         execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        return `Changes committed: ${message}`;
+        return { text: `Changes committed: ${message}` };
       }
       case 'git_log': {
         const count = parseInt(args.count || '10', 10);
         const safeCount = Math.min(Math.max(1, count), MAX_GIT_LOG_COUNT);
-        return execSync(`git log --oneline -n ${safeCount}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)';
+        return { text: execSync(`git log --oneline -n ${safeCount}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)' };
       }
       case 'git_revert': {
         const hash = args.commit_hash || '';
-        if (!hash || !/^[a-f0-9]{4,40}$/i.test(hash)) return 'Error: invalid commit hash';
+        if (!hash || !/^[a-f0-9]{4,40}$/i.test(hash)) return { text: 'Error: invalid commit hash' };
         execSync(`git reset --hard ${hash}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        return `Repository reverted to commit: ${hash}`;
+        return { text: `Repository reverted to commit: ${hash}` };
       }
       default:
-        return `Error: unknown tool: ${toolName}`;
+        return { text: `Error: unknown tool: ${toolName}` };
     }
   } catch (err: any) {
-    return `Error: ${err.message || String(err)}`;
+    return { text: `Error: ${err.message || String(err)}` };
   }
 }
 
@@ -572,6 +574,7 @@ export interface AgentStep {
   tool?: string;
   args?: Record<string, string>;
   result?: string;
+  diff?: { before: string; after: string };
 }
 
 export interface AgentResult {
@@ -915,10 +918,10 @@ Answer in the language the user writes in. Be concise about tool usage but expla
 
         console.log(`[agent] Tool: ${toolName}(${Object.values(toolArgs).join(', ')})`);
         const result = executeTool(toolName, toolArgs, workdir);
-        actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.slice(0, MAX_ACTION_RESULT_LENGTH) });
+        actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.text.slice(0, MAX_ACTION_RESULT_LENGTH), diff: result.diff });
 
         // Add tool result to conversation (truncated to prevent token overflow)
-        messages.push({ role: 'tool', content: truncateToolResult(result) });
+        messages.push({ role: 'tool', content: truncateToolResult(result.text) });
       }
     }
 

@@ -146,15 +146,12 @@
                           <span class="tool-name">{{ step.tool }}</span>
                           <span v-if="step.args && Object.keys(step.args).length" class="tool-args">({{ formatToolArgs(step) }})</span>
                         </summary>
-                        <template v-if="step.tool === 'edit_file' && step.args?.old_text">
+                        <template v-if="step.diff">
                           <div class="diff-block">
-                            <div v-for="(line, li) in step.args.old_text.split('\n')" :key="'rm-'+li" class="diff-line removed">- {{ line }}</div>
-                            <div v-for="(line, li) in (step.args.new_text || '').split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
-                          </div>
-                        </template>
-                        <template v-else-if="step.tool === 'write_file' && step.args?.content">
-                          <div class="diff-block">
-                            <div v-for="(line, li) in step.args.content.split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
+                            <template v-if="step.diff.before">
+                              <div v-for="(line, li) in step.diff.before.split('\n')" :key="'rm-'+li" class="diff-line removed">- {{ line }}</div>
+                            </template>
+                            <div v-for="(line, li) in step.diff.after.split('\n')" :key="'add-'+li" class="diff-line added">+ {{ line }}</div>
                           </div>
                         </template>
                         <pre v-else-if="step.result" class="tool-result">{{ step.result }}</pre>
