@@ -273,7 +273,7 @@ function stripAnsi(text: string): string {
 }
 
 /** Boilerplate lines from goose output that should be filtered */
-const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goose v|●|\u25CF)/i;
+const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goose v|●|\u25CF|\u25B8)/i;
 
 /** Lines that are goose internal tool calls or session metadata (not user-facing) */
 function isGooseInternalLine(line: string): boolean {
@@ -282,9 +282,13 @@ function isGooseInternalLine(line: string): boolean {
   if (GOOSE_BOILERPLATE_RE.test(trimmed)) return true;
   // Session header: "● new session · ..."
   if (trimmed.startsWith('●') || trimmed.startsWith('\u25CF')) return true;
+  // Tool call indicator: "▸ text_editor developer path ... command: ..."
+  if (trimmed.startsWith('▸') || trimmed.startsWith('\u25B8')) return true;
   // Tool call JSON: { "function_name": "developer__shell", ... }
   if (/^\{?\s*"function_name"\s*:/.test(trimmed)) return true;
   if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
+  // Error codes from goose tools: "-32602: Missing 'old_str' ..."
+  if (/^-\d{4,5}:\s/.test(trimmed)) return true;
   // Agent workdir paths
   if (/agent-workdirs\//.test(trimmed)) return true;
   // Goose UI borders: lines composed entirely of box-drawing characters (─╭╮╰╯│)
@@ -371,6 +375,60 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
   } catch { /* no uncommitted */ }
 
   return steps;
+}
+
+/** Build a pre-seeded repo context (file tree + small file contents) to reduce tool calls.
+ * Without this, the model needs to call `tree` and `view` before it can edit,
+ * which doubles the number of Ollama calls and causes str_replace errors
+ * when the model guesses file contents instead of reading them. */
+function getRepoContext(workdir: string): string {
+  const resolved = path.resolve(workdir);
+  const parts: string[] = [];
+
+  // 1. File tree via git ls-files
+  try {
+    const files = execFileSync('git', ['ls-files'], { cwd: resolved, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (files) {
+      parts.push('=== FILE TREE ===');
+      parts.push(files);
+      parts.push('');
+    }
+  } catch { /* not a git repo or no files */ }
+
+  // 2. Contents of small text files (< 5KB each, < 50KB total budget)
+  const MAX_FILE_SIZE = 5 * 1024;
+  const MAX_TOTAL_SIZE = 50 * 1024;
+  let totalSize = 0;
+
+  try {
+    const files = execFileSync('git', ['ls-files'], { cwd: resolved, encoding: 'utf-8', timeout: 10000 }).trim().split('\n').filter(Boolean);
+    // Skip binary-looking extensions
+    const binaryExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.svg', '.mp3', '.mp4', '.zip', '.tar', '.gz', '.pdf', '.exe', '.dll', '.so', '.dylib', '.o', '.a', '.wasm', '.lock']);
+
+    for (const file of files) {
+      if (totalSize >= MAX_TOTAL_SIZE) break;
+      const ext = path.extname(file).toLowerCase();
+      if (binaryExts.has(ext)) continue;
+
+      try {
+        const filePath = path.join(resolved, file);
+        const stat = fs.statSync(filePath);
+        if (stat.size > MAX_FILE_SIZE || !stat.isFile()) continue;
+
+        const content = fs.readFileSync(filePath, 'utf-8');
+        // Skip files with null bytes (likely binary)
+        if (content.includes('\0')) continue;
+
+        parts.push(`=== ${file} ===`);
+        parts.push(content);
+        parts.push('');
+        totalSize += content.length;
+      } catch { /* skip unreadable files */ }
+    }
+  } catch { /* no files */ }
+
+  if (parts.length === 0) return '';
+  return 'Here is the current state of the repository:\n\n' + parts.join('\n') + '\n\n';
 }
 
 /** Build a context summary from conversation history */
@@ -564,11 +622,12 @@ export async function runAgent(
     }
   }
 
-  // Build the message for goose, including conversation context
+  // Build the message for goose: repo context + conversation history + user request
+  // Pre-seeding repo context (file tree + small file contents) dramatically reduces
+  // the number of tool calls goose needs, improving both speed and reliability.
+  const repoContext = getRepoContext(workdir);
   const historyContext = buildHistoryContext(history);
-  const fullMessage = historyContext
-    ? `${historyContext}Current request:\n${userMessage}`
-    : userMessage;
+  const fullMessage = `${repoContext}${historyContext}${historyContext ? 'Current request:\n' : ''}${userMessage}`;
 
   // Capture HEAD before goose runs — we'll use git to detect changes afterward
   const resolvedWorkdir = path.resolve(workdir);
