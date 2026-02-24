@@ -1108,7 +1108,10 @@ Answer in the language the user writes in. Be concise about tool usage but expla
   let snapshotCommit = '';
   try {
     snapshotCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: workdir, encoding: 'utf-8', timeout: 5000 }).trim();
-  } catch { /* workdir may have no commits yet */ }
+  } catch (err: any) {
+    // May fail if workdir has no commits yet, or on corrupted/permission errors
+    console.warn(`[agent] Could not capture snapshot commit: ${err.message || String(err)}`);
+  }
 
   // Register this agent run so it can be aborted externally
   runningAgents.set(conversationId, { abortController, workdir, snapshotCommit });
@@ -1262,8 +1265,8 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
-    const isAbort = abortSignal.aborted || (err.name === 'AbortError');
-    if (isAbort) {
+    // Only treat as user-abort if OUR abort controller was signaled (not a timeout)
+    if (abortSignal.aborted) {
       console.log(`[agent] Agent aborted for conversation: ${conversationId}`);
       runningAgents.delete(conversationId);
       return {
