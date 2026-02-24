@@ -273,31 +273,159 @@ function stripAnsi(text: string): string {
 }
 
 /** Boilerplate lines from goose output that should be filtered */
-const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goose v|●|\u25CF|\u25B8)/i;
+/** Boilerplate lines from goose output that should be filtered from response */
+const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goose v|●|\u25CF)/i;
 
-/** Lines that are goose internal tool calls or session metadata (not user-facing) */
-function isGooseInternalLine(line: string): boolean {
+/** Check if a line is goose session metadata (not tool calls — those are parsed separately) */
+function isGooseBoilerplateLine(line: string): boolean {
   const trimmed = line.trim();
-  if (!trimmed) return false; // preserve blank lines for formatting
+  if (!trimmed) return false;
   if (GOOSE_BOILERPLATE_RE.test(trimmed)) return true;
-  // Session header: "● new session · ..."
   if (trimmed.startsWith('●') || trimmed.startsWith('\u25CF')) return true;
-  // Tool call indicator: "▸ text_editor developer path ... command: ..."
-  if (trimmed.startsWith('▸') || trimmed.startsWith('\u25B8')) return true;
-  // Tool call JSON: { "function_name": "developer__shell", ... }
   if (/^\{?\s*"function_name"\s*:/.test(trimmed)) return true;
   if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
-  // JSON-RPC error codes from goose tools (e.g. -32602: Missing 'old_str', -32600: Invalid Request)
-  if (/^-\d{4,5}:\s/.test(trimmed)) return true;
-  // Agent workdir paths
   if (/agent-workdirs\//.test(trimmed)) return true;
-  // Goose UI borders: lines composed entirely of box-drawing characters (─╭╮╰╯│)
   if (/^[\u2500\u256D\u256E\u2570\u256F\u2502\u2015\u2014─]+$/.test(trimmed)) return true;
-  // Lines containing 3+ consecutive horizontal box-drawing chars (e.g. "─── text_editor ───")
   if (/[\u2500\u2015\u2014─]{3,}/.test(trimmed)) return true;
-  // "Result:" prefix lines from goose tool output
   if (/^Result:$/i.test(trimmed)) return true;
   return false;
+}
+
+/**
+ * Parse goose stdout into tool call steps AND clean response text.
+ *
+ * Goose output format (with NO_COLOR=1):
+ *   ▸ text_editor developer        ← tool header (tool name + extension)
+ *     path ~/path/to/file           ← param: key value
+ *     command: str_replace           ← param: key: value
+ *     old_str: existing text         ← param (may be multiline)
+ *     new_str: replacement text
+ *                                    ← blank line = end of tool block
+ *   -32602: Missing 'old_str'...    ← error result from tool
+ *
+ *   ▸ shell developer
+ *     command: tree
+ *
+ *   (tree output or LLM text follows as plain text)
+ *
+ * Returns { steps, response } where:
+ *   - steps: AgentStep[] for each tool call
+ *   - response: clean text with all tool blocks and boilerplate removed
+ */
+function parseGooseOutput(stdout: string): { steps: AgentStep[]; response: string } {
+  const steps: AgentStep[] = [];
+  const lines = stripAnsi(stdout).split('\n');
+  const toolLineIndices = new Set<number>(); // lines belonging to tool blocks
+
+  let currentTool: { name: string; extension: string; args: Record<string, string>; startLine: number } | null = null;
+  let lastArgKey = '';
+
+  function flushTool(result?: string, endLine?: number) {
+    if (!currentTool) return;
+    // Mark all lines from start to end as tool-related
+    const end = endLine ?? currentTool.startLine;
+    for (let j = currentTool.startLine; j <= end; j++) toolLineIndices.add(j);
+
+    const step: AgentStep = { type: 'tool', tool: '', args: {}, result: result || '' };
+    const cmd = currentTool.args.command || '';
+
+    if (currentTool.name === 'text_editor') {
+      if (cmd === 'str_replace') {
+        step.tool = 'edit_file';
+        step.args = { file_path: currentTool.args.path || '' };
+        step.diff = { before: currentTool.args.old_str || '', after: currentTool.args.new_str || '' };
+        step.result = result || `Edit ${currentTool.args.path || 'file'}`;
+      } else if (cmd === 'write' || cmd === 'create') {
+        step.tool = 'write_file';
+        step.args = { file_path: currentTool.args.path || '' };
+        if (currentTool.args.file_text) step.diff = { before: '', after: currentTool.args.file_text };
+        step.result = result || `Write ${currentTool.args.path || 'file'}`;
+      } else if (cmd === 'view') {
+        step.tool = 'read_file';
+        step.args = { file_path: currentTool.args.path || '' };
+        step.result = result || `View ${currentTool.args.path || 'file'}`;
+      } else {
+        step.tool = 'text_editor';
+        step.args = currentTool.args;
+        step.result = result || `text_editor: ${cmd || 'unknown'}`;
+      }
+    } else if (currentTool.name === 'shell') {
+      step.tool = 'shell';
+      step.args = { command: currentTool.args.command || '' };
+      step.result = result || `$ ${currentTool.args.command || ''}`;
+    } else {
+      step.tool = currentTool.name;
+      step.args = currentTool.args;
+      step.result = result || currentTool.name;
+    }
+
+    steps.push(step);
+    currentTool = null;
+    lastArgKey = '';
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Tool header: "  ▸ text_editor developer" or "▸ shell developer"
+    const headerMatch = trimmed.match(/^[\u25B8▸]\s+(\S+)(?:\s+(\S+))?/);
+    if (headerMatch) {
+      flushTool(undefined, i > 0 ? i - 1 : 0);
+      currentTool = { name: headerMatch[1], extension: headerMatch[2] || '', args: {}, startLine: i };
+      lastArgKey = '';
+      continue;
+    }
+
+    // Error result: "-32602: Missing 'old_str' parameter..."
+    if (/^-\d{4,5}:\s/.test(trimmed)) {
+      toolLineIndices.add(i);
+      if (currentTool) {
+        flushTool(trimmed, i);
+      } else if (steps.length > 0) {
+        // Error follows a recently flushed tool (blank line between tool params and error)
+        steps[steps.length - 1].result = trimmed;
+      }
+      continue;
+    }
+
+    // Inside a tool block: parse params
+    if (currentTool) {
+      // Param line: "    key: value" or "    key value" (for path without colon)
+      const paramMatch = line.match(/^\s{2,}(\w+):?\s+(.*)/);
+      if (paramMatch) {
+        lastArgKey = paramMatch[1];
+        currentTool.args[lastArgKey] = paramMatch[2];
+        toolLineIndices.add(i);
+        continue;
+      }
+
+      // Continuation of multiline value (indented but not a new key)
+      if (lastArgKey && /^\s{4,}/.test(line) && trimmed) {
+        currentTool.args[lastArgKey] += '\n' + trimmed;
+        toolLineIndices.add(i);
+        continue;
+      }
+
+      // Blank line or non-indented line: end of tool block
+      if (!trimmed || !/^\s{2,}/.test(line)) {
+        flushTool(undefined, i > 0 ? i - 1 : 0);
+      }
+    }
+  }
+
+  // Flush last tool
+  flushTool(undefined, lines.length - 1);
+
+  // Build clean response: exclude tool block lines and boilerplate
+  const responseLines = lines.filter((line, idx) => {
+    if (toolLineIndices.has(idx)) return false;
+    if (isGooseBoilerplateLine(line)) return false;
+    return true;
+  });
+  const response = responseLines.join('\n').trim();
+
+  return { steps, response };
 }
 
 /** Parse a unified diff hunk into before/after text */
@@ -646,15 +774,16 @@ export async function runAgent(
       console.log(`[agent] Goose stderr: ${result.stderr.trim().slice(0, 500)}`);
     }
 
-    // 1. Extract response from goose output (strip ANSI, session headers, tool calls, boilerplate)
-    const outputLines = stripAnsi(result.stdout).split('\n');
-    const cleanLines = outputLines.filter(l => !isGooseInternalLine(l));
-    let response = cleanLines.join('\n').trim();
+    // 1. Parse tool calls and clean response from goose stdout
+    const parsed = parseGooseOutput(result.stdout);
+    actions.push(...parsed.steps);
+    let response = parsed.response;
 
     // 2. Auto-commit any remaining uncommitted changes
     autoCommitChanges(workdir, actions);
 
-    // 3. Build tool call steps from git (commits + per-file diffs since headBefore)
+    // 3. Build git-based diffs (commits + per-file diffs since headBefore)
+    //    These complement the tool call steps with actual file change diffs
     if (headBefore) {
       const gitSteps = buildStepsFromGit(workdir, headBefore);
       actions.push(...gitSteps);
