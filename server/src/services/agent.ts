@@ -291,6 +291,10 @@ function isGooseBoilerplateLine(line: string): boolean {
   if (/^[\u2500\u256D\u256E\u2570\u256F\u2502\u2015\u2014─]+$/.test(trimmed)) return true;
   if (/[\u2500\u2015\u2014─]{3,}/.test(trimmed)) return true;
   if (/^Result:$/i.test(trimmed)) return true;
+  // Markdown code fence markers that goose/LLM may emit around JSON tool calls
+  if (/^```/.test(trimmed)) return true;
+  // Standalone code-fence language tag (e.g., "json" before a JSON tool call block)
+  if (/^(json|python|bash|typescript|javascript|sh)$/i.test(trimmed)) return true;
   return false;
 }
 
@@ -389,8 +393,13 @@ function parseGooseOutput(stdout: string): { steps: AgentStep[]; response: strin
       let braceDepth = 0;
       for (const ch of jsonStr) { if (ch === '{') braceDepth++; if (ch === '}') braceDepth--; }
       toolLineIndices.add(i);
-      // Also mark a preceding standalone '{' line as part of this block
-      if (i > 0 && lines[i - 1].trim() === '{') toolLineIndices.add(i - 1);
+      // Also mark preceding context lines (standalone '{', 'json', '```json', etc.)
+      for (let k = i - 1; k >= 0 && k >= i - 3; k--) {
+        const prev = lines[k].trim();
+        if (prev === '{' || prev === 'json' || /^```/.test(prev) || !prev) {
+          toolLineIndices.add(k);
+        } else break;
+      }
       let j = i + 1;
       while (braceDepth > 0 && j < lines.length) {
         const jt = lines[j].trim();
