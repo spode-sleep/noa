@@ -11,6 +11,7 @@ const MAX_SEARCH_RESULTS = 50;
 const MAX_GIT_LOG_COUNT = 50;
 const MAX_RUN_COMMAND_TIMEOUT = 30000;
 const MAX_TREE_ENTRIES_PER_DIR = 30;
+const MAX_ERROR_PREVIEW_LENGTH = 4096;
 const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
 const SHELL_METACHARACTERS = /[;|&`$(){}><\n\r]/;
 const EXCLUDED_TREE_DIRS = ['.git', 'node_modules', '__pycache__', '.venv', 'dist', 'build', '.next'];
@@ -449,7 +450,10 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         if (!oldText) return { text: 'Error: old_text is required' };
         const content = fs.readFileSync(fullPath, 'utf-8');
         const idx = content.indexOf(oldText);
-        if (idx === -1) return { text: `Error: old_text not found in ${rel}. Make sure the text matches exactly including whitespace.` };
+        if (idx === -1) {
+          const preview = content.length > MAX_ERROR_PREVIEW_LENGTH ? content.slice(0, MAX_ERROR_PREVIEW_LENGTH) + '\n... (truncated)' : content;
+          return { text: `Error: old_text not found in ${rel}. The file may have been modified by a previous tool call. Current content:\n${preview}` };
+        }
         // Ensure only one occurrence to avoid ambiguous edits
         const secondIdx = content.indexOf(oldText, idx + 1);
         if (secondIdx !== -1) return { text: `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.` };
