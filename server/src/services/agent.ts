@@ -393,11 +393,13 @@ function parseGooseOutput(stdout: string): { steps: AgentStep[]; response: strin
       let braceDepth = 0;
       for (const ch of jsonStr) { if (ch === '{') braceDepth++; if (ch === '}') braceDepth--; }
       toolLineIndices.add(i);
-      // Also mark preceding context lines (standalone '{', 'json', '```json', etc.)
-      for (let k = i - 1; k >= 0 && k >= i - 3; k--) {
+      // Also mark preceding context lines (standalone '{', 'json', '```json', blank lines)
+      for (let k = i - 1; k >= Math.max(0, i - 3); k--) {
         const prev = lines[k].trim();
-        if (prev === '{' || prev === 'json' || /^```/.test(prev) || !prev) {
+        if (prev === '{' || prev === 'json' || /^```/.test(prev)) {
           toolLineIndices.add(k);
+        } else if (!prev) {
+          toolLineIndices.add(k); // blank line between markers — mark but keep scanning
         } else break;
       }
       let j = i + 1;
