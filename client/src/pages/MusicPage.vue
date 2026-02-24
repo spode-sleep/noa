@@ -377,7 +377,9 @@ const groupedTracks = computed(() => {
   return map
 })
 
-const artistKeys = computed(() => Object.keys(groupedTracks.value).sort())
+const artistKeys = computed(() =>
+  Object.keys(groupedTracks.value).sort((a, b) => artistTrackCount(b) - artistTrackCount(a))
+)
 
 const albumGroups = computed(() => {
   const map: Record<string, { album: string; artist: string; tracks: Track[] }> = {}
