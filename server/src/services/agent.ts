@@ -273,7 +273,30 @@ function stripAnsi(text: string): string {
 }
 
 /** Boilerplate lines from goose output that should be filtered */
-const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|[\u2500\u256D\u2570\u2502]|goose v)/i;
+const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goose v|●|\u25CF)/i;
+
+/** Lines that are goose internal tool calls or session metadata (not user-facing) */
+function isGooseInternalLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  if (GOOSE_BOILERPLATE_RE.test(trimmed)) return true;
+  // Session header: "● new session · ..."
+  if (trimmed.startsWith('●') || trimmed.startsWith('\u25CF')) return true;
+  // Tool call JSON: { "function_name": "developer__shell", ... }
+  if (/^\{?\s*"function_name"\s*:/.test(trimmed)) return true;
+  if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
+  // Standalone JSON braces from multi-line tool calls
+  if (trimmed === '{' || trimmed === '}') return true;
+  // Agent workdir paths
+  if (/agent-workdirs\//.test(trimmed)) return true;
+  // Tool output markers from goose (e.g. "─── text_editor ───")
+  // Goose UI borders: lines made of box-drawing characters (─╭╮╰╯│)
+  if (/^[\u2500\u256D\u256E\u2570\u256F\u2502\u2015\u2014─]+$/.test(trimmed)) return true;
+  if (/[\u2500]{3,}/.test(trimmed)) return true;
+  // "Result:" prefix lines from goose tool output
+  if (/^Result:$/i.test(trimmed)) return true;
+  return false;
+}
 
 /** Parse a unified diff hunk into before/after text */
 function parseUnifiedDiffHunks(diffOutput: string): { before: string; after: string } {
@@ -569,9 +592,9 @@ export async function runAgent(
       console.log(`[agent] Goose stderr: ${result.stderr.trim().slice(0, 500)}`);
     }
 
-    // 1. Extract response from goose output (strip ANSI + boilerplate)
+    // 1. Extract response from goose output (strip ANSI, session headers, tool calls, boilerplate)
     const outputLines = stripAnsi(result.stdout).split('\n');
-    const cleanLines = outputLines.filter(l => l.trim() && !GOOSE_BOILERPLATE_RE.test(l.trim()));
+    const cleanLines = outputLines.filter(l => !isGooseInternalLine(l));
     let response = cleanLines.join('\n').trim();
 
     // 2. Auto-commit any remaining uncommitted changes
