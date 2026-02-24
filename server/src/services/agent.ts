@@ -278,21 +278,19 @@ const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goo
 /** Lines that are goose internal tool calls or session metadata (not user-facing) */
 function isGooseInternalLine(line: string): boolean {
   const trimmed = line.trim();
-  if (!trimmed) return true;
+  if (!trimmed) return false; // preserve blank lines for formatting
   if (GOOSE_BOILERPLATE_RE.test(trimmed)) return true;
   // Session header: "● new session · ..."
   if (trimmed.startsWith('●') || trimmed.startsWith('\u25CF')) return true;
   // Tool call JSON: { "function_name": "developer__shell", ... }
   if (/^\{?\s*"function_name"\s*:/.test(trimmed)) return true;
   if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
-  // Standalone JSON braces from multi-line tool calls
-  if (trimmed === '{' || trimmed === '}') return true;
   // Agent workdir paths
   if (/agent-workdirs\//.test(trimmed)) return true;
-  // Tool output markers from goose (e.g. "─── text_editor ───")
-  // Goose UI borders: lines made of box-drawing characters (─╭╮╰╯│)
+  // Goose UI borders: lines composed entirely of box-drawing characters (─╭╮╰╯│)
   if (/^[\u2500\u256D\u256E\u2570\u256F\u2502\u2015\u2014─]+$/.test(trimmed)) return true;
-  if (/[\u2500]{3,}/.test(trimmed)) return true;
+  // Lines containing 3+ consecutive horizontal box-drawing chars (e.g. "─── text_editor ───")
+  if (/[\u2500\u2015\u2014─]{3,}/.test(trimmed)) return true;
   // "Result:" prefix lines from goose tool output
   if (/^Result:$/i.test(trimmed)) return true;
   return false;
