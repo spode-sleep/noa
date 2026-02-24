@@ -29,6 +29,12 @@ const KNOWN_TOOL_NAMES = new Set([
 
 // --- Git stability helpers ---
 
+/** Synchronous sleep using execFileSync (avoids shell injection) */
+function sleepMs(ms: number): void {
+  const seconds = String(ms / 1000);
+  try { execFileSync('sleep', [seconds], { timeout: ms + 1000 }); } catch { /* ignore */ }
+}
+
 /** Wait for a git lock file to be released before proceeding */
 function waitForGitLock(repoPath: string): void {
   const lockFile = path.join(repoPath, '.git', 'index.lock');
@@ -38,7 +44,7 @@ function waitForGitLock(repoPath: string): void {
     if (elapsed > 0 && elapsed % 1000 < GIT_LOCK_POLL_MS) {
       console.log(`[agent] Waiting for git lock: ${lockFile}`);
     }
-    execSync(`sleep ${GIT_LOCK_POLL_MS / 1000}`, { timeout: GIT_LOCK_POLL_MS + 500 });
+    sleepMs(GIT_LOCK_POLL_MS);
   }
   // Remove stale lock if it persists beyond the wait period
   if (fs.existsSync(lockFile)) {
@@ -65,13 +71,13 @@ function retryGit<T>(fn: () => T, description: string, retries = GIT_RETRY_COUNT
       if (isTransient && attempt < retries) {
         const delay = GIT_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
         console.warn(`[agent] Retrying "${description}" (attempt ${attempt}/${retries}): ${msg}`);
-        execSync(`sleep ${delay / 1000}`, { timeout: delay + 1000 });
+        sleepMs(delay);
         continue;
       }
       throw err;
     }
   }
-  throw new Error(`retryGit: unreachable`);
+  throw new Error(`retryGit: maximum retries (${retries}) exceeded for "${description}"`);
 }
 
 /** Configure git user identity in a repository to prevent commit failures */
@@ -402,7 +408,7 @@ function refreshGitIndex(repoPath: string) {
   waitForGitLock(repoPath);
   try {
     retryGit(
-      () => execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }),
+      () => execFileSync('git', ['update-index', '--refresh'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }),
       'update-index --refresh',
     );
   } catch (err: any) {
@@ -943,7 +949,7 @@ export async function runAgent(
         console.log(`[agent] Pulling latest changes for branch: ${branch}`);
         const pullOutput = execFileSync('git', ['pull', '--rebase', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-        actions.push({ type: 'tool', tool: 'git_pull', args: { branch }, result: (typeof pullOutput === 'string' ? pullOutput.trim() : '') || 'Already up to date' });
+        actions.push({ type: 'tool', tool: 'git_pull', args: { branch }, result: pullOutput.trim() || 'Already up to date' });
       } catch {
         // Pull/rebase may fail due to conflicts or local-only branch
         cleanupInterruptedGitOps(workdir);
