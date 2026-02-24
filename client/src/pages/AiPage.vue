@@ -166,6 +166,10 @@
         <div v-if="loading" class="message-row assistant">
           <div class="message-bubble glass loading-bubble">
             <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+            <button class="abort-btn" @click="abortCurrentMessage" title="Abort">
+              <Icon icon="mdi:stop-circle-outline" width="16" height="16" />
+              Abort
+            </button>
           </div>
         </div>
       </div>
@@ -180,7 +184,11 @@
           @input="autoResize"
           @keydown.enter.exact.prevent="sendMessage"
         ></textarea>
-        <button class="send-btn" @click="sendMessage" :disabled="!input.trim() || loading">
+        <button v-if="loading" class="abort-btn input-abort-btn" @click="abortCurrentMessage">
+          <Icon icon="mdi:stop-circle-outline" width="18" height="18" />
+          Abort
+        </button>
+        <button v-else class="send-btn" @click="sendMessage" :disabled="!input.trim()">
           Send
         </button>
       </div>
@@ -258,6 +266,7 @@ const messages = ref<Message[]>([])
 const input = ref('')
 const loadingConversationIds = reactive(new Set<string>())
 const loading = computed(() => loadingConversationIds.has(activeConversationId.value))
+const currentAbortController = ref<AbortController | null>(null)
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
@@ -492,11 +501,15 @@ async function sendMessage() {
     }
   }
 
+  const abortCtrl = new AbortController()
+  currentAbortController.value = abortCtrl
+
   loadingConversationIds.add(currentConvId)
   try {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortCtrl.signal,
       body: JSON.stringify({
         message: text,
         history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
@@ -513,17 +526,58 @@ async function sendMessage() {
     const data = await res.json()
     if (data.currentBranch) agentCurrentBranch.value = data.currentBranch
     if (data.parentBranch) agentParentBranch.value = data.parentBranch
-    pushResponse({
-      role: 'assistant',
-      content: data.content ?? data.response ?? 'No response.',
-      sources: data.sources?.length ? data.sources : undefined,
-      actions: data.actions?.length ? data.actions : undefined,
-    })
-  } catch {
-    pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+    if (!data.aborted) {
+      pushResponse({
+        role: 'assistant',
+        content: data.content ?? data.response ?? 'No response.',
+        sources: data.sources?.length ? data.sources : undefined,
+        actions: data.actions?.length ? data.actions : undefined,
+      })
+    }
+  } catch (err: any) {
+    // Don't push error if aborted by user
+    if (err.name !== 'AbortError') {
+      pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+    }
   } finally {
     loadingConversationIds.delete(currentConvId)
+    currentAbortController.value = null
   }
+}
+
+async function abortCurrentMessage() {
+  const convId = activeConversationId.value
+  if (!convId) return
+
+  // Abort the fetch request
+  if (currentAbortController.value) {
+    currentAbortController.value.abort()
+    currentAbortController.value = null
+  }
+
+  // Tell the backend to abort the agent and revert workdir
+  try {
+    await fetch('/api/ai/abort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: convId }),
+    })
+  } catch (err) {
+    console.warn('Failed to abort agent on server:', err)
+  }
+
+  // Remove the last user message (the one that triggered this request)
+  const conv = conversations.value.find(c => c.id === convId)
+  if (conv && conv.messages.length > 0 && conv.messages[conv.messages.length - 1].role === 'user') {
+    conv.messages.pop()
+    if (activeConversationId.value === convId) {
+      messages.value = conv.messages
+    }
+    chatStarted.value = conv.messages.length > 0
+    saveConversations()
+  }
+
+  loadingConversationIds.delete(convId)
 }
 
 async function readAloud(text: string) {
@@ -1215,6 +1269,8 @@ onBeforeUnmount(() => {
 }
 
 .loading-bubble {
+  display: flex;
+  align-items: center;
   padding: 12px 20px;
 }
 
@@ -1299,6 +1355,36 @@ onBeforeUnmount(() => {
 .send-btn:not(:disabled):hover {
   background: var(--askew-btn-hover);
   color: var(--bg-primary);
+}
+
+.abort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: #8b2020;
+  border: 1px solid #a03030;
+  border-radius: 0px;
+  color: #ffcccc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 12px;
+  box-shadow: inset 1px 1px 0 #b04040, inset -1px -1px 0 #6b1010;
+}
+
+.abort-btn:hover {
+  background: #a03030;
+  color: #ffffff;
+}
+
+.input-abort-btn {
+  padding: 10px 20px;
+  margin-left: 0;
+  border-left: 1px solid #000000;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  align-self: stretch;
 }
 
 /* Code blocks (v-html content needs :deep) */

@@ -753,6 +753,53 @@ export interface AgentResult {
   response: string;
   actions: AgentStep[];
   currentBranch: string;
+  aborted?: boolean;
+}
+
+// --- Abort support ---
+// Tracks running agent sessions so they can be cancelled externally.
+
+interface RunningAgent {
+  abortController: AbortController;
+  workdir: string;
+  snapshotCommit: string; // HEAD commit before agent started making changes
+}
+
+const runningAgents = new Map<string, RunningAgent>();
+
+/** Abort a running agent for a given conversation. Resets workdir to pre-message state. */
+export function abortAgent(conversationId: string): { aborted: boolean; message: string } {
+  const entry = runningAgents.get(conversationId);
+  if (!entry) {
+    return { aborted: false, message: 'No running agent found for this conversation.' };
+  }
+
+  console.log(`[agent] Aborting agent for conversation: ${conversationId}`);
+  entry.abortController.abort();
+
+  // Reset workdir to the snapshot commit (state before this message)
+  if (entry.workdir && entry.snapshotCommit && fs.existsSync(path.join(entry.workdir, '.git'))) {
+    try {
+      waitForGitLock(entry.workdir);
+      cleanupInterruptedGitOps(entry.workdir);
+      execFileSync('git', ['reset', '--hard', entry.snapshotCommit],
+        { cwd: entry.workdir, encoding: 'utf-8', timeout: 10000 });
+      // Clean up any untracked files the agent may have created
+      execFileSync('git', ['clean', '-fd'],
+        { cwd: entry.workdir, encoding: 'utf-8', timeout: 10000 });
+      console.log(`[agent] Workdir reset to ${entry.snapshotCommit}`);
+    } catch (err: any) {
+      console.error(`[agent] Failed to reset workdir on abort: ${err.message}`);
+    }
+  }
+
+  runningAgents.delete(conversationId);
+  return { aborted: true, message: 'Agent aborted and workdir reverted.' };
+}
+
+/** Check if an agent is currently running for a conversation */
+export function isAgentRunning(conversationId: string): boolean {
+  return runningAgents.has(conversationId);
 }
 
 // --- Main agent runner using official Ollama client ---
@@ -894,11 +941,19 @@ export async function runAgent(
 ): Promise<AgentResult> {
   const actions: AgentStep[] = [];
   console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
+
+  // Set up abort controller for this agent run
+  const abortController = new AbortController();
+  const abortSignal = abortController.signal;
+
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
   const client = new Ollama({
     host: ollamaHost,
     fetch: (url: RequestInfo | URL, init?: RequestInit) => {
-      return fetch(url, { ...init, signal: AbortSignal.timeout(AGENT_REQUEST_TIMEOUT) });
+      // Combine abort signal with timeout
+      const timeoutSignal = AbortSignal.timeout(AGENT_REQUEST_TIMEOUT);
+      const combinedSignal = AbortSignal.any([abortSignal, timeoutSignal]);
+      return fetch(url, { ...init, signal: combinedSignal });
     },
   });
 
@@ -1049,8 +1104,24 @@ Answer in the language the user writes in. Be concise about tool usage but expla
   const MAX_REPEAT_COUNT = 3;
   const WRAP_UP_THRESHOLD = Math.floor(MAX_TOOL_ITERATIONS * 0.75);
 
+  // Record snapshot commit for abort/revert support
+  let snapshotCommit = '';
+  try {
+    snapshotCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: workdir, encoding: 'utf-8', timeout: 5000 }).trim();
+  } catch { /* workdir may have no commits yet */ }
+
+  // Register this agent run so it can be aborted externally
+  runningAgents.set(conversationId, { abortController, workdir, snapshotCommit });
+
   try {
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      // Check abort signal at the start of each iteration
+      if (abortSignal.aborted) {
+        console.log(`[agent] Aborted by user at iteration ${i}`);
+        lastResponse = 'Agent execution was aborted.';
+        break;
+      }
+
       // Inject "wrap up" hint when running low on iterations
       if (i === WRAP_UP_THRESHOLD) {
         messages.push({ role: 'system', content: `You have ${MAX_TOOL_ITERATIONS - i} iterations remaining. Wrap up: commit your changes and finish.` });
@@ -1166,6 +1237,17 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       }
     }
 
+    // If aborted, don't auto-commit or push — workdir was already reset by abortAgent()
+    if (abortSignal.aborted) {
+      runningAgents.delete(conversationId);
+      return {
+        response: lastResponse || 'Agent execution was aborted.',
+        actions,
+        currentBranch: getCurrentBranch(workdir),
+        aborted: true,
+      };
+    }
+
     // Auto-commit any uncommitted changes
     autoCommitChanges(workdir, actions);
 
@@ -1173,17 +1255,31 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     pushToWarez(workdir, actions);
 
     console.log(`[agent] Done. Branch: ${getCurrentBranch(workdir)}, actions: ${actions.length}`);
+    runningAgents.delete(conversationId);
     return {
       response: lastResponse || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
+    const isAbort = abortSignal.aborted || (err.name === 'AbortError');
+    if (isAbort) {
+      console.log(`[agent] Agent aborted for conversation: ${conversationId}`);
+      runningAgents.delete(conversationId);
+      return {
+        response: 'Agent execution was aborted.',
+        actions,
+        currentBranch: getCurrentBranch(workdir),
+        aborted: true,
+      };
+    }
+
     console.error(`[agent] Error: ${err.message || String(err)}`);
     // Auto-commit even on error
     autoCommitChanges(workdir, actions);
     pushToWarez(workdir, actions);
 
+    runningAgents.delete(conversationId);
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,
