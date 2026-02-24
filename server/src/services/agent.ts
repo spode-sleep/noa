@@ -282,8 +282,11 @@ function isGooseBoilerplateLine(line: string): boolean {
   if (!trimmed) return false;
   if (GOOSE_BOILERPLATE_RE.test(trimmed)) return true;
   if (trimmed.startsWith('●') || trimmed.startsWith('\u25CF')) return true;
-  if (/^\{?\s*"function_name"\s*:/.test(trimmed)) return true;
+  // JSON tool call fragments (e.g., standalone "}" or "name": "developer__...")
+  if (/^\{?\s*"(name|function_name)"\s*:\s*"developer__/.test(trimmed)) return true;
   if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
+  if (/^\{?\s*"(command|old_str|new_str|file_text|path)"\s*:/.test(trimmed)) return true;
+  if (trimmed === '}' || trimmed === '{') return true;
   if (/agent-workdirs\//.test(trimmed)) return true;
   if (/^[\u2500\u256D\u256E\u2570\u256F\u2502\u2015\u2014─]+$/.test(trimmed)) return true;
   if (/[\u2500\u2015\u2014─]{3,}/.test(trimmed)) return true;
@@ -374,6 +377,72 @@ function parseGooseOutput(stdout: string): { steps: AgentStep[]; response: strin
       flushTool(undefined, i > 0 ? i - 1 : 0);
       currentTool = { name: headerMatch[1], extension: headerMatch[2] || '', args: {}, startLine: i };
       lastArgKey = '';
+      continue;
+    }
+
+    // JSON tool call block: { "name": "developer__text_editor", ... }
+    // Goose sometimes outputs tool calls as JSON instead of ▸ format
+    if (/^\{?\s*"name"\s*:\s*"developer__/.test(trimmed) || /^\{?\s*"function_name"\s*:\s*"developer__/.test(trimmed)) {
+      flushTool(undefined, i > 0 ? i - 1 : 0);
+      // Collect JSON lines until we find the closing brace
+      let jsonStr = trimmed.startsWith('{') ? trimmed : '{' + trimmed;
+      let braceDepth = 0;
+      for (const ch of jsonStr) { if (ch === '{') braceDepth++; if (ch === '}') braceDepth--; }
+      toolLineIndices.add(i);
+      // Also mark a preceding standalone '{' line as part of this block
+      if (i > 0 && lines[i - 1].trim() === '{') toolLineIndices.add(i - 1);
+      let j = i + 1;
+      while (braceDepth > 0 && j < lines.length) {
+        const jt = lines[j].trim();
+        jsonStr += '\n' + jt;
+        for (const ch of jt) { if (ch === '{') braceDepth++; if (ch === '}') braceDepth--; }
+        toolLineIndices.add(j);
+        j++;
+      }
+      i = j - 1; // advance loop past the JSON block
+      // Try to parse and create a step
+      try {
+        // Clean up: some JSON might have keys like "name" at top level, some nested under "arguments"
+        const obj = JSON.parse(jsonStr);
+        const rawName: string = obj.name || obj.function_name || '';
+        const toolName = rawName.replace(/^developer__/, '');
+        const args = obj.arguments || obj;
+        const cmd = args.command || '';
+        const filePath = args.path || '';
+        const step: AgentStep = { type: 'tool', tool: '', args: {}, result: '' };
+        if (toolName === 'text_editor') {
+          if (cmd === 'str_replace') {
+            step.tool = 'edit_file';
+            step.args = { file_path: filePath };
+            step.diff = { before: args.old_str || '', after: args.new_str || '' };
+            step.result = `Edit ${filePath || 'file'}`;
+          } else if (cmd === 'write' || cmd === 'create') {
+            step.tool = 'write_file';
+            step.args = { file_path: filePath };
+            if (args.file_text) step.diff = { before: '', after: args.file_text };
+            step.result = `Write ${filePath || 'file'}`;
+          } else if (cmd === 'view') {
+            step.tool = 'read_file';
+            step.args = { file_path: filePath };
+            step.result = `View ${filePath || 'file'}`;
+          } else {
+            step.tool = 'text_editor';
+            step.args = args;
+            step.result = `text_editor: ${cmd}`;
+          }
+        } else if (toolName === 'shell') {
+          step.tool = 'shell';
+          step.args = { command: args.command || '' };
+          step.result = `$ ${args.command || ''}`;
+        } else {
+          step.tool = toolName || 'unknown';
+          step.args = args;
+          step.result = toolName;
+        }
+        steps.push(step);
+      } catch {
+        // If JSON parse fails, just filter the lines (already marked in toolLineIndices)
+      }
       continue;
     }
 
