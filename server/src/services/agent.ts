@@ -410,28 +410,15 @@ function runAiderProcess(
       console.error(`[agent] Failed to write message file: ${err.message}`);
     }
 
-    // Core CLI flags only — all "disable" settings go via env vars for max compatibility
+    // Core CLI flags only — all "disable" settings go via env vars for max compatibility.
+    // Do NOT add all tracked files as positional args — this overwhelms the local model's
+    // context window and makes results worse (see aider FAQ). Instead, rely on the repo map
+    // for file tree visibility, and --yes to auto-add files when the LLM requests them.
     const args = [
       '--model', modelArg,
       '--yes',
       '--auto-commits',
     ];
-
-    // Add all git-tracked files as positional args so aider can see and edit them.
-    // Without this, aider in one-shot mode has no files in context and asks the user to add them.
-    // The repo map (enabled by default) only provides structure summaries, not editable content.
-    try {
-      const trackedFiles = execFileSync('git', ['ls-files'], {
-        cwd: path.resolve(workdir), encoding: 'utf-8', timeout: 10000,
-      }).trim();
-      if (trackedFiles) {
-        for (const f of trackedFiles.split('\n')) {
-          if (f.trim()) args.push(f.trim());
-        }
-      }
-    } catch {
-      console.log('[agent] Could not list tracked files, aider will use repo map only');
-    }
 
     // Use --message-file if the file was written, otherwise fall back to --message
     if (fs.existsSync(messageFile)) {
@@ -455,6 +442,12 @@ function runAiderProcess(
       AIDER_SUGGEST_SHELL_COMMANDS: 'false',
       // Disable streaming for subprocess capture
       AIDER_STREAM: 'false',
+      // Enable repo map — this is how the LLM sees the file tree and code structure.
+      // For unknown/local models aider may disable the repo map; force it on.
+      AIDER_MAP_TOKENS: '2048',
+      // Give 4x more repo map context when no specific files are in the chat.
+      // Default is 2x. Higher value means the LLM gets a better "tree" view.
+      AIDER_MAP_MULTIPLIER_NO_FILES: '4',
       // Prevent any browser from opening
       BROWSER: 'echo',
       // Disable terminal colors/formatting
