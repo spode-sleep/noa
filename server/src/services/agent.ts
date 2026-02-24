@@ -3,8 +3,8 @@ import * as path from 'path';
 import { execSync, execFileSync, spawn } from 'child_process';
 
 const AGENT_GIT_AUTHOR = 'AI Librarian <ai-librarian@box.local>';
-const AIDER_TIMEOUT_MS = 600000; // 10 minutes max per aider invocation
-const MAX_OUTPUT_CHARS = 50000; // Max chars to capture from aider output
+const GOOSE_TIMEOUT_MS = 600000; // 10 minutes max per goose invocation
+const MAX_OUTPUT_CHARS = 50000; // Max chars to capture from goose output
 
 // --- Agent workspace ---
 // Warez/ = git repos (standard .git). Agent clones from warez, pushes to warez.
@@ -220,70 +220,57 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
   }
 }
 
-// --- Aider integration ---
+// --- Goose integration (https://github.com/block/goose) ---
+// Goose is an open source AI coding agent by Block with built-in developer tools,
+// native Ollama support, and structured JSON output.
 
-function resolveAiderPath(): string {
-  const envPath = process.env.AIDER_PATH;
+function resolveGoosePath(): string {
+  const envPath = process.env.GOOSE_PATH;
   if (envPath && fs.existsSync(envPath)) return envPath;
-  // Try to find aider in PATH
   try {
-    return execSync('which aider', { encoding: 'utf-8', timeout: 5000 }).trim();
+    return execSync('which goose', { encoding: 'utf-8', timeout: 5000 }).trim();
   } catch {
-    return 'aider'; // fallback — let spawn try PATH lookup
+    return 'goose';
   }
 }
 
-function buildAiderModelArg(model: string): string {
-  // If model already has a provider prefix (e.g. "ollama/model"), use as-is
-  if (model.includes('/')) {
-    // Aider expects "ollama_chat/<model>" for Ollama models
-    if (!model.startsWith('ollama_chat/') && !model.startsWith('openai/') &&
-        !model.startsWith('anthropic/') && !model.startsWith('ollama/')) {
-      return `ollama_chat/${model}`;
-    }
-    // Convert ollama/ to ollama_chat/ for aider
-    if (model.startsWith('ollama/')) {
-      return `ollama_chat/${model.slice(7)}`;
-    }
-    return model;
+/** Ensure goose config directory and config.yaml exist for Ollama */
+function ensureGooseConfig(model: string) {
+  const configDir = path.join(process.env.HOME || '/tmp', '.config', 'goose');
+  const configFile = path.join(configDir, 'config.yaml');
+
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
   }
-  // Default: assume Ollama model
-  return `ollama_chat/${model}`;
+
+  const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
+  const config = [
+    'GOOSE_PROVIDER: "ollama"',
+    `GOOSE_MODEL: "${model}"`,
+    'GOOSE_MODE: "auto"',
+    'keyring: false',
+    'GOOSE_TELEMETRY_ENABLED: false',
+    '',
+    'extensions:',
+    '  developer:',
+    '    bundled: true',
+    '    enabled: true',
+    '    name: developer',
+    '    timeout: 300',
+    '    type: builtin',
+  ].join('\n');
+
+  fs.writeFileSync(configFile, config, 'utf-8');
+  process.env.OLLAMA_HOST = ollamaHost;
 }
 
-/** Aider boilerplate lines that should be skipped in output parsing */
-const AIDER_BOILERPLATE_RE = /^(Aider v|Analytics |You can skip|\.aider\*?|\.gitignore$|No files matched|Warning:|Updating|Main model:|Weak model:|Editor model:|Git diffs|Dropped|Use \/|Tokens:|Model:|─|Git repo|Repo-map|Added \.aider|Diff since)/;
-
-/** Extract ► THINKING sections from aider stdout as thinking steps */
-function extractThinkingSections(output: string): AgentStep[] {
-  const steps: AgentStep[] = [];
-  const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
-  if (!sectionRegex.test(output)) return steps;
-  sectionRegex.lastIndex = 0;
-
-  let lastIndex = 0;
-  let lastType = 'raw';
-  let match;
-  while ((match = sectionRegex.exec(output)) !== null) {
-    if (lastType === 'thinking' && match.index > lastIndex) {
-      const content = output.slice(lastIndex, match.index).trim();
-      if (content) {
-        const cleaned = content.split('\n').filter(l => !AIDER_BOILERPLATE_RE.test(l.trim())).join('\n').trim();
-        if (cleaned) steps.push({ type: 'thinking', content: cleaned });
-      }
-    }
-    lastType = match[1] === 'THINKING' ? 'thinking' : 'answer';
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastType === 'thinking' && lastIndex < output.length) {
-    const content = output.slice(lastIndex).trim();
-    if (content) {
-      const cleaned = content.split('\n').filter(l => !AIDER_BOILERPLATE_RE.test(l.trim())).join('\n').trim();
-      if (cleaned) steps.push({ type: 'thinking', content: cleaned });
-    }
-  }
-  return steps;
+/** Strip ANSI escape codes */
+function stripAnsi(text: string): string {
+  return text.replace(/\x1B\[[0-9;]*[mK]/g, '');
 }
+
+/** Boilerplate lines from goose output that should be filtered */
+const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|[\u2500\u256D\u2570\u2502]|goose v)/i;
 
 /** Parse a unified diff hunk into before/after text */
 function parseUnifiedDiffHunks(diffOutput: string): { before: string; after: string } {
@@ -312,22 +299,17 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
   const steps: AgentStep[] = [];
   const resolvedWorkdir = path.resolve(workdir);
 
-  // Validate oldSha is a valid hex commit hash (prevents argument injection)
   if (!/^[a-f0-9]{7,40}$/.test(oldSha)) return steps;
 
-  // Get commits made since oldSha
   try {
     const log = execFileSync('git', ['log', '--oneline', `${oldSha}..HEAD`], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
     if (log) {
       for (const line of log.split('\n')) {
-        if (line.trim()) {
-          steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: `Commit ${line.trim()}` });
-        }
+        if (line.trim()) steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: `Commit ${line.trim()}` });
       }
     }
-  } catch { /* no new commits — that's fine */ }
+  } catch { /* no new commits */ }
 
-  // Get per-file diffs since oldSha (committed changes)
   try {
     const changedFiles = execFileSync('git', ['diff', '--name-only', `${oldSha}..HEAD`], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
     if (changedFiles) {
@@ -337,8 +319,7 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
           const fileDiff = execFileSync('git', ['diff', `${oldSha}..HEAD`, '--', file], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
           const { before, after } = parseUnifiedDiffHunks(fileDiff);
           steps.push({
-            type: 'tool',
-            tool: before ? 'edit_file' : 'write_file',
+            type: 'tool', tool: before ? 'edit_file' : 'write_file',
             args: { file_path: file },
             result: `${before ? 'Applied edit to' : 'Wrote'} ${file}`,
             diff: { before, after },
@@ -350,116 +331,56 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
     }
   } catch { /* no changes */ }
 
-  // Also check for uncommitted changes (staged + unstaged)
   try {
     const uncommitted = execFileSync('git', ['diff', 'HEAD', '--name-only'], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
     const staged = execFileSync('git', ['diff', '--cached', '--name-only'], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
-    const allUncommitted = new Set([
-      ...uncommitted.split('\n').filter(Boolean),
-      ...staged.split('\n').filter(Boolean),
-    ]);
+    const allUncommitted = new Set([...uncommitted.split('\n').filter(Boolean), ...staged.split('\n').filter(Boolean)]);
     for (const file of allUncommitted) {
       try {
         const fileDiff = execFileSync('git', ['diff', 'HEAD', '--', file], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
         const { before, after } = parseUnifiedDiffHunks(fileDiff);
-        steps.push({
-          type: 'tool',
-          tool: 'edit_file',
-          args: { file_path: file },
-          result: `Uncommitted changes in ${file}`,
-          diff: { before, after },
-        });
+        steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Uncommitted changes in ${file}`, diff: { before, after } });
       } catch {
         steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Uncommitted changes in ${file}` });
       }
     }
-  } catch { /* no uncommitted changes */ }
+  } catch { /* no uncommitted */ }
 
   return steps;
 }
 
-/** Build a context summary from conversation history for aider */
+/** Build a context summary from conversation history */
 function buildHistoryContext(history: Array<{ role: string; content: string }>): string {
-  const recent = history
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .slice(-6);
+  const recent = history.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6);
   if (recent.length === 0) return '';
   const ctx = recent.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 500)}`).join('\n\n');
   return `\n\nPrevious conversation context:\n${ctx}\n\n`;
 }
 
-/** Run aider as a subprocess and capture its output */
-function runAiderProcess(
-  aiderPath: string,
-  model: string,
+/** Run goose as a subprocess and capture its output */
+function runGooseProcess(
+  goosePath: string,
   message: string,
   workdir: string,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve) => {
-    const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
-    const modelArg = buildAiderModelArg(model);
-
-    // Write message to a temp file — avoids shell arg length issues.
-    // Use path.resolve() to get absolute path — workdir may be relative (e.g. ../data/...)
-    // NOTE: Only the user's actual request goes here. Aider has its own internal system prompt
-    // for code editing. Embedding extra "system" instructions causes LLM refusals on local models.
-    const messageFile = path.resolve(workdir, '.aider-message.tmp');
-    try {
-      fs.writeFileSync(messageFile, message, 'utf-8');
-    } catch (err: any) {
-      console.error(`[agent] Failed to write message file: ${err.message}`);
-    }
-
-    // Core CLI flags only — all "disable" settings go via env vars for max compatibility.
-    // Do NOT add all tracked files as positional args — this overwhelms the local model's
-    // context window and makes results worse (see aider FAQ). Instead, rely on the repo map
-    // for file tree visibility, and --yes to auto-add files when the LLM requests them.
     const args = [
-      '--model', modelArg,
-      '--yes',
-      '--auto-commits',
+      'run',
+      '-t', message,
+      '--no-session',
+      '--with-builtin', 'developer',
     ];
 
-    // Use --message-file if the file was written, otherwise fall back to --message
-    if (fs.existsSync(messageFile)) {
-      args.push('--message-file', messageFile);
-    } else {
-      args.push('--message', message);
-    }
+    console.log(`[agent] Running goose in: ${workdir}`);
 
-    console.log(`[agent] Running aider in: ${workdir} (model: ${modelArg})`);
-
-    // Environment variables to prevent browser opening, sudo requests, and hangs.
-    // Env vars are the most compatible way to configure aider across all versions.
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
-      OLLAMA_API_BASE: ollamaHost,
-      // Prevent aider from checking for updates (which triggers sudo pip install and browser)
-      AIDER_CHECK_UPDATE: 'false',
-      // Prevent aider from showing release notes (which opens browser)
-      AIDER_SHOW_RELEASE_NOTES: 'false',
-      // Prevent aider from suggesting shell commands
-      AIDER_SUGGEST_SHELL_COMMANDS: 'false',
-      // Disable streaming for subprocess capture
-      AIDER_STREAM: 'false',
-      // Enable repo map — this is how the LLM sees the file tree and code structure.
-      // For unknown/local models aider may disable the repo map; force it on.
-      AIDER_MAP_TOKENS: '2048',
-      // Give 4x more repo map context when no specific files are in the chat.
-      // Default is 2x. Higher value means the LLM gets a better "tree" view.
-      AIDER_MAP_MULTIPLIER_NO_FILES: '4',
-      // Prevent any browser from opening
-      BROWSER: 'echo',
-      // Disable terminal colors/formatting
       NO_COLOR: '1',
-      // Disable analytics
-      AIDER_ANALYTICS_DISABLE: 'true',
     };
 
-    const proc = spawn(aiderPath, args, {
+    const proc = spawn(goosePath, args, {
       cwd: path.resolve(workdir),
       env,
-      // stdin='ignore' → /dev/null, avoids "Input is not a terminal" warning and hangs
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -470,44 +391,36 @@ function runAiderProcess(
     proc.stdout.on('data', (data: Buffer) => {
       const chunk = data.toString();
       stdout += chunk;
-      if (stdout.length > MAX_OUTPUT_CHARS) {
-        stdout = stdout.slice(-MAX_OUTPUT_CHARS);
-      }
+      if (stdout.length > MAX_OUTPUT_CHARS) stdout = stdout.slice(-MAX_OUTPUT_CHARS);
     });
 
     proc.stderr.on('data', (data: Buffer) => {
       const chunk = data.toString();
       stderr += chunk;
-      if (stderr.length > MAX_OUTPUT_CHARS) {
-        stderr = stderr.slice(-MAX_OUTPUT_CHARS);
-      }
+      if (stderr.length > MAX_OUTPUT_CHARS) stderr = stderr.slice(-MAX_OUTPUT_CHARS);
     });
 
-    const cleanup = () => {
-      try { if (fs.existsSync(messageFile)) fs.unlinkSync(messageFile); } catch { /* ignore */ }
-    };
-
     proc.on('close', (code) => {
-      cleanup();
       if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
     });
 
     proc.on('error', (err) => {
-      cleanup();
-      if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + `\nProcess error: ${err.message}`, exitCode: 1 }); }
+      if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + '\nProcess error: ' + err.message, exitCode: 1 }); }
     });
 
     // Safety timeout
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        cleanup();
-        try { proc.kill('SIGTERM'); } catch { /* ignore */ }
+        try { proc.kill(); } catch { /* ignore */ }
         resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
       }
-    }, AIDER_TIMEOUT_MS);
+    }, GOOSE_TIMEOUT_MS);
+
+    proc.on('close', () => clearTimeout(timer));
   });
 }
+
 
 /** Generate a branch name using Ollama directly (lightweight call) */
 async function generateBranchName(model: string, userMessage: string): Promise<string> {
@@ -541,7 +454,7 @@ async function generateBranchName(model: string, userMessage: string): Promise<s
   return `agent-${Date.now().toString(36)}`;
 }
 
-// --- Main agent runner using aider ---
+// --- Main agent runner using goose ---
 
 export async function runAgent(
   model: string,
@@ -555,7 +468,7 @@ export async function runAgent(
   conversationId: string,
 ): Promise<AgentResult> {
   const actions: AgentStep[] = [];
-  console.log(`[agent] Starting aider agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
+  console.log(`[agent] Starting goose agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
 
   // Ensure warez repo is git-initialized and accepts pushes
   if (!isBareRepo(repoPath)) {
@@ -625,42 +538,38 @@ export async function runAgent(
     }
   }
 
-  // Build the message for aider, including conversation context
+  // Build the message for goose, including conversation context
   const historyContext = buildHistoryContext(history);
   const fullMessage = historyContext
     ? `${historyContext}Current request:\n${userMessage}`
     : userMessage;
 
-  // Capture HEAD before aider runs — we'll use git to detect changes afterward
+  // Capture HEAD before goose runs — we'll use git to detect changes afterward
   const resolvedWorkdir = path.resolve(workdir);
   let headBefore = '';
   try {
     headBefore = execSync('git rev-parse HEAD', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 5000 }).trim();
   } catch { /* empty repo? */ }
 
-  // Run aider
-  const aiderPath = resolveAiderPath();
-  actions.push({ type: 'tool', tool: 'aider', args: { model }, result: `Running aider with model ${buildAiderModelArg(model)}...` });
+  // Configure and run goose
+  ensureGooseConfig(model);
+  const goosePath = resolveGoosePath();
+  actions.push({ type: 'tool', tool: 'goose', args: { model }, result: `Running goose with model ${model}...` });
 
   try {
-    const result = await runAiderProcess(aiderPath, model, fullMessage, workdir);
+    const result = await runGooseProcess(goosePath, fullMessage, workdir);
 
-    console.log(`[agent] Aider exited with code ${result.exitCode}`);
-    // Filter out harmless "Input is not a terminal" warning from stderr
-    const filteredStderr = result.stderr
-      .split('\n')
-      .filter(line => !line.includes('Input is not a terminal'))
-      .join('\n')
-      .trim();
-    if (filteredStderr) {
-      console.log(`[agent] Aider stderr: ${filteredStderr.slice(0, 500)}`);
+    console.log(`[agent] Goose exited with code ${result.exitCode}`);
+    if (result.stderr.trim()) {
+      console.log(`[agent] Goose stderr: ${result.stderr.trim().slice(0, 500)}`);
     }
 
-    // 1. Extract thinking sections from stdout (► THINKING markers)
-    const thinkingSteps = extractThinkingSections(result.stdout);
-    actions.push(...thinkingSteps);
+    // 1. Extract response from goose output (strip ANSI + boilerplate)
+    const outputLines = stripAnsi(result.stdout).split('\n');
+    const cleanLines = outputLines.filter(l => l.trim() && !GOOSE_BOILERPLATE_RE.test(l.trim()));
+    let response = cleanLines.join('\n').trim();
 
-    // 2. Auto-commit any remaining uncommitted changes before diffing
+    // 2. Auto-commit any remaining uncommitted changes
     autoCommitChanges(workdir, actions);
 
     // 3. Build tool call steps from git (commits + per-file diffs since headBefore)
@@ -669,12 +578,8 @@ export async function runAgent(
       actions.push(...gitSteps);
     }
 
-    // 4. Extract the last message (LLM's conversational response)
-    let response = extractAiderResponse(result.stdout);
-
     if (result.exitCode !== 0 && !response) {
-      const errMsg = filteredStderr || 'Aider process failed';
-      response = `Aider error (exit code ${result.exitCode}): ${errMsg.slice(0, 1000)}`;
+      response = `Goose error (exit code ${result.exitCode}): ${(result.stderr || 'Process failed').slice(0, 1000)}`;
     }
 
     // Push to warez
@@ -687,7 +592,7 @@ export async function runAgent(
       currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
-    console.error(`[agent] Aider error: ${err.message || String(err)}`);
+    console.error(`[agent] Goose error: ${err.message || String(err)}`);
     autoCommitChanges(workdir, actions);
     pushToWarez(workdir, actions);
 
@@ -697,69 +602,4 @@ export async function runAgent(
       currentBranch: getCurrentBranch(workdir),
     };
   }
-}
-
-/** Extract the LLM's conversational response from aider stdout, filtering boilerplate and diffs.
- *  Diffs are now handled by buildStepsFromGit — this only extracts the text message. */
-function extractAiderResponse(output: string): string {
-  // If output has ► THINKING / ► ANSWER markers, extract only ANSWER section text
-  const sectionRegex = /[-─]+\s*►\s*(THINKING|ANSWER)\s*/g;
-  const hasMarkers = sectionRegex.test(output);
-  sectionRegex.lastIndex = 0;
-
-  let textToProcess = output;
-  if (hasMarkers) {
-    const answerParts: string[] = [];
-    let lastIndex = 0;
-    let lastType = 'raw';
-    let match;
-    while ((match = sectionRegex.exec(output)) !== null) {
-      if (lastType === 'answer' && match.index > lastIndex) {
-        answerParts.push(output.slice(lastIndex, match.index));
-      }
-      lastType = match[1] === 'THINKING' ? 'thinking' : 'answer';
-      lastIndex = match.index + match[0].length;
-    }
-    if (lastType === 'answer' && lastIndex < output.length) {
-      answerParts.push(output.slice(lastIndex));
-    }
-    textToProcess = answerParts.join('\n');
-  }
-
-  const lines = textToProcess.split('\n');
-  const responseLines: string[] = [];
-  let inDiff = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Skip diff blocks entirely (both unified and SEARCH/REPLACE)
-    if (/^(@@\s|diff --git|index [a-f0-9]|---\s+a\/|(\+\+\+)\s+b\/)/.test(trimmed)) { inDiff = true; continue; }
-    if (/^(<<<<<<< SEARCH|=======|>>>>>>> REPLACE)/.test(trimmed)) { inDiff = true; continue; }
-    if (inDiff && /^[+\-]/.test(trimmed)) continue;
-    if (inDiff && !trimmed) continue; // empty lines inside diff
-    if (inDiff) inDiff = false;
-
-    // Skip aider markers and boilerplate
-    if (/^(Editing|Applied edit to|Creating|Wrote|Added .* to the chat|Commit [a-f0-9]|>)/.test(trimmed)) continue;
-    if (AIDER_BOILERPLATE_RE.test(trimmed)) continue;
-
-    // Skip standalone filenames (path-like lines)
-    if (/^[\w/\\][\w./\\-]*\.\w+$/.test(trimmed)) continue;
-
-    // Skip separator lines
-    if (/^-{3,}$/.test(trimmed)) continue;
-
-    // Skip empty lines at the beginning
-    if (responseLines.length === 0 && !trimmed) continue;
-
-    responseLines.push(line);
-  }
-
-  // Trim trailing empty lines
-  while (responseLines.length > 0 && !responseLines[responseLines.length - 1].trim()) {
-    responseLines.pop();
-  }
-
-  return responseLines.join('\n').trim();
 }

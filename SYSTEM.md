@@ -57,18 +57,15 @@ Some native Node.js modules may require build tools:
 sudo apt install -y build-essential python3
 ```
 
-### 3. Install aider (AI Code Agent)
+### 3. Install goose (AI Code Agent)
 
-[Aider](https://aider.chat/) powers the code agent mode. Install via pipx (available in Linux Mint repos):
+[Goose](https://github.com/block/goose) powers the code agent mode. Install the CLI (Rust binary — no Python/pip needed):
 
 ```bash
-sudo apt install -y pipx
-pipx ensurepath
-source ~/.bashrc
-pipx install aider-chat
+curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash
 
 # Verify
-aider --version
+goose --version
 ```
 
 ### 4. Clone the Repository
@@ -138,7 +135,7 @@ cp server/.env.example server/.env
 | `TTS_DEFAULT_VOICE`    | Default TTS voice identifier (Russian)           | `ru_RU-irina-medium`             |
 | `TTS_EN_VOICE`         | English TTS voice (auto-selected for English text)| `en_US-lessac-medium`           |
 | `PIPER_PATH`           | Path to Piper TTS binary (avoids GTK piper conflict) | `/opt/piper-tts/piper`  |
-| `AIDER_PATH`           | Path to aider binary (auto-detected from PATH if empty) | *(empty)*           |
+| `GOOSE_PATH`           | Path to goose binary (auto-detected from PATH if empty) | *(empty)*           |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
 
 ### Example `.env`
