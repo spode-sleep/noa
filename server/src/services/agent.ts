@@ -1,431 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync, execFileSync } from 'child_process';
-import { Ollama, Tool, Message } from 'ollama';
+import { execSync, execFileSync, spawn } from 'child_process';
 
-const MAX_FILE_SIZE_BYTES = 512 * 1024;
-const MAX_TOOL_ITERATIONS = 20;
-const MAX_ACTION_RESULT_LENGTH = 200;
-const MAX_TOOL_RESULT_CHARS = 8000;
-const MAX_SEARCH_RESULTS = 50;
-const MAX_GIT_LOG_COUNT = 50;
-const MAX_RUN_COMMAND_TIMEOUT = 30000;
-const MAX_TREE_ENTRIES_PER_DIR = 30;
-const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
-const SHELL_METACHARACTERS = /[;|&`$(){}><\n\r]/;
-const EXCLUDED_TREE_DIRS = ['.git', 'node_modules', '__pycache__', '.venv', 'dist', 'build', '.next'];
 const AGENT_GIT_AUTHOR = 'AI Librarian <ai-librarian@box.local>';
-
-const KNOWN_TOOL_NAMES = new Set([
-  'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
-  'run_command', 'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
-]);
-
-// --- Text-based tool call parser ---
-// Many local models output tool calls as JSON text instead of using the
-// structured tool_calls mechanism. This parser extracts them from content.
-
-interface ParsedToolCall {
-  name: string;
-  arguments: Record<string, string>;
-}
-
-interface ParseResult {
-  toolCalls: ParsedToolCall[];
-  segments: Array<{ type: 'thinking'; content: string } | { type: 'tool'; toolIndex: number }>;
-}
-
-// Escape literal newlines/tabs/CRs inside JSON string values.
-// Local models often output multiline content with literal line breaks
-// inside JSON strings, which makes JSON.parse fail.
-function escapeJsonStringLiterals(text: string): string {
-  let result = '';
-  let inStr = false;
-  let esc = false;
-  for (let k = 0; k < text.length; k++) {
-    const ch = text[k];
-    if (esc) { result += ch; esc = false; continue; }
-    if (ch === '\\' && inStr) { result += ch; esc = true; continue; }
-    if (ch === '"') { inStr = !inStr; result += ch; continue; }
-    if (inStr) {
-      if (ch === '\n') { result += '\\n'; continue; }
-      if (ch === '\r') { result += '\\r'; continue; }
-      if (ch === '\t') { result += '\\t'; continue; }
-    }
-    result += ch;
-  }
-  return result;
-}
-
-function parseToolCallsFromText(text: string): ParseResult {
-  const toolCalls: ParsedToolCall[] = [];
-  const segments: ParseResult['segments'] = [];
-
-  // Strip <tool_call> tags and markdown code fences
-  const cleaned = text
-    .replace(/<\/?tool_call>/g, '')
-    .replace(/```(?:json)?\s*/g, '')
-    .replace(/```/g, '');
-
-  // Track positions of found tool call JSON blocks
-  const toolSpans: Array<{ start: number; end: number; toolIndex: number }> = [];
-
-  // Try to parse JSON objects starting at each '{' by tracking brace depth
-  for (let i = 0; i < cleaned.length; i++) {
-    if (cleaned[i] !== '{') continue;
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let j = i; j < cleaned.length; j++) {
-      const ch = cleaned[j];
-      if (escape) { escape = false; continue; }
-      if (ch === '\\' && inString) { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === '{') depth++;
-      else if (ch === '}') {
-        depth--;
-        if (depth === 0) {
-          try {
-            const jsonStr = cleaned.slice(i, j + 1);
-            let obj;
-            try {
-              obj = JSON.parse(jsonStr);
-            } catch {
-              // Literal newlines inside JSON strings are invalid; try escaping them
-              obj = JSON.parse(escapeJsonStringLiterals(jsonStr));
-            }
-            if (obj.name && KNOWN_TOOL_NAMES.has(obj.name)) {
-              // Some models use "parameters" instead of "arguments"
-              const toolIndex = toolCalls.length;
-              toolCalls.push({
-                name: obj.name,
-                arguments: obj.arguments || obj.parameters || {},
-              });
-              toolSpans.push({ start: i, end: j + 1, toolIndex });
-            }
-          } catch {
-            // malformed JSON, skip
-          }
-          i = j; // skip past this object
-          break;
-        }
-      }
-    }
-  }
-
-  // Build interleaved segments: thinking text between tool calls
-  let pos = 0;
-  for (const span of toolSpans) {
-    const thinking = cleaned.slice(pos, span.start).trim();
-    if (thinking) {
-      segments.push({ type: 'thinking', content: thinking });
-    }
-    segments.push({ type: 'tool', toolIndex: span.toolIndex });
-    pos = span.end;
-  }
-  // Trailing thinking after the last tool call
-  const trailing = cleaned.slice(pos).trim();
-  if (trailing) {
-    segments.push({ type: 'thinking', content: trailing });
-  }
-
-  return { toolCalls, segments };
-}
-
-// --- Path safety ---
-
-function sanitizeRelativePath(relPath: string): string | null {
-  const normalized = path.normalize(relPath);
-  if (path.isAbsolute(normalized) || normalized.startsWith('..')) return null;
-  if (normalized.includes('.git' + path.sep) || normalized === '.git') return null;
-  return normalized;
-}
-
-// --- Tool definitions for Ollama ---
-
-const AGENT_TOOLS: Tool[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'read_file',
-      description: 'Read the contents of a file in the repository',
-      parameters: {
-        type: 'object',
-        properties: {
-          file_path: { type: 'string', description: 'Relative path to the file from repository root' },
-        },
-        required: ['file_path'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'write_file',
-      description: 'Write content to a file in the repository (creates or overwrites). Use for NEW files or when rewriting the entire file.',
-      parameters: {
-        type: 'object',
-        properties: {
-          file_path: { type: 'string', description: 'Relative path to the file from repository root' },
-          content: { type: 'string', description: 'Full file content to write' },
-        },
-        required: ['file_path', 'content'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'edit_file',
-      description: 'Make a targeted edit to an existing file by replacing a specific text block. More efficient than write_file for small changes. The old_text must match EXACTLY (including whitespace and indentation).',
-      parameters: {
-        type: 'object',
-        properties: {
-          file_path: { type: 'string', description: 'Relative path to the file from repository root' },
-          old_text: { type: 'string', description: 'The exact text block to find and replace (must match exactly)' },
-          new_text: { type: 'string', description: 'The replacement text' },
-        },
-        required: ['file_path', 'old_text', 'new_text'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'list_files',
-      description: 'List files and directories at a given path in the repository',
-      parameters: {
-        type: 'object',
-        properties: {
-          dir_path: { type: 'string', description: 'Relative directory path from repository root (use "." for root)' },
-        },
-        required: ['dir_path'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'search_files',
-      description: 'Search for a text pattern (regex supported) across files in the repository. Returns matching lines with file paths and line numbers.',
-      parameters: {
-        type: 'object',
-        properties: {
-          pattern: { type: 'string', description: 'Text or regex pattern to search for' },
-          dir_path: { type: 'string', description: 'Relative directory to search in (use "." for entire repository)' },
-          file_glob: { type: 'string', description: 'Optional glob to filter files, e.g. "*.ts", "*.py"' },
-        },
-        required: ['pattern'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'run_command',
-      description: 'Execute a shell command in the repository directory. Use for builds, tests, linters, or any command-line operation. Commands are restricted to a safe allowlist.',
-      parameters: {
-        type: 'object',
-        properties: {
-          command: { type: 'string', description: 'Shell command to execute (e.g. "npm test", "python main.py", "make build")' },
-        },
-        required: ['command'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'git_diff',
-      description: 'Show the diff of current uncommitted changes',
-      parameters: { type: 'object', properties: {} },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'git_commit',
-      description: 'Stage all changes and commit with a message',
-      parameters: {
-        type: 'object',
-        properties: {
-          message: { type: 'string', description: 'Commit message' },
-        },
-        required: ['message'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'git_log',
-      description: 'Show recent commit history (last 10 commits by default)',
-      parameters: {
-        type: 'object',
-        properties: {
-          count: { type: 'string', description: 'Number of commits to show (default: 10)' },
-        },
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'git_revert',
-      description: 'Revert the repository to a specific commit (hard reset). Use git_log to find commits first.',
-      parameters: {
-        type: 'object',
-        properties: {
-          commit_hash: { type: 'string', description: 'The commit hash to revert to' },
-        },
-        required: ['commit_hash'],
-      },
-    },
-  },
-];
-
-// --- Tool execution ---
-
-interface ToolResult {
-  text: string;
-  diff?: { before: string; after: string };
-}
-
-/** Force git to re-read file mtimes and detect changes made within the same second (racy git fix) */
-function refreshGitIndex(repoPath: string) {
-  try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
-}
-
-function executeTool(toolName: string, args: Record<string, string>, repoPath: string): ToolResult {
-  try {
-    switch (toolName) {
-      case 'read_file': {
-        const rel = sanitizeRelativePath(args.file_path || '');
-        if (!rel) return { text: 'Error: invalid file path' };
-        const fullPath = path.join(repoPath, rel);
-        if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
-        const stat = fs.statSync(fullPath);
-        if (stat.size > MAX_FILE_SIZE_BYTES) return { text: 'Error: file too large (max 512KB)' };
-        return { text: fs.readFileSync(fullPath, 'utf-8') };
-      }
-      case 'write_file': {
-        const rel = sanitizeRelativePath(args.file_path || '');
-        if (!rel) return { text: 'Error: invalid file path' };
-        const fullPath = path.join(repoPath, rel);
-        const dir = path.dirname(fullPath);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        const before = fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf-8') : '';
-        const after = args.content || '';
-        fs.writeFileSync(fullPath, after, 'utf-8');
-        return { text: `File written: ${rel}`, diff: { before, after } };
-      }
-      case 'edit_file': {
-        const rel = sanitizeRelativePath(args.file_path || '');
-        if (!rel) return { text: 'Error: invalid file path' };
-        const fullPath = path.join(repoPath, rel);
-        if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
-        const oldText = args.old_text || '';
-        const newText = args.new_text ?? '';
-        if (!oldText) return { text: 'Error: old_text is required' };
-        const content = fs.readFileSync(fullPath, 'utf-8');
-        const idx = content.indexOf(oldText);
-        if (idx === -1) return { text: `Error: old_text not found in ${rel}. Make sure the text matches exactly including whitespace.` };
-        // Ensure only one occurrence to avoid ambiguous edits
-        const secondIdx = content.indexOf(oldText, idx + 1);
-        if (secondIdx !== -1) return { text: `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.` };
-        const updated = content.slice(0, idx) + newText + content.slice(idx + oldText.length);
-        fs.writeFileSync(fullPath, updated, 'utf-8');
-        const lineCount = oldText.split('\n').length;
-        return { text: `File edited: ${rel} (replaced ${lineCount} ${lineCount === 1 ? 'line' : 'lines'})`, diff: { before: oldText, after: newText } };
-      }
-      case 'list_files': {
-        const rel = sanitizeRelativePath(args.dir_path || '.');
-        if (!rel) return { text: 'Error: invalid directory path' };
-        const fullPath = path.join(repoPath, rel);
-        if (!fs.existsSync(fullPath)) return { text: `Error: directory not found: ${rel}` };
-        const entries = fs.readdirSync(fullPath, { withFileTypes: true });
-        const listing = entries
-          .filter(e => e.name !== '.git')
-          .map(e => `${e.isDirectory() ? '[dir] ' : '      '}${e.name}`)
-          .sort()
-          .join('\n') || '(empty directory)';
-        return { text: listing };
-      }
-      case 'search_files': {
-        const pattern = args.pattern || '';
-        if (!pattern) return { text: 'Error: pattern is required' };
-        const searchDir = sanitizeRelativePath(args.dir_path || '.') || '.';
-        const fullSearchDir = path.join(repoPath, searchDir);
-        if (!fs.existsSync(fullSearchDir)) return { text: `Error: directory not found: ${searchDir}` };
-        const grepArgs = ['grep', '-n', '-I', `--max-count=${MAX_SEARCH_RESULTS}`, '-e', pattern];
-        if (args.file_glob) grepArgs.push('--', args.file_glob);
-        try {
-          const result = execFileSync('git', grepArgs,
-            { cwd: fullSearchDir, encoding: 'utf-8', timeout: 15000 }
-          ).trim();
-          return { text: result || '(no matches)' };
-        } catch (err: any) {
-          if (err.status === 1) return { text: '(no matches)' };
-          return { text: `Error: ${err.message || String(err)}` };
-        }
-      }
-      case 'run_command': {
-        const cmd = (args.command || '').trim();
-        if (!cmd) return { text: 'Error: command is required' };
-        if (SHELL_METACHARACTERS.test(cmd)) {
-          return { text: 'Error: command contains forbidden shell characters (;|&`$(){}><). Use simple commands only.' };
-        }
-        const baseCmd = cmd.split(/\s+/)[0].replace(/^\.\//, '');
-        if (!ALLOWED_COMMANDS.includes(baseCmd)) {
-          return { text: `Error: command "${baseCmd}" is not allowed. Allowed: ${ALLOWED_COMMANDS.join(', ')}` };
-        }
-        try {
-          const result = execSync(cmd, {
-            cwd: repoPath,
-            encoding: 'utf-8',
-            timeout: MAX_RUN_COMMAND_TIMEOUT,
-            env: { ...process.env, CI: 'true' },
-          });
-          return { text: result.trim() || '(command completed with no output)' };
-        } catch (err: any) {
-          const output = [err.stdout, err.stderr].filter(Boolean).join('\n').trim();
-          return { text: output || `Error: command failed with exit code ${err.status}` };
-        }
-      }
-      case 'git_status':
-        refreshGitIndex(repoPath);
-        return { text: execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)' };
-      case 'git_diff':
-        refreshGitIndex(repoPath);
-        return { text: execSync('git diff', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)' };
-      case 'git_commit': {
-        const message = args.message || 'Agent commit';
-        refreshGitIndex(repoPath);
-        execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
-        if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
-        execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        return { text: `Changes committed: ${message}` };
-      }
-      case 'git_log': {
-        const count = parseInt(args.count || '10', 10);
-        const safeCount = Math.min(Math.max(1, count), MAX_GIT_LOG_COUNT);
-        return { text: execSync(`git log --oneline -n ${safeCount}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)' };
-      }
-      case 'git_revert': {
-        const hash = args.commit_hash || '';
-        if (!hash || !/^[a-f0-9]{4,40}$/i.test(hash)) return { text: 'Error: invalid commit hash' };
-        execSync(`git reset --hard ${hash}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        return { text: `Repository reverted to commit: ${hash}` };
-      }
-      default:
-        return { text: `Error: unknown tool: ${toolName}` };
-    }
-  } catch (err: any) {
-    return { text: `Error: ${err.message || String(err)}` };
-  }
-}
+const GOOSE_TIMEOUT_MS = 600000; // 10 minutes max per goose invocation
+const MAX_OUTPUT_CHARS = 50000; // Max chars to capture from goose output
 
 // --- Agent workspace ---
 // Warez/ = git repos (standard .git). Agent clones from warez, pushes to warez.
@@ -540,38 +119,6 @@ function autoInitGit(repoPath: string, actions: AgentStep[]) {
 
 // --- Agent types ---
 
-// Truncate large tool results to prevent token overflow
-function truncateToolResult(result: string): string {
-  if (result.length <= MAX_TOOL_RESULT_CHARS) return result;
-  const half = Math.floor(MAX_TOOL_RESULT_CHARS / 2);
-  return result.slice(0, half) + `\n\n... (truncated ${result.length - MAX_TOOL_RESULT_CHARS} chars) ...\n\n` + result.slice(-half);
-}
-
-// Compact repo tree for context (max 2 levels deep, excludes common non-code dirs)
-function getRepoTreeOverview(repoPath: string, prefix = '', depth = 0): string {
-  if (depth > 2) return '';
-  try {
-    const entries = fs.readdirSync(repoPath, { withFileTypes: true })
-      .filter(e => !EXCLUDED_TREE_DIRS.includes(e.name) && !e.name.startsWith('.'))
-      .sort((a, b) => {
-        if (a.isDirectory() && !b.isDirectory()) return -1;
-        if (!a.isDirectory() && b.isDirectory()) return 1;
-        return a.name.localeCompare(b.name);
-      })
-      .slice(0, MAX_TREE_ENTRIES_PER_DIR);
-    let tree = '';
-    for (const entry of entries) {
-      tree += `${prefix}${entry.isDirectory() ? '📁 ' : '   '}${entry.name}\n`;
-      if (entry.isDirectory() && depth < 2) {
-        tree += getRepoTreeOverview(path.join(repoPath, entry.name), prefix + '  ', depth + 1);
-      }
-    }
-    return tree;
-  } catch {
-    return '';
-  }
-}
-
 export interface AgentStep {
   type: 'thinking' | 'tool';
   content?: string;
@@ -587,11 +134,12 @@ export interface AgentResult {
   currentBranch: string;
 }
 
-// --- Main agent runner using official Ollama client ---
+// --- Utility functions ---
 
-const AGENT_REQUEST_TIMEOUT = 300000; // 5 minutes per Ollama request
-
-const FILE_EXTENSION_LANGUAGES = '.py=Python, .ts=TypeScript, .js=JavaScript, .jsx/.tsx=React, .rs=Rust, .go=Go, .java=Java, .cpp/.cc/.c/.h/.hpp=C/C++, .rb=Ruby, .lua=Lua, .php=PHP, .swift=Swift, .kt=Kotlin, .cs=C#, .sh/.bash=Shell, .json=JSON, .yaml/.yml=YAML, .toml=TOML, .xml=XML, .html/.htm=HTML, .css=CSS, .scss/.sass=SCSS/Sass, .sql=SQL, .md=Markdown, .fth/.fs/.4th=Forth, .hs=Haskell, .ex/.exs=Elixir, .erl=Erlang, .clj=Clojure, .scala=Scala, .r/.R=R, .jl=Julia, .pl/.pm=Perl, .zig=Zig, .nim=Nim, .dart=Dart, .v=V, .ml/.mli=OCaml, .lisp/.cl=Common Lisp, .scm=Scheme, .asm/.s=Assembly, .ps1=PowerShell, .bat/.cmd=Batch, .dockerfile/Dockerfile=Dockerfile, .tf=Terraform, .proto=Protobuf, .graphql/.gql=GraphQL, .vue=Vue, .svelte=Svelte';
+/** Force git to re-read file mtimes and detect changes made within the same second (racy git fix) */
+function refreshGitIndex(repoPath: string) {
+  try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+}
 
 function getCurrentBranch(repoPath: string): string {
   try {
@@ -615,35 +163,13 @@ function sanitizeBranchName(raw: string): string {
   return raw
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\-]/g, '-')  // replace non-alphanumeric chars with hyphens
-    .replace(/-+/g, '-')            // collapse consecutive hyphens
-    .replace(/^-|-$/g, '');         // trim leading/trailing hyphens
-}
-
-async function generateBranchName(client: Ollama, model: string, userMessage: string): Promise<string> {
-  try {
-    const response = await client.chat({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: 'Generate a short git branch name (2-4 words, kebab-case, lowercase, no special characters except hyphens) that describes the task. Respond with ONLY the branch name, nothing else. Examples: add-binary-search, fix-login-bug, update-readme, refactor-api-routes',
-        },
-        { role: 'user', content: userMessage },
-      ],
-    });
-    const name = sanitizeBranchName(response.message.content || '');
-    if (name.length >= 3 && name.length <= 60) return name;
-  } catch {
-    // fallback below
-  }
-  // Fallback: generate from timestamp
-  return `agent-${Date.now().toString(36)}`;
+    .replace(/[^a-z0-9\-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
   try {
-    // Always stage everything first, then check
     refreshGitIndex(repoPath);
     execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
@@ -654,7 +180,6 @@ function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
   } catch (err: any) {
     console.error(`[agent] Auto-commit failed: ${err.message || String(err)}`);
   }
-  // Safety check: warn if changes still remain
   if (hasUncommittedChanges(repoPath)) {
     console.warn(`[agent] WARNING: uncommitted changes still present after auto-commit`);
   }
@@ -664,13 +189,11 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
   try {
     const branch = getCurrentBranch(workdir);
     if (!branch) return;
-    // Check if there are any commits to push (local ahead of remote or no upstream)
     let hasUnpushed = false;
     try {
       const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }).trim();
       hasUnpushed = log.length > 0;
     } catch {
-      // No upstream tracking branch yet — means everything is unpushed
       hasUnpushed = true;
     }
     if (!hasUnpushed) return;
@@ -679,14 +202,12 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
       execFileSync('git', ['push', '-u', 'origin', branch],
         { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
     } catch {
-      // Push rejected (non-fast-forward) — pull --rebase and retry once
       console.log(`[agent] Push rejected, attempting pull --rebase and retry`);
       try {
         execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
         execFileSync('git', ['push', '-u', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
       } catch {
-        // Rebase conflict — abort and force push as last resort
         try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* ignore */ }
         console.log(`[agent] Rebase failed, force pushing`);
         execFileSync('git', ['push', '--force-with-lease', '-u', 'origin', branch],
@@ -698,6 +219,532 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
     console.error(`[agent] Push failed: ${err.message}`);
   }
 }
+
+// --- Goose integration (https://github.com/block/goose) ---
+// Goose is an open source AI coding agent by Block with built-in developer tools,
+// native Ollama support, and structured JSON output.
+
+function resolveGoosePath(): string {
+  const envPath = process.env.GOOSE_PATH;
+  if (envPath && fs.existsSync(envPath)) return envPath;
+  try {
+    return execSync('which goose', { encoding: 'utf-8', timeout: 5000 }).trim();
+  } catch {
+    return 'goose';
+  }
+}
+
+/** Ensure goose config directory and config.yaml exist for Ollama */
+function ensureGooseConfig(model: string) {
+  const configDir = path.join(process.env.HOME || require('os').homedir(), '.config', 'goose');
+  const configFile = path.join(configDir, 'config.yaml');
+
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+
+  const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
+  const config = [
+    'GOOSE_PROVIDER: "ollama"',
+    `GOOSE_MODEL: "${model}"`,
+    'GOOSE_MODE: "auto"',
+    'keyring: false',
+    'GOOSE_TELEMETRY_ENABLED: false',
+    '',
+    'extensions:',
+    '  developer:',
+    '    bundled: true',
+    '    enabled: true',
+    '    name: developer',
+    '    timeout: 300',
+    '    type: builtin',
+  ].join('\n');
+
+  // Only write if config doesn't exist or model/provider changed
+  if (!fs.existsSync(configFile) || !fs.readFileSync(configFile, 'utf-8').includes(`GOOSE_MODEL: "${model}"`)) {
+    fs.writeFileSync(configFile, config, 'utf-8');
+  }
+  process.env.OLLAMA_HOST = ollamaHost;
+}
+
+/** Strip ANSI escape codes */
+function stripAnsi(text: string): string {
+  return text.replace(/\x1B\[[0-9;]*[mK]/g, '');
+}
+
+/** Boilerplate lines from goose output that should be filtered */
+/** Boilerplate lines from goose output that should be filtered from response */
+const GOOSE_BOILERPLATE_RE = /^(logging to |starting session|Closing session|goose v|●|\u25CF)/i;
+
+/** Check if a line is goose session metadata (not tool calls — those are parsed separately) */
+function isGooseBoilerplateLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (GOOSE_BOILERPLATE_RE.test(trimmed)) return true;
+  if (trimmed.startsWith('●') || trimmed.startsWith('\u25CF')) return true;
+  // JSON tool call fragments (e.g., standalone "}" or "name": "developer__...")
+  if (/^\{?\s*"(name|function_name)"\s*:\s*"developer__/.test(trimmed)) return true;
+  if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
+  if (/^\{?\s*"(command|old_str|new_str|file_text|path)"\s*:/.test(trimmed)) return true;
+  if (trimmed === '}' || trimmed === '{') return true;
+  if (/agent-workdirs\//.test(trimmed)) return true;
+  if (/^[\u2500\u256D\u256E\u2570\u256F\u2502\u2015\u2014─]+$/.test(trimmed)) return true;
+  if (/[\u2500\u2015\u2014─]{3,}/.test(trimmed)) return true;
+  if (/^Result:$/i.test(trimmed)) return true;
+  // Markdown code fence markers that goose/LLM may emit around JSON tool calls
+  if (/^```/.test(trimmed)) return true;
+  // Standalone code-fence language tag (e.g., "json" before a JSON tool call block)
+  if (/^(json|python|bash|typescript|javascript|sh)$/i.test(trimmed)) return true;
+  return false;
+}
+
+/**
+ * Parse goose stdout into tool call steps AND clean response text.
+ *
+ * Goose output format (with NO_COLOR=1):
+ *   ▸ text_editor developer        ← tool header (tool name + extension)
+ *     path ~/path/to/file           ← param: key value
+ *     command: str_replace           ← param: key: value
+ *     old_str: existing text         ← param (may be multiline)
+ *     new_str: replacement text
+ *                                    ← blank line = end of tool block
+ *   -32602: Missing 'old_str'...    ← error result from tool
+ *
+ *   ▸ shell developer
+ *     command: tree
+ *
+ *   (tree output or LLM text follows as plain text)
+ *
+ * Returns { steps, response } where:
+ *   - steps: AgentStep[] for each tool call
+ *   - response: clean text with all tool blocks and boilerplate removed
+ */
+function parseGooseOutput(stdout: string): { steps: AgentStep[]; response: string } {
+  const steps: AgentStep[] = [];
+  const lines = stripAnsi(stdout).split('\n');
+  const toolLineIndices = new Set<number>(); // lines belonging to tool blocks
+
+  let currentTool: { name: string; extension: string; args: Record<string, string>; startLine: number } | null = null;
+  let lastArgKey = '';
+
+  function flushTool(result?: string, endLine?: number) {
+    if (!currentTool) return;
+    // Mark all lines from start to end as tool-related
+    const end = endLine ?? currentTool.startLine;
+    for (let j = currentTool.startLine; j <= end; j++) toolLineIndices.add(j);
+
+    const step: AgentStep = { type: 'tool', tool: '', args: {}, result: result || '' };
+    const cmd = currentTool.args.command || '';
+
+    if (currentTool.name === 'text_editor') {
+      if (cmd === 'str_replace') {
+        step.tool = 'edit_file';
+        step.args = { file_path: currentTool.args.path || '' };
+        step.diff = { before: currentTool.args.old_str || '', after: currentTool.args.new_str || '' };
+        step.result = result || `Edit ${currentTool.args.path || 'file'}`;
+      } else if (cmd === 'write' || cmd === 'create') {
+        step.tool = 'write_file';
+        step.args = { file_path: currentTool.args.path || '' };
+        if (currentTool.args.file_text) step.diff = { before: '', after: currentTool.args.file_text };
+        step.result = result || `Write ${currentTool.args.path || 'file'}`;
+      } else if (cmd === 'view') {
+        step.tool = 'read_file';
+        step.args = { file_path: currentTool.args.path || '' };
+        step.result = result || `View ${currentTool.args.path || 'file'}`;
+      } else {
+        step.tool = 'text_editor';
+        step.args = currentTool.args;
+        step.result = result || `text_editor: ${cmd || 'unknown'}`;
+      }
+    } else if (currentTool.name === 'shell') {
+      step.tool = 'shell';
+      step.args = { command: currentTool.args.command || '' };
+      step.result = result || `$ ${currentTool.args.command || ''}`;
+    } else {
+      step.tool = currentTool.name;
+      step.args = currentTool.args;
+      step.result = result || currentTool.name;
+    }
+
+    steps.push(step);
+    currentTool = null;
+    lastArgKey = '';
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Tool header: "  ▸ text_editor developer" or "▸ shell developer"
+    const headerMatch = trimmed.match(/^[\u25B8▸]\s+(\S+)(?:\s+(\S+))?/);
+    if (headerMatch) {
+      flushTool(undefined, i > 0 ? i - 1 : 0);
+      currentTool = { name: headerMatch[1], extension: headerMatch[2] || '', args: {}, startLine: i };
+      lastArgKey = '';
+      continue;
+    }
+
+    // JSON tool call block: { "name": "developer__text_editor", ... }
+    // Goose sometimes outputs tool calls as JSON instead of ▸ format
+    if (/^\{?\s*"name"\s*:\s*"developer__/.test(trimmed) || /^\{?\s*"function_name"\s*:\s*"developer__/.test(trimmed)) {
+      flushTool(undefined, i > 0 ? i - 1 : 0);
+      // Collect JSON lines until we find the closing brace
+      let jsonStr = trimmed.startsWith('{') ? trimmed : '{' + trimmed;
+      let braceDepth = 0;
+      for (const ch of jsonStr) { if (ch === '{') braceDepth++; if (ch === '}') braceDepth--; }
+      toolLineIndices.add(i);
+      // Also mark preceding context lines (standalone '{', 'json', '```json', blank lines)
+      for (let k = i - 1; k >= Math.max(0, i - 3); k--) {
+        const prev = lines[k].trim();
+        if (prev === '{' || prev === 'json' || /^```/.test(prev)) {
+          toolLineIndices.add(k);
+        } else if (!prev) {
+          toolLineIndices.add(k); // blank line between markers — mark but keep scanning
+        } else break;
+      }
+      let j = i + 1;
+      while (braceDepth > 0 && j < lines.length) {
+        const jt = lines[j].trim();
+        jsonStr += '\n' + jt;
+        for (const ch of jt) { if (ch === '{') braceDepth++; if (ch === '}') braceDepth--; }
+        toolLineIndices.add(j);
+        j++;
+      }
+      i = j - 1; // advance loop past the JSON block
+      // Try to parse and create a step
+      try {
+        // Clean up: some JSON might have keys like "name" at top level, some nested under "arguments"
+        const obj = JSON.parse(jsonStr);
+        const rawName: string = obj.name || obj.function_name || '';
+        const toolName = rawName.replace(/^developer__/, '');
+        const args = obj.arguments || obj;
+        const cmd = args.command || '';
+        const filePath = args.path || '';
+        const step: AgentStep = { type: 'tool', tool: '', args: {}, result: '' };
+        if (toolName === 'text_editor') {
+          if (cmd === 'str_replace') {
+            step.tool = 'edit_file';
+            step.args = { file_path: filePath };
+            step.diff = { before: args.old_str || '', after: args.new_str || '' };
+            step.result = `Edit ${filePath || 'file'}`;
+          } else if (cmd === 'write' || cmd === 'create') {
+            step.tool = 'write_file';
+            step.args = { file_path: filePath };
+            if (args.file_text) step.diff = { before: '', after: args.file_text };
+            step.result = `Write ${filePath || 'file'}`;
+          } else if (cmd === 'view') {
+            step.tool = 'read_file';
+            step.args = { file_path: filePath };
+            step.result = `View ${filePath || 'file'}`;
+          } else {
+            step.tool = 'text_editor';
+            step.args = args;
+            step.result = `text_editor: ${cmd}`;
+          }
+        } else if (toolName === 'shell') {
+          step.tool = 'shell';
+          step.args = { command: args.command || '' };
+          step.result = `$ ${args.command || ''}`;
+        } else {
+          step.tool = toolName || 'unknown';
+          step.args = args;
+          step.result = toolName;
+        }
+        steps.push(step);
+      } catch {
+        // JSON parse failed — lines are still filtered via toolLineIndices
+        console.warn('[agent] Failed to parse JSON tool call block, filtering raw lines');
+      }
+      continue;
+    }
+
+    // Error result: "-32602: Missing 'old_str' parameter..."
+    if (/^-\d{4,5}:\s/.test(trimmed)) {
+      toolLineIndices.add(i);
+      if (currentTool) {
+        flushTool(trimmed, i);
+      } else if (steps.length > 0) {
+        // Error follows a recently flushed tool (blank line between tool params and error)
+        steps[steps.length - 1].result = trimmed;
+      }
+      continue;
+    }
+
+    // Inside a tool block: parse params
+    if (currentTool) {
+      // Param line: "    key: value" or "    key value" (for path without colon)
+      const paramMatch = line.match(/^\s{2,}(\w+):?\s+(.*)/);
+      if (paramMatch) {
+        lastArgKey = paramMatch[1];
+        currentTool.args[lastArgKey] = paramMatch[2];
+        toolLineIndices.add(i);
+        continue;
+      }
+
+      // Continuation of multiline value (indented but not a new key)
+      if (lastArgKey && /^\s{4,}/.test(line) && trimmed) {
+        currentTool.args[lastArgKey] += '\n' + trimmed;
+        toolLineIndices.add(i);
+        continue;
+      }
+
+      // Blank line or non-indented line: end of tool block
+      if (!trimmed || !/^\s{2,}/.test(line)) {
+        flushTool(undefined, i > 0 ? i - 1 : 0);
+      }
+    }
+  }
+
+  // Flush last tool
+  flushTool(undefined, lines.length - 1);
+
+  // Build clean response: exclude tool block lines and boilerplate
+  const responseLines = lines.filter((line, idx) => {
+    if (toolLineIndices.has(idx)) return false;
+    if (isGooseBoilerplateLine(line)) return false;
+    return true;
+  });
+  const response = responseLines.join('\n').trim();
+
+  return { steps, response };
+}
+
+/** Parse a unified diff hunk into before/after text */
+function parseUnifiedDiffHunks(diffOutput: string): { before: string; after: string } {
+  const before: string[] = [];
+  const after: string[] = [];
+  for (const line of diffOutput.split('\n')) {
+    if (line.startsWith('@@')) continue;
+    if (line.startsWith('---') || line.startsWith('+++')) continue;
+    if (line.startsWith('diff --git')) continue;
+    if (line.startsWith('index ')) continue;
+    if (line.startsWith('new file') || line.startsWith('deleted file')) continue;
+    if (line.startsWith('-')) {
+      before.push(line.slice(1));
+    } else if (line.startsWith('+')) {
+      after.push(line.slice(1));
+    } else if (line.startsWith(' ')) {
+      before.push(line.slice(1));
+      after.push(line.slice(1));
+    }
+  }
+  return { before: before.join('\n'), after: after.join('\n') };
+}
+
+/** Build timeline steps from git state: commits + per-file diffs since oldSha */
+function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
+  const steps: AgentStep[] = [];
+  const resolvedWorkdir = path.resolve(workdir);
+
+  if (!/^[a-f0-9]{7,40}$/.test(oldSha)) return steps;
+
+  try {
+    const log = execFileSync('git', ['log', '--oneline', `${oldSha}..HEAD`], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (log) {
+      for (const line of log.split('\n')) {
+        if (line.trim()) steps.push({ type: 'tool', tool: 'git_commit', args: {}, result: `Commit ${line.trim()}` });
+      }
+    }
+  } catch { /* no new commits */ }
+
+  try {
+    const changedFiles = execFileSync('git', ['diff', '--name-only', `${oldSha}..HEAD`], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (changedFiles) {
+      for (const file of changedFiles.split('\n')) {
+        if (!file.trim()) continue;
+        try {
+          const fileDiff = execFileSync('git', ['diff', `${oldSha}..HEAD`, '--', file], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
+          const { before, after } = parseUnifiedDiffHunks(fileDiff);
+          steps.push({
+            type: 'tool', tool: before ? 'edit_file' : 'write_file',
+            args: { file_path: file },
+            result: `${before ? 'Applied edit to' : 'Wrote'} ${file}`,
+            diff: { before, after },
+          });
+        } catch {
+          steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Changed ${file}` });
+        }
+      }
+    }
+  } catch { /* no changes */ }
+
+  try {
+    const uncommitted = execFileSync('git', ['diff', 'HEAD', '--name-only'], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const staged = execFileSync('git', ['diff', '--cached', '--name-only'], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 }).trim();
+    const allUncommitted = new Set([...uncommitted.split('\n').filter(Boolean), ...staged.split('\n').filter(Boolean)]);
+    for (const file of allUncommitted) {
+      try {
+        const fileDiff = execFileSync('git', ['diff', 'HEAD', '--', file], { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 10000 });
+        const { before, after } = parseUnifiedDiffHunks(fileDiff);
+        steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Uncommitted changes in ${file}`, diff: { before, after } });
+      } catch {
+        steps.push({ type: 'tool', tool: 'edit_file', args: { file_path: file }, result: `Uncommitted changes in ${file}` });
+      }
+    }
+  } catch { /* no uncommitted */ }
+
+  return steps;
+}
+
+/** Binary-looking file extensions to skip when pre-seeding file contents */
+const BINARY_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.svg', '.mp3', '.mp4', '.zip', '.tar', '.gz', '.pdf', '.exe', '.dll', '.so', '.dylib', '.o', '.a', '.wasm', '.lock']);
+
+/** Build a pre-seeded repo context (file tree + small file contents) to reduce tool calls.
+ * Without this, the model needs to call `tree` and `view` before it can edit,
+ * which doubles the number of Ollama calls and causes str_replace errors
+ * when the model guesses file contents instead of reading them. */
+function getRepoContext(workdir: string): string {
+  const resolved = path.resolve(workdir);
+  const parts: string[] = [];
+
+  let fileList: string[] = [];
+  try {
+    const raw = execFileSync('git', ['ls-files'], { cwd: resolved, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (raw) {
+      parts.push('=== FILE TREE ===');
+      parts.push(raw);
+      parts.push('');
+      fileList = raw.split('\n').filter(Boolean);
+    }
+  } catch { /* not a git repo or no files */ }
+
+  // Contents of small text files (< 5KB each, < 50KB total budget)
+  const MAX_FILE_SIZE = 5 * 1024;
+  const MAX_TOTAL_SIZE = 50 * 1024;
+  let totalSize = 0;
+
+  for (const file of fileList) {
+    if (totalSize >= MAX_TOTAL_SIZE) break;
+    const ext = path.extname(file).toLowerCase();
+    if (BINARY_EXTS.has(ext)) continue;
+
+    try {
+      const filePath = path.join(resolved, file);
+      const stat = fs.statSync(filePath);
+      if (stat.size > MAX_FILE_SIZE || !stat.isFile()) continue;
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      if (content.includes('\0')) continue; // skip binary files with null bytes
+
+      parts.push(`=== ${file} ===`);
+      parts.push(content);
+      parts.push('');
+      totalSize += content.length;
+    } catch { /* skip unreadable files */ }
+  }
+
+  if (parts.length === 0) return '';
+  return 'Here is the current state of the repository:\n\n' + parts.join('\n') + '\n\n';
+}
+
+/** Build a context summary from conversation history */
+function buildHistoryContext(history: Array<{ role: string; content: string }>): string {
+  const recent = history.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6);
+  if (recent.length === 0) return '';
+  const ctx = recent.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 500)}`).join('\n\n');
+  return `\n\nPrevious conversation context:\n${ctx}\n\n`;
+}
+
+/** Run goose as a subprocess and capture its output */
+function runGooseProcess(
+  goosePath: string,
+  message: string,
+  workdir: string,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  return new Promise((resolve) => {
+    const args = [
+      'run',
+      '-t', message,
+      '--no-session',
+      '--with-builtin', 'developer',
+    ];
+
+    console.log(`[agent] Running goose in: ${workdir}`);
+
+    const env: Record<string, string> = {
+      ...process.env as Record<string, string>,
+      NO_COLOR: '1',
+    };
+
+    const proc = spawn(goosePath, args, {
+      cwd: path.resolve(workdir),
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let resolved = false;
+
+    proc.stdout.on('data', (data: Buffer) => {
+      const chunk = data.toString();
+      stdout += chunk;
+      if (stdout.length > MAX_OUTPUT_CHARS) stdout = stdout.slice(-MAX_OUTPUT_CHARS);
+    });
+
+    // Safety timeout — declared before handlers so closures can access it
+    let timer: ReturnType<typeof setTimeout>;
+
+    proc.stderr.on('data', (data: Buffer) => {
+      const chunk = data.toString();
+      stderr += chunk;
+      if (stderr.length > MAX_OUTPUT_CHARS) stderr = stderr.slice(-MAX_OUTPUT_CHARS);
+    });
+
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + '\nProcess error: ' + err.message, exitCode: 1 }); }
+    });
+
+    timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try { proc.kill(); } catch { /* ignore */ }
+        resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
+      }
+    }, GOOSE_TIMEOUT_MS);
+  });
+}
+
+
+/** Generate a branch name using Ollama directly (lightweight call) */
+async function generateBranchName(model: string, userMessage: string): Promise<string> {
+  const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
+  try {
+    const payload = JSON.stringify({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'Generate a short git branch name (2-4 words, kebab-case, lowercase, no special characters except hyphens) that describes the task. Respond with ONLY the branch name, nothing else. Examples: add-binary-search, fix-login-bug, update-readme, refactor-api-routes',
+        },
+        { role: 'user', content: userMessage },
+      ],
+      stream: false,
+    });
+
+    const url = new URL('/api/chat', ollamaHost);
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await response.json() as { message?: { content?: string } };
+    const name = sanitizeBranchName(data.message?.content || '');
+    if (name.length >= 3 && name.length <= 60) return name;
+  } catch {
+    // fallback below
+  }
+  return `agent-${Date.now().toString(36)}`;
+}
+
+// --- Main agent runner using goose ---
 
 export async function runAgent(
   model: string,
@@ -711,22 +758,13 @@ export async function runAgent(
   conversationId: string,
 ): Promise<AgentResult> {
   const actions: AgentStep[] = [];
-  console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
-  const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
-  const client = new Ollama({
-    host: ollamaHost,
-    fetch: (url: RequestInfo | URL, init?: RequestInit) => {
-      return fetch(url, { ...init, signal: AbortSignal.timeout(AGENT_REQUEST_TIMEOUT) });
-    },
-  });
+  console.log(`[agent] Starting goose agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
 
   // Ensure warez repo is git-initialized and accepts pushes
   if (!isBareRepo(repoPath)) {
     if (fs.existsSync(path.join(repoPath, '.git'))) {
-      // Existing non-bare git repo → just enable push support
       ensureReceivePush(repoPath);
     } else {
-      // Not a git repo at all → init with standard .git + enable push
       autoInitGit(repoPath, actions);
     }
   }
@@ -743,7 +781,6 @@ export async function runAgent(
       const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
         console.log(`[agent] Checking out branch: ${branch}`);
-        // Try local branch first, then remote tracking branch
         try {
           execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         } catch {
@@ -751,14 +788,11 @@ export async function runAgent(
         }
         actions.push({ type: 'tool', tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
       }
-      // Always pull latest changes (even if already on the branch)
       try {
         console.log(`[agent] Pulling latest changes for branch: ${branch}`);
         const pullOutput = execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
         actions.push({ type: 'tool', tool: 'git_pull', args: { branch }, result: pullOutput.trim() || 'Already up to date' });
       } catch {
-        // Pull/rebase may fail due to conflicts or local-only branch
-        // Abort any in-progress rebase to leave workdir clean
         try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* no rebase in progress */ }
         try { execSync('git merge --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* no merge in progress */ }
         console.log(`[agent] Pull failed (conflict or local-only branch), continuing with local state`);
@@ -768,17 +802,16 @@ export async function runAgent(
     }
   }
 
-  // On first message: generate branch name and create it before the agent loop
+  // On first message: generate branch name and create it
   let createdBranch = '';
   if (isFirstMessage) {
     console.log(`[agent] Generating branch name from prompt...`);
-    const branchName = await generateBranchName(client, model, userMessage);
+    const branchName = await generateBranchName(model, userMessage);
     if (!/^[\w.\-]+$/.test(branchName)) {
       actions.push({ type: 'tool', tool: 'git_create_branch', args: { branch_name: branchName }, result: 'Error: generated branch name is invalid' });
     } else {
       let uniqueName = branchName;
       try {
-        // Ensure unique branch name by appending numeric suffix if it already exists
         const existingBranches = execSync('git branch --list', { cwd: workdir, encoding: 'utf-8' })
           .split('\n').map(b => b.replace(/^\*?\s+/, '').trim()).filter(Boolean);
         let suffix = 2;
@@ -795,199 +828,98 @@ export async function runAgent(
     }
   }
 
+  // Build the message for goose: system prompt + repo context + conversation history + user request
+  const activeBranch = createdBranch || getCurrentBranch(workdir);
   const branchInfo = createdBranch
-    ? `A new branch "${createdBranch}" has been automatically created for this task (parent: "${branch}").`
-    : '';
+    ? `You just created branch "${createdBranch}" for this task.`
+    : `You are on branch "${activeBranch}".`;
 
-  // Get compact repo overview for context on first message
-  const repoTree = isFirstMessage ? getRepoTreeOverview(workdir) : '';
-  const treeSection = repoTree ? `\nREPOSITORY STRUCTURE:\n${repoTree}` : '';
+  const systemPrompt = [
+    `You are AI Librarian Code Agent — an AI assistant that can read, write, and manage code in local git repositories.`,
+    `You are working with the repository "${repoName}". ${branchInfo}`,
+    ``,
+    `The file contents below are ALREADY LOADED — do NOT re-read them unless they were not included.`,
+    ``,
+    `WORKFLOW (complete ALL steps from start to finish in a single session):`,
+    `1. UNDERSTAND: Read relevant files and explore the codebase before making any changes`,
+    `2. PLAN: Think about what changes are needed and explain your approach`,
+    `3. IMPLEMENT: Make changes (str_replace for targeted edits, write/create for new files)`,
+    `4. VERIFY: Check with "git status" and "git diff", run tests/builds if applicable`,
+    `5. COMMIT & PUSH: Run "git add -A && git commit -m 'description' && git push" — MANDATORY`,
+    ``,
+    `You MUST complete the entire workflow. Do NOT stop after one step.`,
+    ``,
+    `IMPORTANT RULES:`,
+    `- Do NOT create new branches. The branch has already been created for you.`,
+    `- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.${createdBranch ? ` Mention that changes were made on branch "${createdBranch}".` : ''}`,
+    `- Prefer str_replace over write for existing files — it is safer and preserves unchanged parts.`,
+    `- If str_replace fails twice for the same edit, switch to write with the full file content.`,
+    `- Do NOT re-read a file right after editing it — the edit result already confirms the change. Move on.`,
+    `- Do NOT read the same file more than once — you already have its content from the first read.`,
+    `- AVOID loops: if you find yourself calling the same tools repeatedly, STOP and either try a different approach or finish up.`,
+    `- Every tool call MUST make concrete progress toward completing the task. If a call wouldn't change anything, don't make it.`,
+    `- ALWAYS commit AND push your changes before finishing. Run "git add -A && git commit -m 'description of changes' && git push" via shell. Never leave uncommitted or unpushed changes.`,
+    `- If you made ANY file changes, you MUST commit and push as your final action. Check with "git status" first.`,
+    `- Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.`,
+    `- Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`,
+  ].join('\n');
 
-  const systemPrompt = `You are AI Librarian Code Agent — an AI assistant that can read, write, and manage code in local git repositories.
-You are currently working with the repository "${repoName}" on branch "${createdBranch || getCurrentBranch(workdir)}".
-${branchInfo}
-${treeSection}
-WORKFLOW (follow in order):
-1. UNDERSTAND: Read relevant files and explore the codebase before making any changes
-2. PLAN: Think about what changes are needed and explain your approach
-3. IMPLEMENT: Make changes using edit_file for targeted edits or write_file for new files
-4. VERIFY: Check your changes with git_status and git_diff, and run tests/builds with run_command if applicable
-5. COMMIT: Always commit with git_commit when done
+  // Pre-seeding repo context (file tree + small file contents) dramatically reduces
+  // the number of tool calls goose needs, improving both speed and reliability.
+  const repoContext = getRepoContext(workdir);
+  const historyContext = buildHistoryContext(history);
+  const fullMessage = `${systemPrompt}\n\n${repoContext}${historyContext}${historyContext ? 'Current request:\n' : ''}${userMessage}`;
 
-TOOL SELECTION GUIDE:
-- edit_file: For modifying EXISTING files — replaces a specific text block (search/replace). More precise than write_file.
-- write_file: For CREATING new files or when the entire file needs rewriting
-- search_files: To find where functions/variables/patterns are used across the codebase
-- run_command: To execute builds, tests, linters (e.g. "npm test", "python -m pytest", "make build")
-- list_files: To explore directory structure
-- read_file: To read file contents
+  // Capture HEAD before goose runs — we'll use git to detect changes afterward
+  const resolvedWorkdir = path.resolve(workdir);
+  let headBefore = '';
+  try {
+    headBefore = execSync('git rev-parse HEAD', { cwd: resolvedWorkdir, encoding: 'utf-8', timeout: 5000 }).trim();
+  } catch { /* empty repo? */ }
 
-IMPORTANT RULES:
-- Do NOT create new branches. The branch has already been created for you.
-- After completing changes, describe exactly what you changed: which files were modified/created, what was added/removed.${createdBranch ? `\n- Mention that changes were made on branch "${createdBranch}".` : ''}
-- When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same programming language as the file.
-- When writing entire files, include ALL the content — do not use placeholders like "// rest of the code".
-- Prefer edit_file over write_file for existing files — it is safer and preserves unchanged parts.
-- If a tool returns an error, explain what went wrong and try a different approach. If edit_file fails twice, switch to write_file.
-- Do NOT re-read a file right after editing it — the edit_file/write_file result already confirms the change. Move on to the next task.
-- Do NOT read the same file more than once in a row — you already have its content from the first read. Use the content you received immediately.
-- AVOID loops of tool calls: if you find yourself calling the same tools repeatedly, STOP and either try a different approach or finish up.
-- Every tool call MUST make concrete progress toward completing the task. If a tool call wouldn't change anything, don't make it.
-- You can revert to a previous commit using git_revert if needed (use git_log to find the commit hash).
-- ALWAYS commit your changes with git_commit before finishing. If there is any diff (git_diff shows changes), you MUST commit. Never leave uncommitted changes. Push happens automatically after you finish.
-- Make small, focused, atomic changes. Avoid mixing unrelated changes in one edit.
-- If you made ANY file changes, you MUST call git_commit as your final action. Check with git_status first. Absolutely no uncommitted changes may remain. Push is handled automatically.
-
-Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
-
-  const messages: Message[] = [
-    { role: 'system', content: systemPrompt },
-    ...history
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .slice(-10)
-      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-    { role: 'user', content: userMessage },
-  ];
-
-  let lastResponse = '';
-  const recentToolNames: string[] = []; // Track tool name history for cycle detection
-  let lastToolKey = '';
-  let repeatCount = 0;
-  const MAX_REPEAT_COUNT = 3;
-  const WRAP_UP_THRESHOLD = Math.floor(MAX_TOOL_ITERATIONS * 0.75);
+  // Configure and run goose
+  ensureGooseConfig(model);
+  const goosePath = resolveGoosePath();
+  actions.push({ type: 'tool', tool: 'goose', args: { model }, result: `Running goose with model ${model}...` });
 
   try {
-    for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-      // Inject "wrap up" hint when running low on iterations
-      if (i === WRAP_UP_THRESHOLD) {
-        messages.push({ role: 'system', content: `You have ${MAX_TOOL_ITERATIONS - i} iterations remaining. Wrap up: commit your changes and finish.` });
-      }
+    const result = await runGooseProcess(goosePath, fullMessage, workdir);
 
-      const response = await client.chat({
-        model,
-        messages,
-        tools: AGENT_TOOLS,
-      });
-
-      let toolCalls = response.message.tool_calls || [];
-      let parsedFromText = false;
-      let parsedSegments: ParseResult['segments'] = [];
-
-      // Fallback: parse tool calls from text content when model doesn't
-      // use structured tool_calls (common with local models)
-      if (toolCalls.length === 0 && response.message.content) {
-        const parsed = parseToolCallsFromText(response.message.content);
-        if (parsed.toolCalls.length > 0) {
-          toolCalls = parsed.toolCalls.map(p => ({
-            function: { name: p.name, arguments: p.arguments },
-          }));
-          parsedFromText = true;
-          parsedSegments = parsed.segments;
-        }
-      }
-
-      lastResponse = response.message.content || '';
-
-      // If no tool calls found (neither structured nor text), this is
-      // the final message — don't add it as thinking, just break
-      if (toolCalls.length === 0) {
-        break;
-      }
-
-      // Capture inner monologue between tool calls (only for intermediate iterations)
-      const addThinkingParagraphs = (text: string) => {
-        for (const para of text.split(/\n\n+/)) {
-          const trimmed = para.trim();
-          if (trimmed) actions.push({ type: 'thinking', content: trimmed });
-        }
-      };
-      if (parsedFromText && parsedSegments.length > 0) {
-        for (const seg of parsedSegments) {
-          if (seg.type === 'thinking' && seg.content) addThinkingParagraphs(seg.content);
-        }
-      } else if (lastResponse.trim()) {
-        addThinkingParagraphs(lastResponse);
-      }
-
-      // Detect repeated identical tool calls to prevent infinite loops
-      const toolKey = toolCalls.map(tc => `${tc.function.name}(${JSON.stringify(tc.function.arguments)})`).join(';');
-      if (toolKey === lastToolKey) {
-        repeatCount++;
-        if (repeatCount >= MAX_REPEAT_COUNT) {
-          console.log(`[agent] Breaking loop: same tool call repeated ${repeatCount + 1} times`);
-          break;
-        }
-      } else {
-        lastToolKey = toolKey;
-        repeatCount = 0;
-      }
-
-      // Detect cycling patterns (e.g. read→edit→read→edit)
-      for (const tc of toolCalls) {
-        recentToolNames.push(tc.function.name);
-      }
-      // Keep bounded: only need last 9 names max (cycleLen 3 × 3 repetitions)
-      while (recentToolNames.length > 9) recentToolNames.shift();
-
-      let cycleDetected = false;
-      for (const cycleLen of [2, 3]) {
-        if (recentToolNames.length < cycleLen * 3) continue;
-        const window = recentToolNames.slice(-cycleLen * 3);
-        const chunk1 = window.slice(0, cycleLen).join(',');
-        const chunk2 = window.slice(cycleLen, cycleLen * 2).join(',');
-        const chunk3 = window.slice(cycleLen * 2, cycleLen * 3).join(',');
-        if (chunk1 === chunk2 && chunk1 === chunk3) {
-          console.log(`[agent] Breaking loop: detected cycle pattern [${chunk1}] repeating 3 times`);
-          messages.push({ role: 'system', content: `You are stuck in a loop (${chunk1} repeating). Stop and try a completely different approach, or commit what you have and finish.` });
-          cycleDetected = true;
-          break;
-        }
-      }
-      if (cycleDetected) break;
-
-      // Add assistant message to history — preserve structured tool_calls
-      // when available, use plain content when parsed from text
-      if (parsedFromText) {
-        messages.push({ role: 'assistant', content: response.message.content || '' });
-      } else {
-        messages.push(response.message);
-      }
-
-      // Execute each tool call
-      for (const tc of toolCalls) {
-        const toolName = tc.function.name;
-        const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
-
-        console.log(`[agent] Tool: ${toolName}(${Object.values(toolArgs).join(', ')})`);
-        const result = executeTool(toolName, toolArgs, workdir);
-        actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.text.slice(0, MAX_ACTION_RESULT_LENGTH), diff: result.diff });
-
-        // Add tool result to conversation
-        // For text-parsed tool calls, use 'user' role so the model actually sees the result
-        // (models may ignore 'tool' role when they didn't emit structured tool_calls)
-        const resultRole = parsedFromText ? 'user' : 'tool';
-        const resultContent = parsedFromText
-          ? `[Tool result for ${toolName}]: ${truncateToolResult(result.text)}`
-          : truncateToolResult(result.text);
-        messages.push({ role: resultRole, content: resultContent });
-      }
+    console.log(`[agent] Goose exited with code ${result.exitCode}`);
+    if (result.stderr.trim()) {
+      console.log(`[agent] Goose stderr: ${result.stderr.trim().slice(0, 500)}`);
     }
 
-    // Auto-commit any uncommitted changes
+    // 1. Parse tool calls and clean response from goose stdout
+    const parsed = parseGooseOutput(result.stdout);
+    actions.push(...parsed.steps);
+    let response = parsed.response;
+
+    // 2. Auto-commit any remaining uncommitted changes
     autoCommitChanges(workdir, actions);
 
-    // Push to warez (bare repo)
+    // 3. Build git-based diffs (commits + per-file diffs since headBefore)
+    //    These complement the tool call steps with actual file change diffs
+    if (headBefore) {
+      const gitSteps = buildStepsFromGit(workdir, headBefore);
+      actions.push(...gitSteps);
+    }
+
+    if (result.exitCode !== 0 && !response) {
+      response = `Goose error (exit code ${result.exitCode}): ${(result.stderr || 'Process failed').slice(0, 1000)}`;
+    }
+
+    // Push to warez
     pushToWarez(workdir, actions);
 
     console.log(`[agent] Done. Branch: ${getCurrentBranch(workdir)}, actions: ${actions.length}`);
     return {
-      response: lastResponse || 'Done.',
+      response: response || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
-    console.error(`[agent] Error: ${err.message || String(err)}`);
-    // Auto-commit even on error
+    console.error(`[agent] Goose error: ${err.message || String(err)}`);
     autoCommitChanges(workdir, actions);
     pushToWarez(workdir, actions);
 

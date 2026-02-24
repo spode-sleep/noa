@@ -57,7 +57,18 @@ Some native Node.js modules may require build tools:
 sudo apt install -y build-essential python3
 ```
 
-### 3. Clone the Repository
+### 3. Install goose (AI Code Agent)
+
+[Goose](https://github.com/block/goose) powers the code agent mode. Install the CLI (Rust binary — no Python/pip needed):
+
+```bash
+curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash
+
+# Verify
+goose --version
+```
+
+### 4. Clone the Repository
 
 ```bash
 cd ~
@@ -65,14 +76,14 @@ git clone <repo-url> noa
 cd noa
 ```
 
-### 4. Install Backend Dependencies
+### 5. Install Backend Dependencies
 
 ```bash
 cd server
 npm install
 ```
 
-### 5. Configure Environment
+### 6. Configure Environment
 
 ```bash
 cp .env.example .env
@@ -81,14 +92,14 @@ nano .env
 
 Set all paths according to your system (see [Configuration](#configuration) below).
 
-### 6. Install Frontend Dependencies
+### 7. Install Frontend Dependencies
 
 ```bash
 cd ../client
 npm install
 ```
 
-### 7. First Run
+### 8. First Run
 
 ```bash
 # Terminal 1 — Backend
@@ -124,6 +135,7 @@ cp server/.env.example server/.env
 | `TTS_DEFAULT_VOICE`    | Default TTS voice identifier (Russian)           | `ru_RU-irina-medium`             |
 | `TTS_EN_VOICE`         | English TTS voice (auto-selected for English text)| `en_US-lessac-medium`           |
 | `PIPER_PATH`           | Path to Piper TTS binary (avoids GTK piper conflict) | `/opt/piper-tts/piper`  |
+| `GOOSE_PATH`           | Path to goose binary (auto-detected from PATH if empty) | *(empty)*           |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
 
 ### Example `.env`

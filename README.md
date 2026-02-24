@@ -9,14 +9,15 @@ Offline Knowledge & Media Hub — a fully offline local application for long-ter
 - **📖 Fiction** — PDF/EPUB/FB2 reader with bookmarks and reading position saving
 - **📚 Reference** — ZIM archive browser for offline Wikipedia, WikiHow, iFixIt and more
 - **🔧 Warez** — Local git repository browser with README viewer and file tree
-- **🤖 AI Librarian** — Local AI agent with multi-model selection, RAG-powered knowledge base search (Ollama + ChromaDB), and code agent mode for automated repository changes
+- **🤖 AI Librarian** — Local AI agent with multi-model selection, RAG-powered knowledge base search (Ollama + ChromaDB), and code agent mode via [goose](https://github.com/block/goose) for stable automated repository changes
 - **🔊 TTS** — Text-to-speech via Piper TTS for reading AI responses and articles aloud
 
 ## Tech Stack
 
 - **Frontend**: Vue 3, TypeScript, Composition API, Vue Router, Vite
 - **Backend**: Node.js, Express, TypeScript
-- **AI/LLM**: Ollama (local LLM, auto-launched), `ollama` npm client for AI agent tool-calling
+- **AI/LLM**: Ollama (local LLM, auto-launched), goose (code agent), `ollama` npm client for chat
+- **Code Agent**: [goose](https://github.com/block/goose) (open source AI coding agent by Block, native Ollama support, built-in developer tools)
 - **Vector DB**: ChromaDB (for RAG, auto-launched)
 - **TTS**: Piper TTS (local, offline)
 - **Design**: Dark Frutiger Aurora theme, glassmorphism, desktop-first
@@ -91,7 +92,21 @@ curl http://localhost:11434/api/tags
 
 > BOX auto-starts ollama serve and auto-pulls models on startup if they are missing.
 
-### 3. Install ChromaDB (RAG Vector Database)
+### 3. Install goose (AI Code Agent)
+
+[Goose](https://github.com/block/goose) is an open source AI coding agent by Block with built-in developer tools, native Ollama support, and structured output. It's a Rust binary — no Python/pip dependencies needed.
+
+```bash
+# Install goose CLI
+curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash
+
+# Verify installation
+goose --version
+```
+
+Goose is auto-configured by BOX to use your local Ollama instance. No additional configuration is needed.
+
+### 4. Install ChromaDB (RAG Vector Database)
 
 ChromaDB stores vector embeddings for RAG search. It is **auto-launched** by BOX server.
 
@@ -112,7 +127,7 @@ CHROMA_PORT=8000
 CHROMA_DATA_PATH=./chroma_data
 ```
 
-### 4. Install Piper TTS (Text-to-Speech) — Optional
+### 5. Install Piper TTS (Text-to-Speech) — Optional
 
 > ⚠️ **Do NOT use `apt install piper`** — that installs a GTK gaming device tool, not Piper TTS!
 
@@ -170,7 +185,7 @@ All voices: https://huggingface.co/rhasspy/piper-voices/tree/main
 Custom community voices: https://github.com/drycen/piper-tts-voices / https://community.home-assistant.io/t/collections-of-pre-trained-piper-voices/915666
 Skyrim character voices (via Mantella project): https://github.com/art-from-the-machine/Mantella
 
-### 5. Install kiwix-serve (Reference Library) — Optional
+### 6. Install kiwix-serve (Reference Library) — Optional
 
 ```bash
 # Install kiwix-tools
@@ -215,6 +230,9 @@ LLM_API_URL=http://localhost:11434
 LLM_MODELS=huihui_ai/qwen3-abliterated:8b-v2,huihui_ai/qwen2.5-abliterate:14b,qwen2.5-coder:14b
 LLM_API_TYPE=auto
 EMBEDDING_MODEL=nomic-embed-text
+
+# AI Code Agent (goose — auto-detected from PATH if not set)
+GOOSE_PATH=
 
 # ChromaDB (auto-launched)
 CHROMA_PORT=8000
@@ -318,7 +336,20 @@ Set WAREZ_LIBRARY_PATH in .env, pointing to directories containing git repositor
 
 ## AI Code Agent
 
-The AI Librarian includes a built-in code agent mode — similar to GitHub Copilot Agent, but fully local via Ollama.
+The AI Librarian includes a built-in code agent mode powered by [**goose**](https://github.com/block/goose) — an open source AI coding agent by Block. Goose provides stable code editing with built-in developer tools (file reading/writing, shell commands, search), native Ollama support, and deep git integration.
+
+### Prerequisites
+
+Install goose CLI (Rust binary — no Python/pip needed):
+
+```bash
+curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash
+
+# Verify installation
+goose --version
+```
+
+Goose is auto-configured by BOX to use your local Ollama instance.
 
 ### How to use
 
@@ -326,27 +357,34 @@ The AI Librarian includes a built-in code agent mode — similar to GitHub Copil
 2. Optionally select a **Repository** from the dropdown (repos from WAREZ_LIBRARY_PATH)
 3. Optionally select a **Branch** to work on (or leave empty to stay on the current branch)
 4. Describe the changes you want in natural language
-5. The agent will explore the codebase, create a branch, make changes, and commit — all automatically
+5. Goose will explore the codebase, make changes, and commit — all automatically
 
 Both repository and branch are optional — without them the AI works as a regular chat assistant with RAG.
 
 ### Agent capabilities
 
-The agent has access to the following tools via Ollama native tool-calling:
+Powered by goose, the code agent can:
 
-| Tool | Description |
-|------|-------------|
-| `list_files` | List files and directories in the repository |
-| `read_file` | Read file contents (max 512KB) |
-| `write_file` | Create or overwrite files |
-| `git_create_branch` | Create a new branch and switch to it |
-| `git_status` | Show changed/staged/untracked files |
-| `git_diff` | Show uncommitted changes |
-| `git_commit` | Stage all changes and commit |
+- **Read and understand** your entire codebase via built-in developer tools
+- **Edit files** with precise search/replace (reads before editing, retries on failure)
+- **Create new files** when needed
+- **Search across files** to find relevant code
+- **Run shell commands** for testing and verification
+- **Auto-commit** all changes with descriptive messages
 
 ### Auto-init git
 
 If a directory in WAREZ_LIBRARY_PATH is not a git repository, git will be automatically initialized (with an initial commit) when the agent performs any git operation.
+
+### Configuration
+
+Optionally set the path to the goose binary in `.env`:
+
+```env
+GOOSE_PATH=/path/to/goose
+```
+
+If not set, goose is auto-detected from PATH.
 
 ### Agent API
 
