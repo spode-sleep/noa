@@ -236,7 +236,7 @@ function resolveGoosePath(): string {
 
 /** Ensure goose config directory and config.yaml exist for Ollama */
 function ensureGooseConfig(model: string) {
-  const configDir = path.join(process.env.HOME || '/tmp', '.config', 'goose');
+  const configDir = path.join(process.env.HOME || require('os').homedir(), '.config', 'goose');
   const configFile = path.join(configDir, 'config.yaml');
 
   if (!fs.existsSync(configDir)) {
@@ -260,7 +260,10 @@ function ensureGooseConfig(model: string) {
     '    type: builtin',
   ].join('\n');
 
-  fs.writeFileSync(configFile, config, 'utf-8');
+  // Only write if config doesn't exist or model/provider changed
+  if (!fs.existsSync(configFile) || !fs.readFileSync(configFile, 'utf-8').includes(`GOOSE_MODEL: "${model}"`)) {
+    fs.writeFileSync(configFile, config, 'utf-8');
+  }
   process.env.OLLAMA_HOST = ollamaHost;
 }
 
@@ -394,6 +397,9 @@ function runGooseProcess(
       if (stdout.length > MAX_OUTPUT_CHARS) stdout = stdout.slice(-MAX_OUTPUT_CHARS);
     });
 
+    // Safety timeout — declared before handlers so closures can access it
+    let timer: ReturnType<typeof setTimeout>;
+
     proc.stderr.on('data', (data: Buffer) => {
       const chunk = data.toString();
       stderr += chunk;
@@ -401,23 +407,22 @@ function runGooseProcess(
     });
 
     proc.on('close', (code) => {
+      clearTimeout(timer);
       if (!resolved) { resolved = true; resolve({ stdout, stderr, exitCode: code ?? 1 }); }
     });
 
     proc.on('error', (err) => {
+      clearTimeout(timer);
       if (!resolved) { resolved = true; resolve({ stdout, stderr: stderr + '\nProcess error: ' + err.message, exitCode: 1 }); }
     });
 
-    // Safety timeout
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
         try { proc.kill(); } catch { /* ignore */ }
         resolve({ stdout, stderr: stderr + '\nProcess timed out', exitCode: 124 });
       }
     }, GOOSE_TIMEOUT_MS);
-
-    proc.on('close', () => clearTimeout(timer));
   });
 }
 
