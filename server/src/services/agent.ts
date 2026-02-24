@@ -441,7 +441,8 @@ function parseGooseOutput(stdout: string): { steps: AgentStep[]; response: strin
         }
         steps.push(step);
       } catch {
-        // If JSON parse fails, just filter the lines (already marked in toolLineIndices)
+        // JSON parse failed — lines are still filtered via toolLineIndices
+        console.warn('[agent] Failed to parse JSON tool call block, filtering raw lines');
       }
       continue;
     }
