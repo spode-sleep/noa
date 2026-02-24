@@ -166,11 +166,10 @@
         <div v-if="loading" class="message-row assistant">
           <div class="message-bubble glass loading-bubble">
             <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
-            <button class="abort-btn" @click="abortCurrentMessage" title="Abort">
-              <Icon icon="mdi:stop-circle-outline" width="16" height="16" />
-              Abort
-            </button>
           </div>
+          <button class="abort-icon-btn" @click="abortCurrentMessage" title="Abort">
+            <Icon icon="mdi:stop-circle-outline" width="18" height="18" />
+          </button>
         </div>
       </div>
 
@@ -181,14 +180,11 @@
           v-model="input"
           placeholder="Type a message..."
           rows="1"
+          :disabled="loading"
           @input="autoResize"
           @keydown.enter.exact.prevent="sendMessage"
         ></textarea>
-        <button v-if="loading" class="abort-btn input-abort-btn" @click="abortCurrentMessage">
-          <Icon icon="mdi:stop-circle-outline" width="18" height="18" />
-          Abort
-        </button>
-        <button v-else class="send-btn" @click="sendMessage" :disabled="!input.trim()">
+        <button class="send-btn" @click="sendMessage" :disabled="!input.trim() || loading">
           Send
         </button>
       </div>
@@ -1357,34 +1353,23 @@ onBeforeUnmount(() => {
   color: var(--bg-primary);
 }
 
-.abort-btn {
-  display: inline-flex;
+.abort-icon-btn {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  background: #8b2020;
-  border: 1px solid #a03030;
-  border-radius: 0px;
-  color: #ffcccc;
-  font-size: 0.8rem;
-  font-weight: 600;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
   cursor: pointer;
-  margin-left: 12px;
-  box-shadow: inset 1px 1px 0 #b04040, inset -1px -1px 0 #6b1010;
+  padding: 4px;
+  margin-left: 6px;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
 }
 
-.abort-btn:hover {
-  background: #a03030;
-  color: #ffffff;
-}
-
-.input-abort-btn {
-  padding: 10px 20px;
-  margin-left: 0;
-  border-left: 1px solid #000000;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-  align-self: stretch;
+.abort-icon-btn:hover {
+  opacity: 1;
+  color: #cc4444;
 }
 
 /* Code blocks (v-html content needs :deep) */
