@@ -287,7 +287,7 @@ function isGooseInternalLine(line: string): boolean {
   // Tool call JSON: { "function_name": "developer__shell", ... }
   if (/^\{?\s*"function_name"\s*:/.test(trimmed)) return true;
   if (/^\{?\s*"arguments"\s*:/.test(trimmed)) return true;
-  // Error codes from goose tools: "-32602: Missing 'old_str' ..."
+  // JSON-RPC error codes from goose tools (e.g. -32602: Missing 'old_str', -32600: Invalid Request)
   if (/^-\d{4,5}:\s/.test(trimmed)) return true;
   // Agent workdir paths
   if (/agent-workdirs\//.test(trimmed)) return true;
@@ -377,6 +377,9 @@ function buildStepsFromGit(workdir: string, oldSha: string): AgentStep[] {
   return steps;
 }
 
+/** Binary-looking file extensions to skip when pre-seeding file contents */
+const BINARY_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.svg', '.mp3', '.mp4', '.zip', '.tar', '.gz', '.pdf', '.exe', '.dll', '.so', '.dylib', '.o', '.a', '.wasm', '.lock']);
+
 /** Build a pre-seeded repo context (file tree + small file contents) to reduce tool calls.
  * Without this, the model needs to call `tree` and `view` before it can edit,
  * which doubles the number of Ollama calls and causes str_replace errors
@@ -385,47 +388,41 @@ function getRepoContext(workdir: string): string {
   const resolved = path.resolve(workdir);
   const parts: string[] = [];
 
-  // 1. File tree via git ls-files
+  let fileList: string[] = [];
   try {
-    const files = execFileSync('git', ['ls-files'], { cwd: resolved, encoding: 'utf-8', timeout: 10000 }).trim();
-    if (files) {
+    const raw = execFileSync('git', ['ls-files'], { cwd: resolved, encoding: 'utf-8', timeout: 10000 }).trim();
+    if (raw) {
       parts.push('=== FILE TREE ===');
-      parts.push(files);
+      parts.push(raw);
       parts.push('');
+      fileList = raw.split('\n').filter(Boolean);
     }
   } catch { /* not a git repo or no files */ }
 
-  // 2. Contents of small text files (< 5KB each, < 50KB total budget)
+  // Contents of small text files (< 5KB each, < 50KB total budget)
   const MAX_FILE_SIZE = 5 * 1024;
   const MAX_TOTAL_SIZE = 50 * 1024;
   let totalSize = 0;
 
-  try {
-    const files = execFileSync('git', ['ls-files'], { cwd: resolved, encoding: 'utf-8', timeout: 10000 }).trim().split('\n').filter(Boolean);
-    // Skip binary-looking extensions
-    const binaryExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.svg', '.mp3', '.mp4', '.zip', '.tar', '.gz', '.pdf', '.exe', '.dll', '.so', '.dylib', '.o', '.a', '.wasm', '.lock']);
+  for (const file of fileList) {
+    if (totalSize >= MAX_TOTAL_SIZE) break;
+    const ext = path.extname(file).toLowerCase();
+    if (BINARY_EXTS.has(ext)) continue;
 
-    for (const file of files) {
-      if (totalSize >= MAX_TOTAL_SIZE) break;
-      const ext = path.extname(file).toLowerCase();
-      if (binaryExts.has(ext)) continue;
+    try {
+      const filePath = path.join(resolved, file);
+      const stat = fs.statSync(filePath);
+      if (stat.size > MAX_FILE_SIZE || !stat.isFile()) continue;
 
-      try {
-        const filePath = path.join(resolved, file);
-        const stat = fs.statSync(filePath);
-        if (stat.size > MAX_FILE_SIZE || !stat.isFile()) continue;
+      const content = fs.readFileSync(filePath, 'utf-8');
+      if (content.includes('\0')) continue; // skip binary files with null bytes
 
-        const content = fs.readFileSync(filePath, 'utf-8');
-        // Skip files with null bytes (likely binary)
-        if (content.includes('\0')) continue;
-
-        parts.push(`=== ${file} ===`);
-        parts.push(content);
-        parts.push('');
-        totalSize += content.length;
-      } catch { /* skip unreadable files */ }
-    }
-  } catch { /* no files */ }
+      parts.push(`=== ${file} ===`);
+      parts.push(content);
+      parts.push('');
+      totalSize += content.length;
+    } catch { /* skip unreadable files */ }
+  }
 
   if (parts.length === 0) return '';
   return 'Here is the current state of the repository:\n\n' + parts.join('\n') + '\n\n';
