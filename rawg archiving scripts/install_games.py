@@ -32,6 +32,7 @@ from pathlib import Path
 # ═══════════════════════════ Настройки ═══════════════════════════
 
 MIN_GAME_SIZE_BYTES = 1_048_576  # 1MB — меньше = подозрительно
+DOWNLOAD_TIMEOUT = 7200  # 2 часа — таймаут на скачивание одной игры
 
 # Локальная папка для загрузки
 LOCAL_DOWNLOAD_DIR = Path("D:/rawg_downloads")
@@ -206,7 +207,7 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> bool:
                 "--game-folder", out_dir.name,
                 "--yes",
             ],
-            timeout=7200,
+            timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
         )
@@ -261,7 +262,7 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
                 "--language", "en",
                 "--exclude", "extras",
             ],
-            timeout=7200,
+            timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
         )
@@ -322,7 +323,7 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
     try:
         proc = subprocess.run(
             ["nile", "install", game_id, "--path", str(out_dir)],
-            timeout=7200,
+            timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
         )
