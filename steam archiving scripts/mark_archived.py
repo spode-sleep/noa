@@ -36,11 +36,13 @@ def main():
     parser.add_argument("appid_file", help="Файл с AppID (формат my_games.txt)")
     parser.add_argument("--games-json", default=GAMES_JSON, help="Путь к games.json")
     parser.add_argument("--hdd", default=None, help="Имя HDD (например ARCHIVE1 → /mnt/ARCHIVE1/steam/{appId})")
-    parser.add_argument("--rawg", action="store_true", help="Обогащение данными из RAWG API (не реализовано)")
+    parser.add_argument("--rawg", action="store_true",
+                        help="Для rawg-игр используйте: rawg archiving scripts/mark_archived.py")
     args = parser.parse_args()
 
     if args.rawg:
-        print("⚠ Опция --rawg пока не реализована")
+        print("⚠ Для rawg-игр используйте отдельный скрипт:")
+        print("  python \"rawg archiving scripts/mark_archived.py\" installed.txt --hdd ARCHIVE1")
         sys.exit(1)
 
     hdd_name = args.hdd

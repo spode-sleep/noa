@@ -1,0 +1,16 @@
+# Батч 7: Крупные AAA / открытый мир — 9 игр
+# Приоритет: низкий (большой размер, долгая загрузка)
+#
+# Крупные игры 30+ GB. Скачивать последними из-за размера.
+# Тем не менее, некоторые из них имеют высокую реиграбельность
+# (Control, The Outer Worlds).
+#
+Hogwarts Legacy
+The Outer Worlds: Spacer's Choice Edition
+Control
+Shadow of the Tomb Raider: Definitive Edition
+Assassin's Creed Syndicate
+Detroit: Become Human
+Dead by Daylight
+Another World – 20th Anniversary Edition
+Crime Boss: Rockay City
