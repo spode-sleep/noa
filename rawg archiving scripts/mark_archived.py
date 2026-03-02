@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Пометка rawg-игр как заархивированных в games.json.
+"""Пометка игр как заархивированных в games.json.
 
-В отличие от steam-версии, здесь поиск идёт по имени игры (name),
-а не по ключу (AppID). Работает только с играми source == "rawg".
+Поиск идёт по имени игры (name), а не по ключу (AppID).
+Работает с играми source == "rawg", "epic_games", "gog".
+
+При чтении installed.txt тип сервиса определяет source в games.json:
+  legendary      → epic_games
+  gogdl          → gog
+  lgogdownloader → gog
 
 Имена в файле могут быть неточными (взяты из games.json → name),
 поэтому скрипт сначала пробует точное совпадение, затем — нечёткое
@@ -22,6 +27,15 @@ import argparse
 
 GAMES_JSON = os.path.join(os.path.dirname(__file__), "..", "data", "games", "games.json")
 
+# Маппинг service (из installed.txt) → source (в games.json)
+SERVICE_TO_SOURCE = {
+    "legendary": "epic_games",
+    "gogdl": "gog",
+    "lgogdownloader": "gog",
+}
+
+VALID_SOURCES = {"rawg", "epic_games", "gog"}
+
 
 def normalize(name):
     """Убирает спецсимволы и приводит к нижнему регистру для нечёткого сравнения."""
@@ -35,7 +49,8 @@ def parse_names_file(path):
     - простой: одно имя на строку
     - табулированный: name<TAB>service<TAB>folder_id (из installed.txt)
 
-    Возвращает список кортежей (name, folder_id или None).
+    Возвращает список кортежей (name, service, folder_id),
+    где service и folder_id могут быть None.
     """
     entries = []
     with open(path, "r", encoding="utf-8") as f:
@@ -45,28 +60,34 @@ def parse_names_file(path):
                 continue
             parts = line.split("\t")
             name = parts[0].strip()
+            service = parts[1].strip() if len(parts) >= 2 else None
             folder_id = parts[2].strip() if len(parts) >= 3 else None
-            entries.append((name, folder_id))
+            entries.append((name, service, folder_id))
     return entries
 
 
-def find_rawg_game(games, name):
-    """Ищет rawg-игру по имени: сначала точное совпадение, потом нечёткое.
+def find_game(games, name, sources=None):
+    """Ищет игру по имени: сначала точное совпадение, потом нечёткое.
+
+    Если sources задан — ищет только среди игр с указанными source.
+    Иначе ищет среди всех допустимых source (rawg, epic_games, gog).
 
     Возвращает (key, game_dict) или (None, None).
     """
+    if sources is None:
+        sources = VALID_SOURCES
     norm_name = normalize(name)
 
     # Точное совпадение
     for key, game in games.items():
-        if game.get("source") != "rawg":
+        if game.get("source") not in sources:
             continue
         if game.get("name") == name:
             return key, game
 
     # Нечёткое совпадение
     for key, game in games.items():
-        if game.get("source") != "rawg":
+        if game.get("source") not in sources:
             continue
         if normalize(game.get("name", "")) == norm_name:
             return key, game
@@ -75,8 +96,8 @@ def find_rawg_game(games, name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Пометка rawg-игр как заархивированных")
-    parser.add_argument("names_file", help="Файл с именами игр (одно на строку)")
+    parser = argparse.ArgumentParser(description="Пометка игр как заархивированных")
+    parser.add_argument("names_file", help="Файл с именами игр (installed.txt)")
     parser.add_argument("--games-json", default=GAMES_JSON, help="Путь к games.json")
     parser.add_argument(
         "--hdd", default=None,
@@ -100,16 +121,28 @@ def main():
         games = json.load(f)
 
     marked = 0
+    source_changed = []
     not_found = []
     fuzzy_matched = []
 
-    for name, folder_id in entries:
-        key, game = find_rawg_game(games, name)
+    for name, service, folder_id in entries:
+        # Определяем целевой source на основе сервиса
+        target_source = SERVICE_TO_SOURCE.get(service) if service else None
+
+        key, game = find_game(games, name)
         if key is not None:
             # Папка на HDD: folder_id из installed.txt, или ключ games.json
             folder = folder_id if folder_id else key
+
             games[key]["isArchived"] = True
             games[key]["archivePath"] = f"/mnt/{hdd_name}/rawg/{folder}"
+
+            # Обновляем source если сервис указан
+            if target_source and game.get("source") != target_source:
+                old_source = game.get("source")
+                games[key]["source"] = target_source
+                source_changed.append((name, old_source, target_source))
+
             marked += 1
 
             if game["name"] != name:
@@ -124,13 +157,18 @@ def main():
     print(f"✓ Помечено как заархивированные: {marked}/{len(entries)}")
     print(f"  Путь: /mnt/{hdd_name}/rawg/{{key}}")
 
+    if source_changed:
+        print(f"\n🔄 Изменён source ({len(source_changed)}):")
+        for name, old, new in source_changed:
+            print(f"  «{name}»: {old} → {new}")
+
     if fuzzy_matched:
         print(f"\n⚠ Нечёткие совпадения ({len(fuzzy_matched)}):")
         for original, found in fuzzy_matched:
             print(f"  «{original}» → «{found}»")
 
     if not_found:
-        print(f"\n✗ Не найдены в games.json (rawg) ({len(not_found)}):")
+        print(f"\n✗ Не найдены в games.json ({len(not_found)}):")
         for nf in not_found:
             print(f"  {nf}")
 

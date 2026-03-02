@@ -1,6 +1,6 @@
 # RAWG Library Archiver — Windows Setup
 
-Архивация игр из GOG, Epic Games Store и Amazon Games.
+Архивация игр из GOG и Epic Games Store.
 
 ## 1. Установка Python 3.10+
 
@@ -76,37 +76,11 @@ sudo apt update && sudo apt install lgogdownloader -y
 lgogdownloader --login
 ```
 
-### nile (Amazon Games)
-
-[nile](https://github.com/imLinguin/nile) — неофициальный клиент Amazon Games.
-
-> ⚠ **Не используйте** `pip install nile` — это **не тот** пакет.
-> Сборка из исходников (`pip install git+...`) тоже может не работать на Windows.
-> Используйте готовый бинарник с GitHub (рекомендация автора).
-
-**Скачать и установить (PowerShell, если Python уже в PATH):**
-```powershell
-Invoke-WebRequest -Uri "https://github.com/imLinguin/nile/releases/latest/download/nile_windows_x86_64.exe" -OutFile (Join-Path (python -c "import sysconfig; print(sysconfig.get_path('scripts'))") "nile.exe")
-```
-
-Или вручную:
-1. Скачайте `nile_windows_x86_64.exe` со [страницы релизов](https://github.com/imLinguin/nile/releases/latest)
-2. Переименуйте в `nile.exe`
-3. Поместите в папку, которая есть в PATH (например, в `Python312\Scripts\`)
-
-**Авторизация:**
-```powershell
-nile auth --login
-```
-
-> **Если `pip install` не работает** — используйте `py -m pip install` вместо `pip install`.
-
 Проверка:
 ```
 legendary --version
 gogdl --version
 lgogdownloader --version
-nile --version
 ```
 
 ## 3. Подключение HDD
@@ -133,12 +107,12 @@ python install_games.py batches/batch_01.txt "E:\Archive\rawg"
 ## 5. Что происходит
 
 При запуске:
-1. **Проверка авторизации** во всех доступных сервисах (legendary, gogdl, lgogdownloader, nile)
+1. **Проверка авторизации** во всех доступных сервисах (legendary, gogdl, lgogdownloader)
 2. Если не авторизован — запускает интерактивный логин
 
 Для каждой игры:
 1. **Поиск** ключа в `games.json` по имени (для имени папки)
-2. **Поиск** в библиотеках legendary → gogdl → lgogdownloader → nile
+2. **Поиск** в библиотеках legendary → gogdl → lgogdownloader
 3. **Скачивание** в `D:\rawg_downloads\{key}`
 4. **Копирование** на HDD в `{install_dir}\{key}`
 5. **Верификация** — сравнение размеров
@@ -177,7 +151,8 @@ python install_games.py batches/batch_01.txt "E:\Archive\rawg"
 python mark_archived.py results/YYYYMMDD_HHMMSS/installed.txt --hdd ARCHIVE1
 ```
 
-Скрипт ищет игры **по имени** (не по ключу) и помечает только rawg-игры.
+Скрипт ищет игры **по имени** (не по ключу) и помечает игры с source rawg/epic_games/gog.
+При наличии сервиса в installed.txt обновляет source: legendary→epic_games, gogdl→gog.
 `installed.txt` содержит ID папки для каждой игры — `archivePath` в games.json
 указывает на папку по ID сервиса (не по имени).
 
@@ -200,4 +175,4 @@ python install_games.py results\20260301_120000\failed.txt D:\rawg
   логин, если нужно. Можно также авторизоваться заранее вручную.
 - Имена игр в батчах взяты из `games.json` и могут не точно совпадать
   с названиями в магазинах. Скрипт ищет по имени в библиотеке каждого сервиса.
-- Нельзя заранее знать, из какого сервиса какая игра — поэтому пробуются все три.
+- Нельзя заранее знать, из какого сервиса какая игра — поэтому пробуются все доступные.

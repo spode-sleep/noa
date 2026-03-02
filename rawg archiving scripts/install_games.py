@@ -2,9 +2,8 @@
 """
 RAWG Library Archiver — Windows version (Python3)
 
-Скачивает игры через legendary (Epic Games), gogdl/lgogdownloader (GOG)
-и nile (Amazon Games). Для каждой игры пробуются все сервисы
-по очереди, пока один из них не сработает.
+Скачивает игры через legendary (Epic Games) и gogdl/lgogdownloader (GOG).
+Для каждой игры пробуются все сервисы по очереди, пока один из них не сработает.
 
 Схема: скачать на локальный диск → скопировать на HDD → удалить локально.
 
@@ -18,7 +17,6 @@ RAWG Library Archiver — Windows version (Python3)
     - legendary  (pip install legendary-gl)     — Epic Games Store
     - gogdl      (winget install GOGDL)          — GOG.com (Windows)
     - lgogdownloader                             — GOG.com (Linux/WSL)
-    - nile       (binary from GitHub releases)    — Amazon Games
 """
 
 import argparse
@@ -56,7 +54,7 @@ GOG_AUTH_URL = (
 )
 
 # Сервисы в порядке приоритета
-SERVICES = ["legendary", "gogdl", "lgogdownloader", "nile"]
+SERVICES = ["legendary", "gogdl", "lgogdownloader"]
 
 # ═══════════════════════════ Цвета ═══════════════════════════
 
@@ -135,7 +133,7 @@ def normalize_name(name: str) -> str:
 
 
 def build_name_to_key(games_json_path: str) -> dict[str, str]:
-    """Загружает games.json и строит маппинг name → key для rawg-игр.
+    """Загружает games.json и строит маппинг name → key для rawg/epic_games/gog-игр.
 
     Возвращает два словаря в одном: точные и нормализованные имена.
     """
@@ -146,7 +144,7 @@ def build_name_to_key(games_json_path: str) -> dict[str, str]:
     fuzzy: dict[str, str] = {}
 
     for key, game in games.items():
-        if game.get("source") != "rawg":
+        if game.get("source") not in ("rawg", "epic_games", "gog"):
             continue
         name = game.get("name", "")
         exact[name] = key
@@ -427,40 +425,10 @@ def auth_lgogdownloader() -> bool:
     return False
 
 
-def auth_nile() -> bool:
-    """Проверка и авторизация в Amazon Games через nile."""
-    log("[nile] Проверка авторизации Amazon Games...")
-    try:
-        # Быстрая проверка: если library list работает — значит авторизованы
-        result = subprocess.run(
-            ["nile", "library", "list"],
-            capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
-            encoding="utf-8", errors="replace",
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            log("[nile] ✓ Авторизован в Amazon Games")
-            return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
-    warn("[nile] Не авторизован — запускаю nile auth --login...")
-    try:
-        result = subprocess.run(["nile", "auth", "--login"], timeout=AUTH_LOGIN_TIMEOUT)
-        if result.returncode == 0:
-            log("[nile] ✓ Авторизация Amazon Games завершена")
-            return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
-    err("[nile] ✗ Не удалось авторизоваться в Amazon Games")
-    return False
-
-
 AUTH_FUNCS = {
     "legendary": auth_legendary,
     "gogdl": auth_gogdl,
     "lgogdownloader": auth_lgogdownloader,
-    "nile": auth_nile,
 }
 
 
@@ -765,81 +733,10 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
         return False
     return True
 
-
-def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
-    """Попытка скачать через nile (Amazon Games).
-
-    nile library list показывает все игры; ищем совпадение по имени.
-    """
-    log(f"  [nile] Поиск «{game_name}» в библиотеке Amazon Games...")
-
-    try:
-        result = subprocess.run(
-            ["nile", "library", "list"],
-            capture_output=True, text=True, timeout=60,
-            encoding="utf-8", errors="replace",
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        warn("  [nile] Недоступен или таймаут")
-        return False
-
-    if result.returncode != 0:
-        warn("  [nile] Ошибка получения списка игр")
-        return False
-
-    # Ищем совпадение по имени в выводе
-    game_id = None
-    norm_search = game_name.lower().strip()
-    for line in result.stdout.splitlines():
-        # nile выводит: Title (id: some_id)  или  Title - id
-        line_lower = line.lower().strip()
-        if norm_search in line_lower:
-            # Попытка извлечь ID
-            id_match = re.search(r"id:\s*(\S+)", line)
-            if id_match:
-                game_id = id_match.group(1).rstrip(")")
-            break
-
-    if not game_id:
-        warn(f"  [nile] «{game_name}» не найдена в библиотеке")
-        return False
-
-    log(f"  [nile] Найдена: {game_id}, скачиваем...")
-
-    try:
-        proc = subprocess.run(
-            ["nile", "install", game_id, "--path", str(out_dir)],
-            timeout=DOWNLOAD_TIMEOUT,
-            capture_output=True,
-            text=True,
-            encoding="utf-8", errors="replace",
-        )
-        with open(log_file, "a", encoding="utf-8") as lf:
-            lf.write(f"=== nile: {game_name} ({game_id}) ===\n")
-            lf.write(proc.stdout)
-            if proc.stderr:
-                lf.write(proc.stderr)
-    except subprocess.TimeoutExpired:
-        err("  [nile] Таймаут скачивания (2 часа)")
-        return False
-    except FileNotFoundError:
-        warn("  [nile] Недоступен")
-        return False
-
-    if proc.returncode != 0:
-        err(f"  [nile] Ошибка скачивания (код {proc.returncode})")
-        return False
-    if not has_any_files(out_dir):
-        err("  [nile] Скачивание завершилось, но файлов нет")
-        return False
-    return True
-
-
 SERVICE_FUNCS = {
     "legendary": try_legendary,
     "gogdl": try_gogdl,
     "lgogdownloader": try_lgogdownloader,
-    "nile": try_nile,
 }
 
 
@@ -848,7 +745,7 @@ SERVICE_FUNCS = {
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="RAWG Library Archiver (Windows/Python3) — GOG, Epic, Amazon"
+        description="RAWG Library Archiver (Windows/Python3) — GOG, Epic"
     )
     parser.add_argument("names_file", help="Файл с именами игр (одно на строку)")
     parser.add_argument(
@@ -883,7 +780,7 @@ def main() -> None:
         err(f"games.json не найден: {args.games_json}")
         sys.exit(1)
     name_to_key = build_name_to_key(args.games_json)
-    log(f"✓ games.json загружен ({len(name_to_key)} rawg-игр)")
+    log(f"✓ games.json загружен ({len(name_to_key)} игр)")
 
     install_dir = Path(args.install_dir)
     LOCAL_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -905,7 +802,6 @@ def main() -> None:
         print("  legendary:      pip install legendary-gl")
         print("  gogdl (GOG):    winget install --id=HeroicGamesLauncher.GOGDL -e")
         print("  lgogdownloader: Linux / WSL only (sudo apt install lgogdownloader)")
-        print("  nile:           скачать .exe — https://github.com/imLinguin/nile/releases")
         print()
         print("Если pip не найден — попробуйте: py -m pip install ...")
         print("Подробнее: QUICKSTART.md")
@@ -936,7 +832,7 @@ def main() -> None:
     total = len(names)
 
     log("════════════════════════════════════════════")
-    log(f"Архивация {total} игр (GOG / Epic / Amazon)")
+    log(f"Архивация {total} игр (GOG / Epic)")
     log(f"Доступные сервисы: {', '.join(available)}")
     log(f"Локальная папка: {LOCAL_DOWNLOAD_DIR}")
     log(f"HDD директория: {install_dir}")

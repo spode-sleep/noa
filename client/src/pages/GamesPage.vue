@@ -18,6 +18,8 @@
         <option value="">All Sources</option>
         <option value="steam">Steam</option>
         <option value="rawg">RAWG</option>
+        <option value="epic_games">Epic Games</option>
+        <option value="gog">GOG</option>
       </select>
       <button class="tags-btn" @click="showTagModal = true">
         <Icon icon="mdi:tag-multiple" class="tags-icon" /> Tags
@@ -98,6 +100,12 @@
           <div class="game-name">
             <span class="source-icon steam-icon" v-if="game.source === 'steam'" title="Steam" aria-label="Steam">
               <Icon icon="mdi:steam" width="22" height="22" />
+            </span>
+            <span class="source-icon epic-icon" v-else-if="game.source === 'epic_games'" title="Epic Games" aria-label="Epic Games">
+              <Icon icon="mdi:sword-cross" width="22" height="22" />
+            </span>
+            <span class="source-icon gog-icon" v-else-if="game.source === 'gog'" title="GOG" aria-label="GOG">
+              <Icon icon="mdi:galaxy" width="22" height="22" />
             </span>
             <span class="source-icon rawg-icon" v-else title="RAWG" aria-label="RAWG">
               <Icon icon="mdi:gamepad-variant" width="22" height="22" />
@@ -649,6 +657,14 @@ h1 {
 
 .rawg-icon {
   color: var(--askew-salmon);
+}
+
+.epic-icon {
+  color: var(--askew-gold);
+}
+
+.gog-icon {
+  color: #b384e0;
 }
 
 .game-tags {

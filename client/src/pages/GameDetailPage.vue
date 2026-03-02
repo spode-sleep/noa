@@ -25,7 +25,7 @@
       <template v-else-if="game">
         <div id="top" class="game-top">
           <div class="game-header">
-            <Icon :icon="game.source === 'steam' ? 'mdi:steam' : 'mdi:gamepad-variant'" class="source-icon" :class="game.source" />
+            <Icon :icon="sourceIcon(game.source)" class="source-icon" :class="game.source" />
             <h1>{{ game.name }}</h1>
             <span v-if="!game.isArchived" class="archive-chip not-archived">Not Archived</span>
           </div>
@@ -355,6 +355,15 @@ const descOverflows = ref(false)
 const copied = ref(false)
 const pathCopied = ref(false)
 const showTipsModal = ref(false)
+
+function sourceIcon(source: string): string {
+  switch (source) {
+    case 'steam': return 'mdi:steam'
+    case 'epic_games': return 'mdi:sword-cross'
+    case 'gog': return 'mdi:galaxy'
+    default: return 'mdi:gamepad-variant'
+  }
+}
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -705,6 +714,14 @@ h1 {
 
 .source-icon.rawg {
   color: var(--askew-salmon);
+}
+
+.source-icon.epic_games {
+  color: var(--askew-gold);
+}
+
+.source-icon.gog {
+  color: #b384e0;
 }
 
 .hero-image {
