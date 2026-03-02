@@ -33,6 +33,8 @@ from pathlib import Path
 
 MIN_GAME_SIZE_BYTES = 1_048_576  # 1MB — меньше = подозрительно
 DOWNLOAD_TIMEOUT = 7200  # 2 часа — таймаут на скачивание одной игры
+AUTH_CHECK_TIMEOUT = 30   # секунд на проверку авторизации
+AUTH_LOGIN_TIMEOUT = 120  # секунд на интерактивный логин
 
 # Локальная папка для загрузки
 LOCAL_DOWNLOAD_DIR = Path("D:/rawg_downloads")
@@ -156,6 +158,101 @@ def copy_to_hdd(src: Path, dst: Path) -> bool:
     if os.name == "nt":
         return copy_with_robocopy(src, dst)
     return copy_with_shutil(src, dst)
+
+
+# ═══════════════════════════ Авторизация ═══════════════════════════
+
+
+def auth_legendary() -> bool:
+    """Проверка и авторизация в Epic Games Store через legendary.
+
+    legendary status проверяет статус; legendary auth запускает логин.
+    """
+    log("[legendary] Проверка авторизации Epic Games...")
+    try:
+        result = subprocess.run(
+            ["legendary", "status"],
+            capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+        )
+        if result.returncode == 0 and "Logged in" in result.stdout:
+            log("[legendary] ✓ Авторизован в Epic Games")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    warn("[legendary] Не авторизован — запускаю legendary auth...")
+    try:
+        result = subprocess.run(["legendary", "auth"], timeout=AUTH_LOGIN_TIMEOUT)
+        if result.returncode == 0:
+            log("[legendary] ✓ Авторизация Epic Games завершена")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    err("[legendary] ✗ Не удалось авторизоваться в Epic Games")
+    return False
+
+
+def auth_lgogdownloader() -> bool:
+    """Проверка и авторизация в GOG через lgogdownloader."""
+    log("[lgogdownloader] Проверка авторизации GOG...")
+    try:
+        result = subprocess.run(
+            ["lgogdownloader", "--check-login-status"],
+            capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+        )
+        if result.returncode == 0:
+            log("[lgogdownloader] ✓ Авторизован в GOG")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    warn("[lgogdownloader] Не авторизован — запускаю lgogdownloader --login...")
+    try:
+        result = subprocess.run(["lgogdownloader", "--login"], timeout=AUTH_LOGIN_TIMEOUT)
+        if result.returncode == 0:
+            log("[lgogdownloader] ✓ Авторизация GOG завершена")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    err("[lgogdownloader] ✗ Не удалось авторизоваться в GOG")
+    return False
+
+
+def auth_nile() -> bool:
+    """Проверка и авторизация в Amazon Games через nile."""
+    log("[nile] Проверка авторизации Amazon Games...")
+    try:
+        # Быстрая проверка: если library list работает — значит авторизованы
+        result = subprocess.run(
+            ["nile", "library", "list"],
+            capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            log("[nile] ✓ Авторизован в Amazon Games")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    warn("[nile] Не авторизован — запускаю nile auth --login...")
+    try:
+        result = subprocess.run(["nile", "auth", "--login"], timeout=AUTH_LOGIN_TIMEOUT)
+        if result.returncode == 0:
+            log("[nile] ✓ Авторизация Amazon Games завершена")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    err("[nile] ✗ Не удалось авторизоваться в Amazon Games")
+    return False
+
+
+AUTH_FUNCS = {
+    "legendary": auth_legendary,
+    "lgogdownloader": auth_lgogdownloader,
+    "nile": auth_nile,
+}
 
 
 # ═══════════════════════════ Сервисы ═══════════════════════════
@@ -400,6 +497,28 @@ def main() -> None:
         print("  lgogdownloader: https://github.com/Sude-/lgogdownloader")
         print("  nile:           https://github.com/imLinguin/nile")
         sys.exit(1)
+
+    # Авторизация во всех доступных сервисах
+    print()
+    log("Авторизация в сервисах...")
+    log("════════════════════════════════════════════")
+    authed = []
+    for tool in available:
+        if AUTH_FUNCS[tool]():
+            authed.append(tool)
+        print()
+
+    if not authed:
+        err("Не удалось авторизоваться ни в одном сервисе!")
+        sys.exit(1)
+
+    if len(authed) < len(available):
+        not_authed = [t for t in available if t not in authed]
+        warn(f"Не авторизованы: {', '.join(not_authed)} (будут пропущены)")
+    available = authed
+    log(f"✓ Авторизованные сервисы: {', '.join(available)}")
+    log("════════════════════════════════════════════")
+    print()
 
     total = len(names)
 
