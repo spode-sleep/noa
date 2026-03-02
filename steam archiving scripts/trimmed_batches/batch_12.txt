@@ -1,0 +1,43 @@
+# Батч 12: 20 игр
+# Создан: 2026-03-02 15:56:07
+#
+#AppGameKit Classic: Easy Game Development
+325180
+#Aseprite
+431730
+#Blender
+365670
+#Borderless Gaming
+388080
+#Code Trainer
+3279360
+#Controller Companion
+367670
+#DSX
+1812620
+#EVGA Precision X1
+268850
+#FaceRig
+274920
+#Format Converter Tsar
+3686110
+#Live2DViewerEX
+616720
+#Lossless Scaling
+993090
+#Pixel Composer
+2299510
+#RPG Maker MV
+363890
+#Skyrim Special Edition: Creation Kit
+1946180
+#The Farmer Was Replaced
+2060160
+#Wallpaper Engine
+431960
+#XWidget
+967130
+#emerald
+4033120
+#oath
+3104030
