@@ -265,6 +265,37 @@ def _gogdl_get_token() -> str | None:
     return None
 
 
+def _gogdl_manifests_dir() -> Path | None:
+    """Определяем папку с манифестами gogdl (кеш установок)."""
+    override = os.environ.get("GOGDL_CONFIG_PATH")
+    if override:
+        base = Path(override) / "heroic_gogdl"
+    elif sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if not appdata:
+            return None
+        base = Path(appdata) / "heroic_gogdl"
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support" / "heroic_gogdl"
+    else:
+        xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+        base = Path(xdg) / "heroic_gogdl"
+    return base / "manifests"
+
+
+def _gogdl_clear_manifest(game_id: int | str) -> None:
+    """Удалить кеш манифеста gogdl для игры (чтобы gogdl не пропускал скачивание)."""
+    manifests = _gogdl_manifests_dir()
+    if not manifests:
+        return
+    manifest_file = manifests / str(game_id)
+    if manifest_file.is_file():
+        try:
+            manifest_file.unlink()
+        except OSError:
+            pass
+
+
 def auth_gogdl() -> bool:
     """Проверка и авторизация в GOG через gogdl.
 
@@ -545,6 +576,9 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
     game_id, title = match
     log(f"  [gogdl] Найдена: {title} (ID: {game_id}), скачиваем...")
 
+    # Очищаем кеш манифеста gogdl, чтобы избежать ложного «Nothing to do»
+    _gogdl_clear_manifest(game_id)
+
     try:
         proc = subprocess.run(
             [
@@ -577,6 +611,12 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
         return False
     if not has_any_files(out_dir):
         err("  [gogdl] Скачивание завершилось, но файлов нет")
+        # Показываем вывод gogdl для диагностики
+        output = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
+        for line in output.splitlines():
+            line = line.strip()
+            if line:
+                err(f"  [gogdl]   {line}")
         return False
     return True
 
