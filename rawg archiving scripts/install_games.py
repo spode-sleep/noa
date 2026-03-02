@@ -22,6 +22,8 @@ RAWG Library Archiver — Windows version (Python3)
 """
 
 import argparse
+import csv
+import io
 import json
 import os
 import re
@@ -432,20 +434,25 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> bool:
 
     # Парсим CSV: App name, App title, Version, Is DLC
     app_name = None
+    matched_title = None
     norm_search = game_name.lower().strip()
-    for line in result.stdout.splitlines():
-        parts = line.split(",")
-        if len(parts) >= 2:
-            title = parts[1].strip().strip('"')
+    reader = csv.reader(io.StringIO(result.stdout))
+    for row in reader:
+        if len(row) >= 2:
+            title = row[1].strip()
+            # Пропускаем DLC
+            if len(row) >= 4 and row[3].strip().lower() in ("true", "1"):
+                continue
             if title.lower() == norm_search:
-                app_name = parts[0].strip().strip('"')
+                app_name = row[0].strip()
+                matched_title = title
                 break
 
     if not app_name:
         warn(f"  [legendary] «{game_name}» не найдена в библиотеке")
         return False
 
-    log(f"  [legendary] Найдена: {app_name}, скачиваем...")
+    log(f"  [legendary] Найдена: {matched_title} ({app_name}), скачиваем...")
 
     try:
         proc = subprocess.run(
