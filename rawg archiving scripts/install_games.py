@@ -479,7 +479,13 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> bool:
         warn("  [legendary] Недоступен")
         return False
 
-    return proc.returncode == 0 and has_any_files(out_dir)
+    if proc.returncode != 0:
+        err(f"  [legendary] Ошибка скачивания (код {proc.returncode})")
+        return False
+    if not has_any_files(out_dir):
+        err("  [legendary] Скачивание завершилось, но файлов нет")
+        return False
+    return True
 
 
 def _gog_search_owned(game_name: str, token: str) -> tuple[int, str] | None:
@@ -566,7 +572,13 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
         warn("  [gogdl] Недоступен")
         return False
 
-    return proc.returncode == 0 and has_any_files(out_dir)
+    if proc.returncode != 0:
+        err(f"  [gogdl] Ошибка скачивания (код {proc.returncode})")
+        return False
+    if not has_any_files(out_dir):
+        err("  [gogdl] Скачивание завершилось, но файлов нет")
+        return False
+    return True
 
 
 def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
@@ -623,7 +635,13 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
         warn("  [lgogdownloader] Недоступен")
         return False
 
-    return proc.returncode == 0 and has_any_files(out_dir)
+    if proc.returncode != 0:
+        err(f"  [lgogdownloader] Ошибка скачивания (код {proc.returncode})")
+        return False
+    if not has_any_files(out_dir):
+        err("  [lgogdownloader] Скачивание завершилось, но файлов нет")
+        return False
+    return True
 
 
 def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
@@ -686,7 +704,13 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
         warn("  [nile] Недоступен")
         return False
 
-    return proc.returncode == 0 and has_any_files(out_dir)
+    if proc.returncode != 0:
+        err(f"  [nile] Ошибка скачивания (код {proc.returncode})")
+        return False
+    if not has_any_files(out_dir):
+        err("  [nile] Скачивание завершилось, но файлов нет")
+        return False
+    return True
 
 
 SERVICE_FUNCS = {
@@ -857,9 +881,9 @@ def main() -> None:
                         break
                 except Exception as e:
                     err(f"  [{service}] Неожиданная ошибка: {e}")
-                    # Очистка после ошибки
-                    if local_dir.exists():
-                        shutil.rmtree(local_dir)
+                # Очистка после неудачной попытки
+                if not download_ok and local_dir.exists():
+                    shutil.rmtree(local_dir)
                     local_dir.mkdir(parents=True)
 
             print()
@@ -901,7 +925,7 @@ def main() -> None:
                     failed_names.append(name)
                     fail += 1
             else:
-                err(f"✗ «{name}» не найдена ни в одном сервисе")
+                err(f"✗ «{name}» не удалось скачать ни через один сервис")
                 failed_names.append(name)
                 fail += 1
                 if local_dir.exists():
