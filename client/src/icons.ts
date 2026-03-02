@@ -2,6 +2,7 @@ import { addIcon } from '@iconify/vue'
 
 // Import all MDI icons used across the application
 // This ensures they are bundled and available offline without CDN requests
+import mdiAlertCircle from '@iconify/icons-mdi/alert-circle'
 import mdiAlbum from '@iconify/icons-mdi/album'
 import mdiArrowLeft from '@iconify/icons-mdi/arrow-left'
 import mdiCheck from '@iconify/icons-mdi/check'
@@ -16,6 +17,7 @@ import mdiDelete from '@iconify/icons-mdi/delete'
 import mdiFileDocumentOutline from '@iconify/icons-mdi/file-document-outline'
 import mdiFolder from '@iconify/icons-mdi/folder'
 import mdiGamepadVariant from '@iconify/icons-mdi/gamepad-variant'
+import mdiGog from '@iconify/icons-mdi/gog'
 import mdiHelpCircle from '@iconify/icons-mdi/help-circle'
 import mdiInformation from '@iconify/icons-mdi/information'
 import mdiLightbulbOnOutline from '@iconify/icons-mdi/lightbulb-on-outline'
@@ -32,6 +34,7 @@ import mdiRepeatOnce from '@iconify/icons-mdi/repeat-once'
 import mdiSkipNext from '@iconify/icons-mdi/skip-next'
 import mdiSkipPrevious from '@iconify/icons-mdi/skip-previous'
 import mdiSteam from '@iconify/icons-mdi/steam'
+import mdiSwordCross from '@iconify/icons-mdi/sword-cross'
 import mdiTagMultiple from '@iconify/icons-mdi/tag-multiple'
 import mdiThumbDown from '@iconify/icons-mdi/thumb-down'
 import mdiThumbUp from '@iconify/icons-mdi/thumb-up'
@@ -39,6 +42,7 @@ import mdiVolumeHigh from '@iconify/icons-mdi/volume-high'
 import mdiWrench from '@iconify/icons-mdi/wrench'
 
 const icons: Record<string, typeof mdiFolder> = {
+  'mdi:alert-circle': mdiAlertCircle,
   'mdi:album': mdiAlbum,
   'mdi:arrow-left': mdiArrowLeft,
   'mdi:check': mdiCheck,
@@ -53,6 +57,7 @@ const icons: Record<string, typeof mdiFolder> = {
   'mdi:file-document-outline': mdiFileDocumentOutline,
   'mdi:folder': mdiFolder,
   'mdi:gamepad-variant': mdiGamepadVariant,
+  'mdi:gog': mdiGog,
   'mdi:help-circle': mdiHelpCircle,
   'mdi:information': mdiInformation,
   'mdi:lightbulb-on-outline': mdiLightbulbOnOutline,
@@ -69,6 +74,7 @@ const icons: Record<string, typeof mdiFolder> = {
   'mdi:skip-next': mdiSkipNext,
   'mdi:skip-previous': mdiSkipPrevious,
   'mdi:steam': mdiSteam,
+  'mdi:sword-cross': mdiSwordCross,
   'mdi:tag-multiple': mdiTagMultiple,
   'mdi:thumb-down': mdiThumbDown,
   'mdi:thumb-up': mdiThumbUp,

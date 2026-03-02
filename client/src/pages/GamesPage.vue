@@ -105,7 +105,7 @@
               <Icon icon="mdi:sword-cross" width="22" height="22" />
             </span>
             <span class="source-icon gog-icon" v-else-if="game.source === 'gog'" title="GOG" aria-label="GOG">
-              <Icon icon="mdi:galaxy" width="22" height="22" />
+              <Icon icon="mdi:gog" width="22" height="22" />
             </span>
             <span class="source-icon rawg-icon" v-else title="RAWG" aria-label="RAWG">
               <Icon icon="mdi:gamepad-variant" width="22" height="22" />

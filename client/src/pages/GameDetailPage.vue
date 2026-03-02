@@ -360,7 +360,7 @@ function sourceIcon(source: string): string {
   switch (source) {
     case 'steam': return 'mdi:steam'
     case 'epic_games': return 'mdi:sword-cross'
-    case 'gog': return 'mdi:galaxy'
+    case 'gog': return 'mdi:gog'
     default: return 'mdi:gamepad-variant'
   }
 }
