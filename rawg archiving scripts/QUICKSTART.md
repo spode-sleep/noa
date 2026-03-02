@@ -37,9 +37,27 @@ legendary auth
 ```
 
 ### lgogdownloader (GOG.com)
+
+**Вариант А — скачать вручную:**
+
+Скачайте exe с https://github.com/Sude-/lgogdownloader/releases и положите в папку, которая есть в PATH.
+
+**Вариант Б — через [Scoop](https://scoop.sh/) (пакетный менеджер для Windows):**
+
+Если Scoop ещё не установлен — откройте PowerShell и выполните:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 ```
-# Windows: скачайте с https://github.com/Sude-/lgogdownloader/releases
-# Или через scoop: scoop install lgogdownloader
+> Это стандартный способ установки Scoop — подробнее на https://scoop.sh/
+
+Затем установите lgogdownloader:
+```powershell
+scoop install lgogdownloader
+```
+
+После установки авторизуйтесь:
+```
 lgogdownloader --login
 ```
 
