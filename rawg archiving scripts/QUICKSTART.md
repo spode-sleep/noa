@@ -76,8 +76,13 @@ lgogdownloader --login
 ```
 
 ### nile (Amazon Games)
-```
-pip install nile
+
+[nile](https://github.com/imLinguin/nile) — неофициальный клиент Amazon Games.
+
+> ⚠ `pip install nile` устанавливает **не тот** пакет. Нужна установка из исходников:
+
+```powershell
+pip install git+https://github.com/imLinguin/nile.git
 nile auth --login
 ```
 
