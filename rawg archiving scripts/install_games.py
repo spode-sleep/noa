@@ -222,7 +222,9 @@ def auth_legendary() -> bool:
             ["legendary", "status"],
             capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
         )
-        if result.returncode == 0 and "Logged in" in result.stdout:
+        # legendary выводит статус через logging (stderr), не stdout
+        combined = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 0 and "Logged in" in combined:
             log("[legendary] ✓ Авторизован в Epic Games")
             return True
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -278,10 +280,12 @@ def auth_gogdl() -> bool:
     print("  1. Откройте эту ссылку в браузере:")
     print(f"     {GOG_AUTH_URL}")
     print()
-    print("  2. Войдите в GOG. После входа вы будете перенаправлены на страницу")
-    print("     с URL вида: https://embed.gog.com/on_login_success?...&code=XXXXX")
+    print("  2. Войдите в GOG. После входа вы будете перенаправлены.")
+    print("     ⚠ Страница будет ПУСТОЙ — это нормально!")
+    print("     Посмотрите в адресную строку браузера — в URL будет параметр code=")
+    print("     Пример: https://embed.gog.com/on_login_success?...&code=XXXXX")
     print()
-    print("  3. Скопируйте значение параметра code= из URL.")
+    print("  3. Скопируйте значение code= из URL (или весь URL целиком).")
     print()
 
     try:
@@ -292,7 +296,7 @@ def auth_gogdl() -> bool:
         pass
 
     try:
-        code = input("  Введите code: ").strip()
+        code = input("  Введите code (или весь URL): ").strip()
     except (EOFError, KeyboardInterrupt):
         err("[gogdl] ✗ Отменено пользователем")
         return False
@@ -300,6 +304,16 @@ def auth_gogdl() -> bool:
     if not code:
         err("[gogdl] ✗ Код не введён")
         return False
+
+    # Если пользователь вставил полный URL — извлекаем code=
+    if code.startswith("http"):
+        parsed = urllib.parse.urlparse(code)
+        params = urllib.parse.parse_qs(parsed.query)
+        if "code" in params:
+            code = params["code"][0]
+        else:
+            err("[gogdl] ✗ Параметр code= не найден в URL")
+            return False
 
     try:
         result = subprocess.run(
