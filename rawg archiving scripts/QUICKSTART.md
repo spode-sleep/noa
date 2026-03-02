@@ -151,10 +151,46 @@ python install_games.py batches/batch_01.txt "E:\Archive\rawg"
 python mark_archived.py results/YYYYMMDD_HHMMSS/installed.txt --hdd ARCHIVE1
 ```
 
-Скрипт ищет игры **по имени** (не по ключу) и помечает игры с source rawg/epic_games/gog.
-При наличии сервиса в installed.txt обновляет source: legendary→epic_games, gogdl→gog.
-`installed.txt` содержит ID папки для каждой игры — `archivePath` в games.json
-указывает на папку по ID сервиса (не по имени).
+**Как работает:**
+
+```
+mark_archived.py installed.txt --hdd ARCHIVE1
+├─ 1. Читает installed.txt (формат: name<TAB>service<TAB>folder_id)
+├─ 2. Ищет каждую игру по имени в games.json (точное, затем нечёткое совпадение)
+├─ 3. Проставляет isArchived: true
+├─ 4. Проставляет archivePath: /mnt/ARCHIVE1/rawg/{folder_id}
+├─ 5. Меняет source на основе сервиса:
+│     legendary      → source: "epic_games"
+│     gogdl          → source: "gog"
+│     lgogdownloader → source: "gog"
+└─ 6. Сохраняет games.json
+
+Пример: installed.txt содержит
+  Into the Breach	legendary	Into_the_Breach
+  Celeste	gogdl	Celeste
+
+Результат в games.json:
+  "Into_the_Breach": {
+    "name": "Into the Breach",
+    "source": "epic_games",        ← было "rawg"
+    "isArchived": true,
+    "archivePath": "/mnt/ARCHIVE1/rawg/Into_the_Breach"
+  }
+  "Celeste": {
+    "name": "Celeste",
+    "source": "gog",               ← было "rawg"
+    "isArchived": true,
+    "archivePath": "/mnt/ARCHIVE1/rawg/Celeste"
+  }
+```
+
+Параметры:
+- `--hdd ARCHIVE1` — имя HDD (если не указано, спросит интерактивно)
+- `--games-json путь` — путь к games.json (по умолчанию `../data/games/games.json`)
+
+> **Важно:** source меняется автоматически — `installed.txt` записывается
+> скриптом `install_games.py` с указанием сервиса (legendary/gogdl/lgogdownloader).
+> Фронтенд использует source для показа иконки магазина (Epic Games / GOG / RAWG).
 
 ## 8. Результаты
 
