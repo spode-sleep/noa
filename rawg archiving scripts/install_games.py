@@ -296,6 +296,30 @@ def _gogdl_clear_manifest(game_id: int | str) -> None:
             pass
 
 
+def _gogdl_verify_token(token: str) -> bool:
+    """Проверить токен реальным запросом к GOG API и вывести 3 игры как пруф."""
+    # Получаем первую страницу библиотеки с названиями
+    url = "https://embed.gog.com/account/getFilteredProducts?mediaType=1&sortBy=title&page=1"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode())
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as exc:
+        warn(f"[gogdl] Проверка токена не удалась: {type(exc).__name__}")
+        return False
+
+    total = data.get("totalProducts", 0)
+    products = data.get("products", [])
+    if not isinstance(products, list) or total == 0:
+        return False
+
+    log(f"[gogdl] Токен валиден — {total} игр в библиотеке GOG")
+    sample = products[:3]
+    for g in sample:
+        log(f"[gogdl]   • {g.get('title', '?')}")
+    return True
+
+
 def auth_gogdl() -> bool:
     """Проверка и авторизация в GOG через gogdl.
 
@@ -305,11 +329,13 @@ def auth_gogdl() -> bool:
     log("[gogdl] Проверка авторизации GOG...")
     GOGDL_AUTH_CONFIG.parent.mkdir(parents=True, exist_ok=True)
 
-    # Попытка получить токен (с автообновлением)
+    # Попытка получить токен (с автообновлением) и проверить его
     token = _gogdl_get_token()
-    if token:
+    if token and _gogdl_verify_token(token):
         log("[gogdl] ✓ Авторизован в GOG")
         return True
+    if token:
+        warn("[gogdl] Токен получен, но невалиден — нужна повторная авторизация")
 
     # Первичная авторизация — открываем браузер
     warn("[gogdl] Не авторизован — нужна OAuth-авторизация через браузер.")
@@ -559,7 +585,8 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
 
     1. Получаем access_token через gogdl auth
     2. Ищем игру в библиотеке через GOG API (по имени → ID)
-    3. Скачиваем через gogdl download <id>
+    3. Проверяем доступность через gogdl info
+    4. Скачиваем через gogdl download <id>
     """
     log(f"  [gogdl] Поиск «{game_name}» в библиотеке GOG...")
 
@@ -574,7 +601,50 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
         return False
 
     game_id, title = match
-    log(f"  [gogdl] Найдена: {title} (ID: {game_id}), скачиваем...")
+    log(f"  [gogdl] Найдена: {title} (ID: {game_id})")
+
+    # Предварительная проверка: gogdl info — валидны ли манифест и авторизация
+    try:
+        info_proc = subprocess.run(
+            [
+                "gogdl",
+                "--auth-config-path", str(GOGDL_AUTH_CONFIG),
+                "info", str(game_id),
+                "--platform", "windows",
+                "--lang", "en-US",
+            ],
+            timeout=60,
+            capture_output=True,
+            text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if info_proc.returncode == 0 and info_proc.stdout.strip():
+            try:
+                info_data = json.loads(info_proc.stdout)
+                disk_size = info_data.get("size", {}).get("*", {}).get("disk_size", 0)
+                folder = info_data.get("folder_name", "?")
+                if disk_size > 0:
+                    size_mb = disk_size / (1024 * 1024)
+                    log(f"  [gogdl] Размер: {size_mb:.0f} MB, папка: {folder}")
+                else:
+                    err("  [gogdl] info вернул 0 размер — проверьте авторизацию GOG")
+                    with open(log_file, "a", encoding="utf-8") as lf:
+                        lf.write(f"=== gogdl info: {game_name} (ID: {game_id}) ===\n")
+                        lf.write(info_proc.stdout)
+                    return False
+            except (json.JSONDecodeError, KeyError, TypeError):
+                warn("  [gogdl] info вернул неожиданный формат — пробуем скачать")
+        else:
+            warn(f"  [gogdl] info не удалось (код {info_proc.returncode})")
+            with open(log_file, "a", encoding="utf-8") as lf:
+                lf.write(f"=== gogdl info FAILED: {game_name} (ID: {game_id}) ===\n")
+                lf.write(info_proc.stdout or "")
+                lf.write(info_proc.stderr or "")
+            return False
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        warn("  [gogdl] info недоступен — пробуем скачать напрямую")
+
+    log(f"  [gogdl] Скачиваем...")
 
     # Очищаем кеш манифеста gogdl, чтобы избежать ложного «Nothing to do»
     _gogdl_clear_manifest(game_id)
@@ -582,12 +652,12 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
     try:
         proc = subprocess.run(
             [
-                "gogdl",
+                "gogdl", "-d",
                 "--auth-config-path", str(GOGDL_AUTH_CONFIG),
                 "download", str(game_id),
                 "--path", str(out_dir),
                 "--platform", "windows",
-                "--lang", "en",
+                "--lang", "en-US",
             ],
             timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
