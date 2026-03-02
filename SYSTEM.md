@@ -253,76 +253,161 @@ Example `games.json` structure:
 1. Download ZIM archives from [https://download.kiwix.org/zim/](https://download.kiwix.org/zim/) or browse at [library.kiwix.org](https://library.kiwix.org) (while online).
 2. Place `.zim` files in the directory specified by `REFERENCE_LIBRARY_PATH`.
 3. Archives are detected automatically when the Reference section loads.
+4. Prefer `_maxi_` variants (full articles with images) for the most complete offline experience. Use `_nopic` to save disk space.
 
 #### Recommended ZIM archives for long-term offline use
 
-**Энциклопедии / Encyclopedias:**
+**📖 Энциклопедии / Encyclopedias:**
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
 | `wikipedia_ru_all_maxi` | Русская Википедия (полная, с картинками) | ~50 GB |
 | `wikipedia_en_all_maxi` | English Wikipedia (full, with images) | ~110 GB |
 
-**Словари / Dictionaries:**
+**📚 Словари / Dictionaries:**
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
-| `wiktionary_ru_all` | Русский Викисловарь | ~2 GB |
-| `wiktionary_en_all` | English Wiktionary | ~6 GB |
+| `wiktionary_ru_all_maxi` | Русский Викисловарь | ~3 GB |
+| `wiktionary_en_all_maxi` | English Wiktionary — definitions, etymology, translations | ~7 GB |
 
-**Медицина / Medical:**
-
-| Archive | Description | Size (approx.) |
-|---------|-------------|-----------------|
-| `wikipedia_en_medicine` | WikiMed — медицинские статьи из Wikipedia | ~2 GB |
-
-**Программирование / Programming:**
+**🏥 Медицина / Medical:**
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
-| `devdocs_en_all` | DevDocs — документация языков и фреймворков | ~1–3 GB |
-| `stackoverflow.com_en_all` | Stack Overflow — вопросы и ответы по программированию | ~30–40 GB |
+| `wikipedia_en_medicine` | WikiMed — 75 000+ медицинских статей из Wikipedia | ~2 GB |
+| `medlineplus.gov_en_all` | MedlinePlus — справочник потребительского здоровья (US NLM) | ~1.8 GB |
+| `fas-military-medicine_en` | Военно-полевая медицина / Military field medicine | ~78 MB |
+| `nhs.uk_en_medicines` | Справочник лекарств NHS UK | ~17 MB |
 
-**Образование / Education:**
+**💻 Программирование / Programming:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `stackoverflow.com_en_all` | Stack Overflow — вопросы и ответы по программированию | ~60 GB |
+| `devdocs_en_all` | DevDocs — агрегированная документация API | ~700 MB |
+| `superuser.com_en_all` | Super User — компьютерные вопросы и ответы | ~5 GB |
+| `askubuntu.com_en_all` | Ask Ubuntu — вопросы по Linux/Ubuntu | ~2.6 GB |
+| `unix.stackexchange.com_en_all` | Unix & Linux Q&A | ~2 GB |
+| `serverfault.com_en_all` | Server Fault — системное администрирование | ~3 GB |
+| `freecodecamp_en_all` | freeCodeCamp — курсы программирования | ~1 GB |
+| `docs.python.org_en` | Документация Python | ~2 GB |
+
+**🔬 Наука и математика / Science & Math:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `mathematics.stackexchange.com_en_all` | Математика Q&A | ~8 GB |
+| `physics.stackexchange.com_en_all` | Физика Q&A | ~3 GB |
+| `chemistry.stackexchange.com_en_all` | Химия Q&A | ~397 MB |
+| `biology.stackexchange.com_en_all` | Биология Q&A | ~403 MB |
+| `astronomy.stackexchange.com_en_all` | Астрономия Q&A | ~187 MB |
+| `phet_en_all` | PhET — интерактивные научные симуляции | ~1 GB |
+
+**🎓 Образование / Education:**
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
 | `wikibooks_ru_all` | Русские Викиучебники | <1 GB |
-| `wikibooks_en_all` | English Wikibooks — учебники | ~2 GB |
-| `wikiversity_en_all` | Wikiversity — курсы и учебные материалы | ~1 GB |
-| `phet_en_all` | PhET — интерактивные научные симуляции | ~1 GB |
-| `ted_en_all` | TED Talks (без видео, тексты выступлений) | ~5 GB |
+| `wikibooks_en_all_maxi` | English Wikibooks — учебники | ~2 GB |
+| `wikiversity_en_all_maxi` | Wikiversity — курсы и учебные материалы | ~500 MB |
+| `libretexts_en_all` | LibreTexts — открытые учебники (наука, инженерия) | ~50 GB |
+| `crashcourse_en_all` | CrashCourse — образовательные видеосерии | ~21 GB |
+| `ted_en_all` | TED Talks | ~5 GB |
 
-**Литература / Literature:**
+**📜 Литература / Literature:**
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
-| `gutenberg_en_all` | Project Gutenberg — книги в общественном достоянии | ~25–30 GB |
-| `wikisource_ru_all` | Русская Викитека — литературные первоисточники | ~2 GB |
+| `gutenberg_en_all` | Project Gutenberg — 70 000+ книг в общественном достоянии | ~65 GB |
+| `wikisource_ru_all_maxi` | Русская Викитека — литературные первоисточники | ~2 GB |
+| `wikisource_en_all_maxi` | English Wikisource — первичные тексты | ~15 GB |
+| `wikiquote_ru_all_maxi` | Русские Викицитаты | <1 GB |
+| `wikiquote_en_all_maxi` | English Wikiquote | ~500 MB |
 
-**Практические навыки / Practical (уже есть ✓):**
+**🔧 Ремонт и самоделки / DIY & Repair (уже есть ✓):**
 
 | Archive | Description | Status |
 |---------|-------------|--------|
 | `wikihow_en_all` | WikiHow — пошаговые инструкции | ✅ есть |
 | `ifixit_en_all` | iFixit — ремонт техники | ✅ есть |
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `diy.stackexchange.com_en_all` | Home Improvement — ремонт и обустройство дома Q&A | ~1.5 GB |
+| `3dprinting.stackexchange.com_en_all` | 3D-печать Q&A | ~115 MB |
+| `arduino.stackexchange.com_en_all` | Arduino и встраиваемая электроника Q&A | ~247 MB |
+
+**🍳 Кулинария / Cooking (уже есть ✓):**
+
+| Archive | Description | Status |
+|---------|-------------|--------|
 | `cooking.stackexchange.com_en_all` | Cooking Stack Exchange — кулинарные Q&A | ✅ есть |
 | `publicdomainrecipes.com_en_all` | Рецепты в общественном достоянии | ✅ есть |
 | `foss.cooking_en_all` | FOSS Cooking — открытые рецепты | ✅ есть |
+
+**🌿 Устойчивое развитие / Sustainability & Off-Grid:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `appropedia_en_all_maxi` | Appropedia — устойчивое развитие, appropriate technology | ~555 MB |
+| `energypedia_en_all_maxi` | Энергетика, возобновляемые источники, развитие | ~762 MB |
+| `cd3wdproject.org_en_all` | CD3WD — ресурсы для развития третьего мира | ~554 MB |
+| `100r.co_en_all` | Hundred Rabbits — автономные вычисления и мореплавание | ~160 MB |
+| `sustainability.stackexchange.com_en_all` | Sustainability Q&A | ~50 MB |
+
+**🏕️ Природа и практические навыки / Outdoors & Practical Skills:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `gardening.stackexchange.com_en_all` | Садоводство и ландшафтный дизайн Q&A | ~400 MB |
+| `outdoors.stackexchange.com_en_all` | The Great Outdoors — туризм, выживание Q&A | ~150 MB |
+| `bicycles.stackexchange.com_en_all` | Велосипеды — обслуживание и ремонт Q&A | ~467 MB |
+| `pets.stackexchange.com_en_all` | Домашние животные — уход Q&A | ~100 MB |
+
+**⚡ Электроника и инженерия / Electronics & Engineering:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `electronics.stackexchange.com_en_all` | Электроника Q&A | ~3 GB |
+| `engineering.stackexchange.com_en_all` | Инженерия Q&A | ~200 MB |
+
+**🌍 Путешествия / Travel & Geography:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `wikivoyage_en_all_maxi` | Wikivoyage — путеводитель по миру | ~800 MB |
+| `maps` | OpenStreetMap — оффлайн-карты | varies |
+
+**🔒 Безопасность / Security & Privacy:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `anonymousplanet.org_en_all` | Anonymous Planet — гид по конфиденциальности | ~27 MB |
+| `security.stackexchange.com_en_all` | Information Security Q&A | ~700 MB |
+
+**💰 Финансы / Finance:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `money.stackexchange.com_en_all` | Personal Finance — личные финансы Q&A | ~300 MB |
 
 **Дополнительно / Optional:**
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
-| `wikiquote_ru_all` | Русские Викицитаты | <1 GB |
-| `wikivoyage_en_all` | Wikivoyage — путеводитель по миру | ~1 GB |
 | `vikidia_en_all` | Vikidia — энциклопедия для детей | <1 GB |
+| `cheatography.com_en_all` | Cheatography — шпаргалки по всем темам | ~11 GB |
 
-> **Итого все перечисленные архивы (без того, что уже есть): ~250 GB**
+> **Итого все перечисленные архивы (без того, что уже есть): ~450+ GB**
 >
-> Минимальный набор (~170 GB): Wikipedia (RU+EN), Wiktionary (RU+EN), WikiMed, DevDocs, Gutenberg.
+> 🔴 Минимальный набор (~170 GB): Wikipedia (RU+EN), Wiktionary (RU+EN), WikiMed, DevDocs, Gutenberg.
 >
-> Полный набор (~250 GB): + Stack Overflow, Wikibooks, Wikiversity, PhET, TED, Wikisource.
+> 🟡 Оптимальный набор (~300 GB): + Stack Overflow, Wikibooks, Wikiversity, PhET, Wikisource, Appropedia, MedlinePlus, наука (math/physics/chemistry/biology SE).
+>
+> 🟢 Полный набор (~450+ GB): + всё остальное из списка.
+>
+> **Совет**: Проверяйте точные размеры на [download.kiwix.org/zim/](https://download.kiwix.org/zim/). Для экономии места используйте варианты `_nopic` (без изображений).
 
 ---
 
