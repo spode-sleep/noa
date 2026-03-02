@@ -106,11 +106,8 @@ def main():
     for name, folder_id in entries:
         key, game = find_rawg_game(games, name)
         if key is not None:
-            # Папка на HDD: service ID (если есть) или safe name (fallback)
-            if folder_id:
-                folder = folder_id
-            else:
-                folder = re.sub(r'[<>:"/\\|?*]', "_", game["name"])
+            # Папка на HDD: folder_id из installed.txt, или ключ games.json
+            folder = folder_id if folder_id else key
             games[key]["isArchived"] = True
             games[key]["archivePath"] = f"/mnt/{hdd_name}/rawg/{folder}"
             marked += 1
@@ -125,7 +122,7 @@ def main():
         f.write("\n")
 
     print(f"✓ Помечено как заархивированные: {marked}/{len(entries)}")
-    print(f"  Путь: /mnt/{hdd_name}/rawg/{{folder_id}}")
+    print(f"  Путь: /mnt/{hdd_name}/rawg/{{key}}")
 
     if fuzzy_matched:
         print(f"\n⚠ Нечёткие совпадения ({len(fuzzy_matched)}):")

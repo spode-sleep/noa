@@ -66,18 +66,19 @@ python install_games.py batches/batch_01.txt "E:\Archive\rawg"
 2. Если не авторизован — запускает интерактивный логин
 
 Для каждой игры:
-1. **Поиск** в библиотеках legendary → lgogdownloader → nile
-2. **Скачивание** в `D:\rawg_downloads\{name}`
-3. **Копирование** на HDD в `{install_dir}\{service_id}` (ID сервиса, как Steam использует AppID)
-4. **Верификация** — сравнение размеров
-5. **Удаление** локальной копии
+1. **Поиск** ключа в `games.json` по имени (для имени папки)
+2. **Поиск** в библиотеках legendary → lgogdownloader → nile
+3. **Скачивание** в `D:\rawg_downloads\{key}`
+4. **Копирование** на HDD в `{install_dir}\{key}`
+5. **Верификация** — сравнение размеров
+6. **Удаление** локальной копии
 
 ### Именование папок
 
-Папки на HDD именуются по **ID сервиса**, а не по названию игры:
-- **Epic** (legendary): app_name (например `KiwiGame`, `Pear`)
-- **GOG** (lgogdownloader): slug (например `celeste`, `enter_the_gungeon`)
-- **Amazon** (nile): game_id (например `amzn1.adg.product.xxx`)
+Папки на HDD именуются по **ключу из games.json** (только буквы, цифры, `_`):
+- Батч-файлы содержат **имена игр** (например `Into the Breach`)
+- Скрипт находит ключ в games.json (например `Into_the_Breach`)
+- Папка на HDD: `D:\rawg\Into_the_Breach`
 
 Это аналогично тому, как Steam-архиватор использует AppID для папок.
 

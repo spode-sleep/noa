@@ -20,6 +20,7 @@ RAWG Library Archiver — Windows version (Python3)
 """
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -97,8 +98,8 @@ def has_any_files(path: Path) -> bool:
 
 
 def safe_dirname(name: str) -> str:
-    """Имя директории, безопасное для файловой системы."""
-    return re.sub(r'[<>:"/\\|?*]', "_", name)
+    """Имя директории: только буквы, цифры, подчёркивание."""
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
 
 
 def read_names(filepath: str) -> list[str]:
@@ -111,6 +112,40 @@ def read_names(filepath: str) -> list[str]:
                 continue
             names.append(line)
     return names
+
+
+def normalize_name(name: str) -> str:
+    """Убирает спецсимволы и приводит к нижнему регистру для нечёткого сравнения."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def build_name_to_key(games_json_path: str) -> dict[str, str]:
+    """Загружает games.json и строит маппинг name → key для rawg-игр.
+
+    Возвращает два словаря в одном: точные и нормализованные имена.
+    """
+    with open(games_json_path, encoding="utf-8") as f:
+        games = json.load(f)
+
+    exact: dict[str, str] = {}
+    fuzzy: dict[str, str] = {}
+
+    for key, game in games.items():
+        if game.get("source") != "rawg":
+            continue
+        name = game.get("name", "")
+        exact[name] = key
+        fuzzy[normalize_name(name)] = key
+
+    return {**fuzzy, **exact}  # exact overwrites fuzzy for same normalized form
+
+
+def lookup_game_key(name: str, name_to_key: dict[str, str]) -> str | None:
+    """Ищет ключ games.json по имени игры (точное, затем нечёткое)."""
+    if name in name_to_key:
+        return name_to_key[name]
+    norm = normalize_name(name)
+    return name_to_key.get(norm)
 
 
 def check_tool(name: str) -> bool:
@@ -258,13 +293,11 @@ AUTH_FUNCS = {
 # ═══════════════════════════ Сервисы ═══════════════════════════
 
 
-def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, str | None]:
+def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> bool:
     """Попытка скачать через legendary (Epic Games Store).
 
     legendary ищет по app_name, но мы не знаем его — используем поиск.
     legendary list показывает все купленные игры; ищем совпадение по имени.
-
-    Возвращает (success, app_name) — app_name используется как ID папки.
     """
     log(f"  [legendary] Поиск «{game_name}» в библиотеке Epic Games...")
 
@@ -275,11 +308,11 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, 
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         warn("  [legendary] Недоступен или таймаут")
-        return False, None
+        return False
 
     if result.returncode != 0:
         warn("  [legendary] Ошибка получения списка игр")
-        return False, None
+        return False
 
     # Парсим CSV: App name, App title, Version, Is DLC
     app_name = None
@@ -294,7 +327,7 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, 
 
     if not app_name:
         warn(f"  [legendary] «{game_name}» не найдена в библиотеке")
-        return False, None
+        return False
 
     log(f"  [legendary] Найдена: {app_name}, скачиваем...")
 
@@ -317,22 +350,18 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, 
                 lf.write(proc.stderr)
     except subprocess.TimeoutExpired:
         err("  [legendary] Таймаут скачивания (2 часа)")
-        return False, None
+        return False
     except FileNotFoundError:
         warn("  [legendary] Недоступен")
-        return False, None
+        return False
 
-    ok = proc.returncode == 0 and has_any_files(out_dir)
-    return ok, app_name if ok else None
+    return proc.returncode == 0 and has_any_files(out_dir)
 
 
-def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, str | None]:
+def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
     """Попытка скачать через lgogdownloader (GOG.com).
 
     lgogdownloader --game поддерживает regex по имени.
-    lgogdownloader --list выводит game slugs (например the_witcher_3_wild_hunt).
-
-    Возвращает (success, gog_slug) — slug используется как ID папки.
     """
     log(f"  [lgogdownloader] Поиск «{game_name}» в библиотеке GOG...")
 
@@ -346,16 +375,13 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> tuple[b
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         warn("  [lgogdownloader] Недоступен или таймаут")
-        return False, None
+        return False
 
     if result.returncode != 0 or not result.stdout.strip():
         warn(f"  [lgogdownloader] «{game_name}» не найдена в библиотеке")
-        return False, None
+        return False
 
-    # Первая строка вывода — game slug (например celeste, enter_the_gungeon)
-    gog_slug = result.stdout.strip().splitlines()[0].strip()
-
-    log(f"  [lgogdownloader] Найдена: {gog_slug}, скачиваем...")
+    log(f"  [lgogdownloader] Найдена, скачиваем...")
 
     try:
         proc = subprocess.run(
@@ -373,27 +399,24 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> tuple[b
             text=True,
         )
         with open(log_file, "a", encoding="utf-8") as lf:
-            lf.write(f"=== lgogdownloader: {game_name} ({gog_slug}) ===\n")
+            lf.write(f"=== lgogdownloader: {game_name} ===\n")
             lf.write(proc.stdout)
             if proc.stderr:
                 lf.write(proc.stderr)
     except subprocess.TimeoutExpired:
         err("  [lgogdownloader] Таймаут скачивания (2 часа)")
-        return False, None
+        return False
     except FileNotFoundError:
         warn("  [lgogdownloader] Недоступен")
-        return False, None
+        return False
 
-    ok = proc.returncode == 0 and has_any_files(out_dir)
-    return ok, gog_slug if ok else None
+    return proc.returncode == 0 and has_any_files(out_dir)
 
 
-def try_nile(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, str | None]:
+def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
     """Попытка скачать через nile (Amazon Games).
 
     nile library list показывает все игры; ищем совпадение по имени.
-
-    Возвращает (success, game_id) — game_id используется как ID папки.
     """
     log(f"  [nile] Поиск «{game_name}» в библиотеке Amazon Games...")
 
@@ -404,11 +427,11 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, str |
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         warn("  [nile] Недоступен или таймаут")
-        return False, None
+        return False
 
     if result.returncode != 0:
         warn("  [nile] Ошибка получения списка игр")
-        return False, None
+        return False
 
     # Ищем совпадение по имени в выводе
     game_id = None
@@ -425,7 +448,7 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, str |
 
     if not game_id:
         warn(f"  [nile] «{game_name}» не найдена в библиотеке")
-        return False, None
+        return False
 
     log(f"  [nile] Найдена: {game_id}, скачиваем...")
 
@@ -443,13 +466,12 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> tuple[bool, str |
                 lf.write(proc.stderr)
     except subprocess.TimeoutExpired:
         err("  [nile] Таймаут скачивания (2 часа)")
-        return False, None
+        return False
     except FileNotFoundError:
         warn("  [nile] Недоступен")
-        return False, None
+        return False
 
-    ok = proc.returncode == 0 and has_any_files(out_dir)
-    return ok, game_id if ok else None
+    return proc.returncode == 0 and has_any_files(out_dir)
 
 
 SERVICE_FUNCS = {
@@ -473,6 +495,11 @@ def main() -> None:
         default="D:\\rawg",
         help="Директория на HDD (по умолчанию: D:\\rawg)",
     )
+    parser.add_argument(
+        "--games-json",
+        default=os.path.join(os.path.dirname(__file__), "..", "data", "games", "games.json"),
+        help="Путь к games.json (для маппинга имён → ключей/папок)",
+    )
     args = parser.parse_args()
 
     # Включаем ANSI escape коды на Windows
@@ -488,6 +515,13 @@ def main() -> None:
     if not names:
         err("Нет имён игр!")
         sys.exit(1)
+
+    # Загрузка games.json для маппинга имён → ключей (используются как имена папок)
+    if not os.path.isfile(args.games_json):
+        err(f"games.json не найден: {args.games_json}")
+        sys.exit(1)
+    name_to_key = build_name_to_key(args.games_json)
+    log(f"✓ games.json загружен ({len(name_to_key)} rawg-игр)")
 
     install_dir = Path(args.install_dir)
     LOCAL_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -562,17 +596,25 @@ def main() -> None:
     warn_count = 0
     failed_names: list[str] = []
     warned_names: list[str] = []
-    source_map: dict[str, tuple[str, str]] = {}  # name -> (service, game_id)
+    source_map: dict[str, str] = {}  # name -> service
 
     local_dir: Path | None = None
 
     try:
         for i, name in enumerate(names):
-            dir_name = safe_dirname(name)
-            local_dir = LOCAL_DOWNLOAD_DIR / dir_name
+            # Папка на HDD: ключ из games.json (sanitized), fallback — safe_dirname
+            game_key = lookup_game_key(name, name_to_key)
+            if game_key:
+                folder_name = game_key
+            else:
+                folder_name = safe_dirname(name)
+                warn(f"«{name}» не найдена в games.json — папка: {folder_name}")
+
+            local_dir = LOCAL_DOWNLOAD_DIR / folder_name
+            hdd_dir = install_dir / folder_name
 
             log("════════════════════════════════════════════")
-            log(f"[{i + 1}/{total}] {name}")
+            log(f"[{i + 1}/{total}] {name} → {folder_name}")
             log("════════════════════════════════════════════")
 
             # Очистка
@@ -586,15 +628,12 @@ def main() -> None:
             # Пробуем все доступные сервисы
             download_ok = False
             used_service = None
-            game_id = None
             for service in available:
                 func = SERVICE_FUNCS[service]
                 try:
-                    success, found_id = func(name, local_dir, log_file)
-                    if success:
+                    if func(name, local_dir, log_file):
                         download_ok = True
                         used_service = service
-                        game_id = found_id
                         break
                 except Exception as e:
                     err(f"  [{service}] Неожиданная ошибка: {e}")
@@ -605,16 +644,11 @@ def main() -> None:
 
             print()
 
-            # Папка на HDD: по ID сервиса (как Steam использует AppID)
-            # Если ID не удалось получить — используем имя игры
-            hdd_folder = game_id if game_id else dir_name
-            hdd_dir = install_dir / hdd_folder
-
             # Обработка результата
             if download_ok and local_dir.exists() and has_any_files(local_dir):
                 local_bytes = dir_size_bytes(local_dir)
                 size_str = dir_size_human(local_bytes)
-                log(f"✓ Скачано через {used_service} (ID: {game_id}): {size_str}")
+                log(f"✓ Скачано через {used_service}: {size_str}")
 
                 # Копирование на HDD
                 log(f"Копирование на HDD: {hdd_dir} ...")
@@ -629,9 +663,9 @@ def main() -> None:
                         log("✓ Локальная копия удалена")
 
                         with open(success_file, "a", encoding="utf-8") as f:
-                            f.write(f"{name}\t{used_service}\t{hdd_folder}\n")
+                            f.write(f"{name}\t{used_service}\t{folder_name}\n")
                         ok += 1
-                        source_map[name] = (used_service, hdd_folder)
+                        source_map[name] = used_service
 
                         if local_bytes < MIN_GAME_SIZE_BYTES:
                             warn(f"⚠ «{name}» очень маленькая ({size_str}) — проверьте вручную")
@@ -674,9 +708,9 @@ def main() -> None:
     # Запись итогов
     with open(success_file, "a", encoding="utf-8") as f:
         f.write(f"# OK: {ok}/{total}\n")
-        f.write("# Формат: name<TAB>service<TAB>folder_id\n")
-        for sname, (svc, fid) in source_map.items():
-            f.write(f"# {sname} <- {svc} (папка: {fid})\n")
+        f.write("# Формат: name<TAB>service<TAB>folder_key\n")
+        for sname, svc in source_map.items():
+            f.write(f"# {sname} <- {svc}\n")
 
     with open(failed_file, "a", encoding="utf-8") as f:
         for fn in failed_names:
