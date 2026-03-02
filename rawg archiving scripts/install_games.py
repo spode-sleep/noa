@@ -16,7 +16,7 @@ RAWG Library Archiver — Windows version (Python3)
 Требования:
     - Python 3.10+  (https://www.python.org/downloads/)
     - legendary  (pip install legendary-gl)     — Epic Games Store
-    - gogdl      (pip install from source)      — GOG.com (Windows)
+    - gogdl      (winget install GOGDL)          — GOG.com (Windows)
     - lgogdownloader                             — GOG.com (Linux/WSL)
     - nile       (pip install nile)              — Amazon Games
 """
@@ -722,7 +722,7 @@ def main() -> None:
         print()
         print("Установка (нужен Python 3.10+ и pip):")
         print("  legendary:      pip install legendary-gl")
-        print("  gogdl (GOG):    pip install git+https://github.com/Heroic-Games-Launcher/heroic-gogdl.git")
+        print("  gogdl (GOG):    winget install --id=HeroicGamesLauncher.GOGDL -e")
         print("  lgogdownloader: Linux / WSL only (sudo apt install lgogdownloader)")
         print("  nile:           pip install nile")
         print()

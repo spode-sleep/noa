@@ -41,7 +41,17 @@ legendary auth
 [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) — GOG-загрузчик
 из проекта Heroic Games Launcher. Написан на Python, работает на Windows.
 
-**Установка:**
+**Вариант А — через winget (рекомендуется):**
+```powershell
+winget install --id=HeroicGamesLauncher.GOGDL -e
+```
+
+**Вариант Б — через pip (требует C++ Build Tools):**
+
+> ⚠ При сборке из исходников нужен **Microsoft C++ Build Tools** (для компиляции xdelta3).
+> Скачайте: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+> Установите компонент «Desktop development with C++».
+
 ```powershell
 pip install git+https://github.com/Heroic-Games-Launcher/heroic-gogdl.git
 ```
