@@ -179,6 +179,8 @@ def copy_with_robocopy(src: Path, dst: Path) -> bool:
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         return result.returncode < 8
     except FileNotFoundError:
@@ -221,6 +223,7 @@ def auth_legendary() -> bool:
         result = subprocess.run(
             ["legendary", "status"],
             capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+            encoding="utf-8", errors="replace",
         )
         # legendary выводит статус через logging (stderr), не stdout
         combined = (result.stdout or "") + (result.stderr or "")
@@ -249,6 +252,7 @@ def _gogdl_get_token() -> str | None:
         result = subprocess.run(
             ["gogdl", "--auth-config-path", str(GOGDL_AUTH_CONFIG), "auth"],
             capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+            encoding="utf-8", errors="replace",
         )
         if result.returncode == 0 and result.stdout.strip():
             data = json.loads(result.stdout)
@@ -322,6 +326,7 @@ def auth_gogdl() -> bool:
                 "auth", "--code", code,
             ],
             capture_output=True, text=True, timeout=AUTH_LOGIN_TIMEOUT,
+            encoding="utf-8", errors="replace",
         )
         if result.returncode == 0 and result.stdout.strip():
             data = json.loads(result.stdout)
@@ -342,6 +347,7 @@ def auth_lgogdownloader() -> bool:
         result = subprocess.run(
             ["lgogdownloader", "--check-login-status"],
             capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+            encoding="utf-8", errors="replace",
         )
         if result.returncode == 0:
             log("[lgogdownloader] ✓ Авторизован в GOG")
@@ -370,6 +376,7 @@ def auth_nile() -> bool:
         result = subprocess.run(
             ["nile", "library", "list"],
             capture_output=True, text=True, timeout=AUTH_CHECK_TIMEOUT,
+            encoding="utf-8", errors="replace",
         )
         if result.returncode == 0 and result.stdout.strip():
             log("[nile] ✓ Авторизован в Amazon Games")
@@ -413,6 +420,7 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> bool:
         result = subprocess.run(
             ["legendary", "list", "--csv"],
             capture_output=True, text=True, timeout=60,
+            encoding="utf-8", errors="replace",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         warn("  [legendary] Недоступен или таймаут")
@@ -450,6 +458,7 @@ def try_legendary(game_name: str, out_dir: Path, log_file: Path) -> bool:
             timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
+            encoding="utf-8", errors="replace",
         )
         with open(log_file, "a", encoding="utf-8") as lf:
             lf.write(f"=== legendary: {game_name} ({app_name}) ===\n")
@@ -536,6 +545,7 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
             timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
+            encoding="utf-8", errors="replace",
         )
         with open(log_file, "a", encoding="utf-8") as lf:
             lf.write(f"=== gogdl: {game_name} (ID: {game_id}) ===\n")
@@ -566,6 +576,7 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
         result = subprocess.run(
             ["lgogdownloader", "--list", "--game", escaped],
             capture_output=True, text=True, timeout=60,
+            encoding="utf-8", errors="replace",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         warn("  [lgogdownloader] Недоступен или таймаут")
@@ -591,6 +602,7 @@ def try_lgogdownloader(game_name: str, out_dir: Path, log_file: Path) -> bool:
             timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
+            encoding="utf-8", errors="replace",
         )
         with open(log_file, "a", encoding="utf-8") as lf:
             lf.write(f"=== lgogdownloader: {game_name} ===\n")
@@ -618,6 +630,7 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
         result = subprocess.run(
             ["nile", "library", "list"],
             capture_output=True, text=True, timeout=60,
+            encoding="utf-8", errors="replace",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         warn("  [nile] Недоступен или таймаут")
@@ -652,6 +665,7 @@ def try_nile(game_name: str, out_dir: Path, log_file: Path) -> bool:
             timeout=DOWNLOAD_TIMEOUT,
             capture_output=True,
             text=True,
+            encoding="utf-8", errors="replace",
         )
         with open(log_file, "a", encoding="utf-8") as lf:
             lf.write(f"=== nile: {game_name} ({game_id}) ===\n")
