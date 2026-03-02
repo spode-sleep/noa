@@ -250,14 +250,79 @@ Example `games.json` structure:
 
 ### Reference (ZIM Archives)
 
-1. Download ZIM archives from [https://wiki.kiwix.org/wiki/Content](https://wiki.kiwix.org/wiki/Content) (while online).
+1. Download ZIM archives from [https://download.kiwix.org/zim/](https://download.kiwix.org/zim/) or browse at [library.kiwix.org](https://library.kiwix.org) (while online).
 2. Place `.zim` files in the directory specified by `REFERENCE_LIBRARY_PATH`.
-3. Common ZIM archives:
-   - `wikipedia_ru_all.zim` — Russian Wikipedia
-   - `wikipedia_en_all.zim` — English Wikipedia
-   - `wikihow_en_all.zim` — WikiHow
-   - `wiktionary_ru_all.zim` — Russian Wiktionary
-4. Archives are detected automatically when the Reference section loads.
+3. Archives are detected automatically when the Reference section loads.
+
+#### Recommended ZIM archives for long-term offline use
+
+**Энциклопедии / Encyclopedias:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `wikipedia_ru_all_maxi` | Русская Википедия (полная, с картинками) | ~50 GB |
+| `wikipedia_en_all_maxi` | English Wikipedia (full, with images) | ~110 GB |
+
+**Словари / Dictionaries:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `wiktionary_ru_all` | Русский Викисловарь | ~2 GB |
+| `wiktionary_en_all` | English Wiktionary | ~6 GB |
+
+**Медицина / Medical:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `wikipedia_en_medicine` | WikiMed — медицинские статьи из Wikipedia | ~2 GB |
+
+**Программирование / Programming:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_all` | DevDocs — документация языков и фреймворков | ~1–3 GB |
+| `stackoverflow.com_en_all` | Stack Overflow — вопросы и ответы по программированию | ~30–40 GB |
+
+**Образование / Education:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `wikibooks_ru_all` | Русские Викиучебники | <1 GB |
+| `wikibooks_en_all` | English Wikibooks — учебники | ~2 GB |
+| `wikiversity_en_all` | Wikiversity — курсы и учебные материалы | ~1 GB |
+| `phet_en_all` | PhET — интерактивные научные симуляции | ~1 GB |
+| `ted_en_all` | TED Talks (без видео, тексты выступлений) | ~5 GB |
+
+**Литература / Literature:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `gutenberg_en_all` | Project Gutenberg — книги в общественном достоянии | ~25–30 GB |
+| `wikisource_ru_all` | Русская Викитека — литературные первоисточники | ~2 GB |
+
+**Практические навыки / Practical (уже есть ✓):**
+
+| Archive | Description | Status |
+|---------|-------------|--------|
+| `wikihow_en_all` | WikiHow — пошаговые инструкции | ✅ есть |
+| `ifixit_en_all` | iFixit — ремонт техники | ✅ есть |
+| `cooking.stackexchange.com_en_all` | Cooking Stack Exchange — кулинарные Q&A | ✅ есть |
+| `publicdomainrecipes.com_en_all` | Рецепты в общественном достоянии | ✅ есть |
+| `foss.cooking_en_all` | FOSS Cooking — открытые рецепты | ✅ есть |
+
+**Дополнительно / Optional:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `wikiquote_ru_all` | Русские Викицитаты | <1 GB |
+| `wikivoyage_en_all` | Wikivoyage — путеводитель по миру | ~1 GB |
+| `vikidia_en_all` | Vikidia — энциклопедия для детей | <1 GB |
+
+> **Итого все перечисленные архивы (без того, что уже есть): ~250 GB**
+>
+> Минимальный набор (~170 GB): Wikipedia (RU+EN), Wiktionary (RU+EN), WikiMed, DevDocs, Gutenberg.
+>
+> Полный набор (~250 GB): + Stack Overflow, Wikibooks, Wikiversity, PhET, TED, Wikisource.
 
 ---
 
