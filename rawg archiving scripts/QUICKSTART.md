@@ -28,7 +28,7 @@ pip --version
 
 ## 2. Установка CLI-инструментов
 
-Скрипт пробует все три сервиса для каждой игры. Установите хотя бы один:
+Скрипт пробует все доступные сервисы для каждой игры. Установите хотя бы один:
 
 ### legendary (Epic Games Store)
 ```
@@ -36,26 +36,34 @@ pip install legendary-gl
 legendary auth
 ```
 
-### lgogdownloader (GOG.com) — только Linux / WSL
+### gogdl (GOG.com) — рекомендуется для Windows
 
-> **Важно:** lgogdownloader — **Linux-утилита**. Официальных Windows-бинарников нет,
-> и в Scoop / winget пакет отсутствует. На чистой Windows этот сервис можно пропустить —
-> скрипт автоматически перейдёт к следующему (legendary / nile).
+[gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) — GOG-загрузчик
+из проекта Heroic Games Launcher. Написан на Python, работает на Windows.
 
-**Если хотите использовать GOG — установите через WSL (Windows Subsystem for Linux):**
+**Установка:**
+```powershell
+pip install git+https://github.com/Heroic-Games-Launcher/heroic-gogdl.git
+```
 
-1. Включите WSL (если ещё не включён):
-   ```powershell
-   wsl --install
-   ```
-2. Перезагрузите компьютер, откройте Ubuntu из меню «Пуск» и выполните:
-   ```bash
-   sudo apt update && sudo apt install lgogdownloader -y
-   lgogdownloader --login
-   ```
+**Авторизация** происходит автоматически при первом запуске скрипта:
+1. Скрипт откроет браузер со страницей входа GOG
+2. Войдите в аккаунт GOG
+3. Скопируйте параметр `code=` из URL после редиректа
+4. Вставьте код в терминал
 
-После этого `lgogdownloader` будет доступен **только внутри WSL**.
-Скрипт `install_games.py` сможет его найти, если запущен из WSL.
+Токены сохраняются в `~/.noa/gog_auth.json` и обновляются автоматически.
+
+### lgogdownloader (GOG.com) — альтернатива для Linux / WSL
+
+> lgogdownloader — Linux-утилита. На Windows работает только через WSL.
+> На Windows рекомендуется gogdl (выше).
+
+Установка в WSL (Ubuntu):
+```bash
+sudo apt update && sudo apt install lgogdownloader -y
+lgogdownloader --login
+```
 
 ### nile (Amazon Games)
 ```
@@ -68,6 +76,7 @@ nile auth --login
 Проверка:
 ```
 legendary --version
+gogdl --version
 lgogdownloader --version
 nile --version
 ```
@@ -96,12 +105,12 @@ python install_games.py batches/batch_01.txt "E:\Archive\rawg"
 ## 5. Что происходит
 
 При запуске:
-1. **Проверка авторизации** во всех доступных сервисах (legendary, lgogdownloader, nile)
+1. **Проверка авторизации** во всех доступных сервисах (legendary, gogdl, lgogdownloader, nile)
 2. Если не авторизован — запускает интерактивный логин
 
 Для каждой игры:
 1. **Поиск** ключа в `games.json` по имени (для имени папки)
-2. **Поиск** в библиотеках legendary → lgogdownloader → nile
+2. **Поиск** в библиотеках legendary → gogdl → lgogdownloader → nile
 3. **Скачивание** в `D:\rawg_downloads\{key}`
 4. **Копирование** на HDD в `{install_dir}\{key}`
 5. **Верификация** — сравнение размеров
