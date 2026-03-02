@@ -255,6 +255,8 @@ Example `games.json` structure:
 3. Archives are detected automatically when the Reference section loads.
 4. Prefer `_maxi_` variants (full articles with images) for the most complete offline experience. Use `_nopic` to save disk space.
 
+> **Автоматическая загрузка**: используйте скрипт [`scripts/download-zim-library.sh`](scripts/download-zim-library.sh) для массового скачивания. Поддерживает три тира (`minimal` / `optimal` / `full`), докачку, SHA256-проверку. DevDocs загружаются отдельно. Для документации Minecraft-модов: `./scripts/download-zim-library.sh minecraft`.
+
 #### Recommended ZIM archives for long-term offline use
 
 **📖 Энциклопедии / Encyclopedias:**
