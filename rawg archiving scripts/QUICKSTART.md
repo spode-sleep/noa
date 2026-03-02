@@ -79,10 +79,22 @@ lgogdownloader --login
 
 [nile](https://github.com/imLinguin/nile) — неофициальный клиент Amazon Games.
 
-> ⚠ `pip install nile` устанавливает **не тот** пакет. Нужна установка из исходников:
+> ⚠ **Не используйте** `pip install nile` — это **не тот** пакет.
+> Сборка из исходников (`pip install git+...`) тоже может не работать на Windows.
+> Используйте готовый бинарник с GitHub (рекомендация автора).
 
+**Скачать и установить (PowerShell, если Python уже в PATH):**
 ```powershell
-pip install git+https://github.com/imLinguin/nile.git
+Invoke-WebRequest -Uri "https://github.com/imLinguin/nile/releases/latest/download/nile_windows_x86_64.exe" -OutFile (Join-Path (python -c "import sysconfig; print(sysconfig.get_path('scripts'))") "nile.exe")
+```
+
+Или вручную:
+1. Скачайте `nile_windows_x86_64.exe` со [страницы релизов](https://github.com/imLinguin/nile/releases/latest)
+2. Переименуйте в `nile.exe`
+3. Поместите в папку, которая есть в PATH (например, в `Python312\Scripts\`)
+
+**Авторизация:**
+```powershell
 nile auth --login
 ```
 

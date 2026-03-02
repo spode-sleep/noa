@@ -18,7 +18,7 @@ RAWG Library Archiver — Windows version (Python3)
     - legendary  (pip install legendary-gl)     — Epic Games Store
     - gogdl      (winget install GOGDL)          — GOG.com (Windows)
     - lgogdownloader                             — GOG.com (Linux/WSL)
-    - nile       (pip install from GitHub source)  — Amazon Games
+    - nile       (binary from GitHub releases)    — Amazon Games
 """
 
 import argparse
@@ -724,7 +724,7 @@ def main() -> None:
         print("  legendary:      pip install legendary-gl")
         print("  gogdl (GOG):    winget install --id=HeroicGamesLauncher.GOGDL -e")
         print("  lgogdownloader: Linux / WSL only (sudo apt install lgogdownloader)")
-        print("  nile:           pip install git+https://github.com/imLinguin/nile.git")
+        print("  nile:           скачать .exe — https://github.com/imLinguin/nile/releases")
         print()
         print("Если pip не найден — попробуйте: py -m pip install ...")
         print("Подробнее: QUICKSTART.md")
