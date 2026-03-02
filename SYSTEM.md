@@ -425,7 +425,7 @@ Example `games.json` structure:
 | `devdocs_en_scikit-learn` | scikit-learn — классический ML | ~54 MB |
 | `devdocs_en_matplotlib` | Matplotlib — визуализация данных | ~31 MB |
 | `devdocs_en_statsmodels` | statsmodels — статистические модели | ~8 MB |
-| `devdocs_en_opencv` | OpenCV (если есть) — компьютерное зрение | varies |
+| `devdocs_en_scikit-image` | scikit-image — обработка изображений | ~11 MB |
 
 **🐍 Языки программирования / Programming Languages:**
 
@@ -600,7 +600,10 @@ mvn dependency:go-offline
 # Или настроить mavenLocal() в build.gradle:
 repositories {
     mavenLocal()  // ~/.m2/repository
-    // закомментировать remote-репозитории для оффлайна
+    // Для оффлайна закомментировать remote:
+    // maven { url = "https://maven.fabricmc.net/" }
+    // maven { url = "https://api.modrinth.com/maven" }
+    // mavenCentral()
 }
 ```
 
@@ -613,18 +616,18 @@ DOCS_DIR="$HOME/minecraft-mod-docs"
 mkdir -p "$DOCS_DIR"
 
 # Fabric
-wget --mirror --convert-links --adjust-extension -P "$DOCS_DIR/fabric-wiki" https://wiki.fabricmc.net/
+wget --mirror --convert-links --adjust-extension --wait=1 --random-wait -P "$DOCS_DIR/fabric-wiki" https://wiki.fabricmc.net/
 git clone https://github.com/FabricMC/fabric-docs "$DOCS_DIR/fabric-docs"
 
 # CC:Tweaked
-wget --mirror --convert-links --adjust-extension -P "$DOCS_DIR/cctweaked" https://tweaked.cc/
+wget --mirror --convert-links --adjust-extension --wait=1 --random-wait -P "$DOCS_DIR/cctweaked" https://tweaked.cc/
 git clone https://github.com/cc-tweaked/CC-Tweaked "$DOCS_DIR/cctweaked-src"
 
 # Create
 git clone https://github.com/Creators-of-Create/Create.wiki.git "$DOCS_DIR/create-wiki"
 
 # Terra
-wget --mirror --convert-links --adjust-extension -P "$DOCS_DIR/terra" https://terra.polydev.org/
+wget --mirror --convert-links --adjust-extension --wait=1 --random-wait -P "$DOCS_DIR/terra" https://terra.polydev.org/
 git clone https://github.com/PolyhedralDev/Terra "$DOCS_DIR/terra-src"
 
 echo "Документация сохранена в $DOCS_DIR"
