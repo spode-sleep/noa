@@ -1,10 +1,12 @@
-# Батч 12: 20 игр
+# Батч 12: 21 игр
 # Создан: 2026-03-02 15:56:07
 #
 #AppGameKit Classic: Easy Game Development
 325180
 #Aseprite
 431730
+#Bitburner
+1812820
 #Blender
 365670
 #Borderless Gaming
