@@ -359,7 +359,7 @@ const showTipsModal = ref(false)
 function sourceIcon(source: string): string {
   switch (source) {
     case 'steam': return 'mdi:steam'
-    case 'epic_games': return 'mdi:sword-cross'
+    case 'epic_games': return 'mdi:alpha-e-box'
     case 'gog': return 'mdi:gog'
     default: return 'mdi:gamepad-variant'
   }

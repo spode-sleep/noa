@@ -34,7 +34,7 @@ import mdiRepeatOnce from '@iconify/icons-mdi/repeat-once'
 import mdiSkipNext from '@iconify/icons-mdi/skip-next'
 import mdiSkipPrevious from '@iconify/icons-mdi/skip-previous'
 import mdiSteam from '@iconify/icons-mdi/steam'
-import mdiSwordCross from '@iconify/icons-mdi/sword-cross'
+import mdiAlphaEBox from '@iconify/icons-mdi/alpha-e-box'
 import mdiTagMultiple from '@iconify/icons-mdi/tag-multiple'
 import mdiThumbDown from '@iconify/icons-mdi/thumb-down'
 import mdiThumbUp from '@iconify/icons-mdi/thumb-up'
@@ -74,7 +74,7 @@ const icons: Record<string, typeof mdiFolder> = {
   'mdi:skip-next': mdiSkipNext,
   'mdi:skip-previous': mdiSkipPrevious,
   'mdi:steam': mdiSteam,
-  'mdi:sword-cross': mdiSwordCross,
+  'mdi:alpha-e-box': mdiAlphaEBox,
   'mdi:tag-multiple': mdiTagMultiple,
   'mdi:thumb-down': mdiThumbDown,
   'mdi:thumb-up': mdiThumbUp,

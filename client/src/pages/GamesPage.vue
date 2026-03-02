@@ -102,7 +102,7 @@
               <Icon icon="mdi:steam" width="22" height="22" />
             </span>
             <span class="source-icon epic-icon" v-else-if="game.source === 'epic_games'" title="Epic Games" aria-label="Epic Games">
-              <Icon icon="mdi:sword-cross" width="22" height="22" />
+              <Icon icon="mdi:alpha-e-box" width="22" height="22" />
             </span>
             <span class="source-icon gog-icon" v-else-if="game.source === 'gog'" title="GOG" aria-label="GOG">
               <Icon icon="mdi:gog" width="22" height="22" />
