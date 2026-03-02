@@ -64,7 +64,6 @@ TIER_MINIMAL=(
 TIER_OPTIMAL=(
     # Программирование
     "stack_exchange/stackoverflow.com_en_all"
-    "other/devdocs_en_all"
     "stack_exchange/superuser.com_en_all"
     "stack_exchange/askubuntu.com_en_all"
     "stack_exchange/unix.stackexchange.com_en_all"
@@ -158,7 +157,7 @@ usage() {
 }
 
 # Найти последнюю версию ZIM-файла на kiwix.org
-# Аргумент: "subfolder/basename" (напр. "wikipedia/wikipedia_en_all_maxi")
+# Аргумент: "subfolder/basename" (напр. "stack_exchange/stackoverflow.com_en_all")
 find_latest_zim_url() {
     local spec="$1"
     local subfolder="${spec%%/*}"
@@ -209,8 +208,8 @@ download_zim() {
     filename=$(basename "$url")
     local filepath="$DOWNLOAD_DIR/$filename"
 
-    # Пропускаем если уже есть файл с таким именем (без .part)
-    if [ -f "$filepath" ] && [ ! -f "${filepath}.part" ]; then
+    # Пропускаем если уже есть файл с таким именем
+    if [ -f "$filepath" ]; then
         info "Уже скачан: $filename — пропускаю"
         ((SKIPPED++))
         return 0
@@ -236,7 +235,10 @@ download_zim() {
     log "URL: $url"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] DOWNLOAD $filename $url" >> "$LOG_FILE"
 
-    if wget $WGET_OPTS -O "$filepath" "$url" 2>&1 | tail -5; then
+    wget $WGET_OPTS -O "$filepath" "$url" 2>&1 | tail -5
+    local wget_status=${PIPESTATUS[0]}
+
+    if [ "$wget_status" -eq 0 ]; then
         log "✅ Скачан: $filename"
         ((DOWNLOADED++))
 
@@ -416,7 +418,7 @@ get_archives_for_tier() {
             if [ ! -f "$listfile" ]; then
                 err "Файл не найден: $listfile"
                 err "Создайте файл с именами архивов (по одному на строку), например:"
-                err "  wikipedia/wikipedia_ru_all_maxi"
+                err "  wiktionary/wiktionary_en_all_maxi"
                 err "  stack_exchange/stackoverflow.com_en_all"
                 exit 1
             fi
@@ -478,7 +480,7 @@ log "Архивов для загрузки: $TOTAL"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] START tier=$TIER total=$TOTAL dir=$DOWNLOAD_DIR" >> "$LOG_FILE"
 
 # Проверяем свободное место
-AVAILABLE_GB=$(df -BG "$DOWNLOAD_DIR" | awk 'NR==2{print $4}' | tr -d 'G')
+AVAILABLE_GB=$(df -BG "$DOWNLOAD_DIR" 2>/dev/null | awk 'NR==2{print $4}' | tr -d 'G')
 case "$TIER" in
     minimal) NEEDED_GB=90 ;;
     optimal) NEEDED_GB=190 ;;
@@ -486,7 +488,7 @@ case "$TIER" in
     *)       NEEDED_GB=100 ;;
 esac
 
-if [ "$AVAILABLE_GB" -lt "$NEEDED_GB" ] 2>/dev/null; then
+if [[ "$AVAILABLE_GB" =~ ^[0-9]+$ ]] && [ "$AVAILABLE_GB" -lt "$NEEDED_GB" ]; then
     warn "Свободно ~${AVAILABLE_GB} GB, рекомендуется ~${NEEDED_GB} GB для тира '$TIER'"
     warn "Продолжить? (y/N)"
     read -r confirm
@@ -498,9 +500,8 @@ fi
 
 # Скачиваем каждый архив
 for i in "${!ARCHIVES[@]}"; do
-    local_i=$((i + 1))
     echo ""
-    log "━━━ [$local_i/$TOTAL] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log "━━━ [$((i + 1))/$TOTAL] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     download_zim "${ARCHIVES[$i]}"
 done
 
