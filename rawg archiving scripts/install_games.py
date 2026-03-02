@@ -603,7 +603,7 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
     game_id, title = match
     log(f"  [gogdl] Найдена: {title} (ID: {game_id})")
 
-    # Предварительная проверка: gogdl info — валидны ли манифест и авторизация
+    # Диагностика: gogdl info — логируем размер (не блокируем скачивание)
     try:
         info_proc = subprocess.run(
             [
@@ -618,29 +618,41 @@ def try_gogdl(game_name: str, out_dir: Path, log_file: Path) -> bool:
             text=True,
             encoding="utf-8", errors="replace",
         )
+        with open(log_file, "a", encoding="utf-8") as lf:
+            lf.write(f"=== gogdl info: {game_name} (ID: {game_id}) ===\n")
+            lf.write(info_proc.stdout or "")
+            if info_proc.stderr:
+                lf.write(info_proc.stderr)
+            lf.write("\n")
         if info_proc.returncode == 0 and info_proc.stdout.strip():
             try:
                 info_data = json.loads(info_proc.stdout)
-                disk_size = info_data.get("size", {}).get("*", {}).get("disk_size", 0)
+                # Ищем disk_size: сначала под "*", потом под product_id
+                size_map = info_data.get("size", {})
+                disk_size = None
+                for key in ("*", game_id, str(game_id)):
+                    entry = size_map.get(key, {})
+                    if isinstance(entry, dict) and "disk_size" in entry:
+                        disk_size = entry["disk_size"]
+                        if disk_size:
+                            break
+                # Если не нашли конкретный ключ — суммируем все disk_size
+                if not disk_size:
+                    total = 0
+                    for entry in size_map.values():
+                        if isinstance(entry, dict):
+                            total += entry.get("disk_size", 0)
+                    disk_size = total
                 folder = info_data.get("folder_name", "?")
                 if disk_size > 0:
                     size_mb = disk_size / (1024 * 1024)
                     log(f"  [gogdl] Размер: {size_mb:.0f} MB, папка: {folder}")
                 else:
-                    err("  [gogdl] info вернул 0 размер — проверьте авторизацию GOG")
-                    with open(log_file, "a", encoding="utf-8") as lf:
-                        lf.write(f"=== gogdl info: {game_name} (ID: {game_id}) ===\n")
-                        lf.write(info_proc.stdout)
-                    return False
+                    warn(f"  [gogdl] info: размер 0 (папка: {folder}) — пробуем скачать")
             except (json.JSONDecodeError, KeyError, TypeError):
-                warn("  [gogdl] info вернул неожиданный формат — пробуем скачать")
+                warn("  [gogdl] info: неожиданный формат — пробуем скачать")
         else:
-            warn(f"  [gogdl] info не удалось (код {info_proc.returncode})")
-            with open(log_file, "a", encoding="utf-8") as lf:
-                lf.write(f"=== gogdl info FAILED: {game_name} (ID: {game_id}) ===\n")
-                lf.write(info_proc.stdout or "")
-                lf.write(info_proc.stderr or "")
-            return False
+            warn(f"  [gogdl] info: код {info_proc.returncode} — пробуем скачать")
     except (subprocess.TimeoutExpired, FileNotFoundError):
         warn("  [gogdl] info недоступен — пробуем скачать напрямую")
 
