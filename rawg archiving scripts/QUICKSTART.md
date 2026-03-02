@@ -2,7 +2,31 @@
 
 Архивация игр из GOG, Epic Games Store и Amazon Games.
 
-## 1. Установка CLI-инструментов
+## 1. Установка Python 3.10+
+
+Python нужен для запуска скриптов и установки CLI-инструментов через `pip`.
+
+**Вариант А — через winget (если есть):**
+```
+winget install Python.Python.3.12
+```
+
+**Вариант Б — скачать с python.org:**
+1. Откройте https://www.python.org/downloads/
+2. Скачайте последнюю версию Python 3.12+
+3. При установке **обязательно** поставьте галочку **«Add python.exe to PATH»**
+
+После установки **перезапустите терминал** (cmd / PowerShell) и проверьте:
+```
+python --version
+pip --version
+```
+
+> **Если `pip` не найден** — попробуйте `py -m pip --version`.
+> Если и это не работает — Python не добавлен в PATH. Переустановите
+> с галочкой «Add to PATH» или добавьте вручную в системные переменные.
+
+## 2. Установка CLI-инструментов
 
 Скрипт пробует все три сервиса для каждой игры. Установите хотя бы один:
 
@@ -25,17 +49,13 @@ pip install nile
 nile auth --login
 ```
 
+> **Если `pip install` не работает** — используйте `py -m pip install` вместо `pip install`.
+
 Проверка:
 ```
 legendary --version
 lgogdownloader --version
 nile --version
-```
-
-## 2. Установка Python 3.10+
-
-```
-winget install Python.Python.3.12
 ```
 
 ## 3. Подключение HDD

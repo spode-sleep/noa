@@ -14,6 +14,7 @@ RAWG Library Archiver — Windows version (Python3)
     python install_games.py batch_01.txt "E:/Archive/rawg"
 
 Требования:
+    - Python 3.10+  (https://www.python.org/downloads/)
     - legendary  (pip install legendary-gl)     — Epic Games Store
     - lgogdownloader                             — GOG.com
     - nile       (pip install nile)              — Amazon Games
@@ -539,10 +540,13 @@ def main() -> None:
     if not available:
         err("Ни один из инструментов не найден!")
         print()
-        print("Установка:")
+        print("Установка (нужен Python 3.10+ и pip):")
         print("  legendary:      pip install legendary-gl")
         print("  lgogdownloader: https://github.com/Sude-/lgogdownloader")
-        print("  nile:           https://github.com/imLinguin/nile")
+        print("  nile:           pip install nile")
+        print()
+        print("Если pip не найден — попробуйте: py -m pip install ...")
+        print("Подробнее: QUICKSTART.md")
         sys.exit(1)
 
     # Авторизация во всех доступных сервисах
