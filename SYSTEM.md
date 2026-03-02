@@ -275,7 +275,7 @@ Example `games.json` structure:
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
-| `wikipedia_en_medicine` | WikiMed — 75 000+ медицинских статей из Wikipedia | ~2 GB |
+| `wikipedia_en_medicine` | WikiMed — 75,000+ медицинских статей из Wikipedia | ~2 GB |
 | `medlineplus.gov_en_all` | MedlinePlus — справочник потребительского здоровья (US NLM) | ~1.8 GB |
 | `fas-military-medicine_en` | Военно-полевая медицина / Military field medicine | ~78 MB |
 | `nhs.uk_en_medicines` | Справочник лекарств NHS UK | ~17 MB |
@@ -319,7 +319,7 @@ Example `games.json` structure:
 
 | Archive | Description | Size (approx.) |
 |---------|-------------|-----------------|
-| `gutenberg_en_all` | Project Gutenberg — 70 000+ книг в общественном достоянии | ~65 GB |
+| `gutenberg_en_all` | Project Gutenberg — 70,000+ книг в общественном достоянии | ~65 GB |
 | `wikisource_ru_all_maxi` | Русская Викитека — литературные первоисточники | ~2 GB |
 | `wikisource_en_all_maxi` | English Wikisource — первичные тексты | ~15 GB |
 | `wikiquote_ru_all_maxi` | Русские Викицитаты | <1 GB |
@@ -401,9 +401,9 @@ Example `games.json` structure:
 
 > **Итого все перечисленные архивы (без того, что уже есть): ~450+ GB**
 >
-> 🔴 Минимальный набор (~170 GB): Wikipedia (RU+EN), Wiktionary (RU+EN), WikiMed, DevDocs, Gutenberg.
+> 🔴 Минимальный набор (~240 GB): Wikipedia (RU+EN), Wiktionary (RU+EN), WikiMed, DevDocs, Gutenberg.
 >
-> 🟡 Оптимальный набор (~300 GB): + Stack Overflow, Wikibooks, Wikiversity, PhET, Wikisource, Appropedia, MedlinePlus, наука (math/physics/chemistry/biology SE).
+> 🟡 Оптимальный набор (~340 GB): + Stack Overflow, Wikibooks, Wikiversity, PhET, Wikisource, Appropedia, MedlinePlus, наука (math/physics/chemistry/biology SE).
 >
 > 🟢 Полный набор (~450+ GB): + всё остальное из списка.
 >
