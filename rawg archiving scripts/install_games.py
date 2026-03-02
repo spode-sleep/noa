@@ -542,7 +542,7 @@ def main() -> None:
         print()
         print("Установка (нужен Python 3.10+ и pip):")
         print("  legendary:      pip install legendary-gl")
-        print("  lgogdownloader: https://github.com/Sude-/lgogdownloader")
+        print("  lgogdownloader: Linux / WSL only (sudo apt install lgogdownloader)")
         print("  nile:           pip install nile")
         print()
         print("Если pip не найден — попробуйте: py -m pip install ...")

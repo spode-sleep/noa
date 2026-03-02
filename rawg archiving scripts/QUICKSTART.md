@@ -36,30 +36,26 @@ pip install legendary-gl
 legendary auth
 ```
 
-### lgogdownloader (GOG.com)
+### lgogdownloader (GOG.com) — только Linux / WSL
 
-**Вариант А — скачать вручную:**
+> **Важно:** lgogdownloader — **Linux-утилита**. Официальных Windows-бинарников нет,
+> и в Scoop / winget пакет отсутствует. На чистой Windows этот сервис можно пропустить —
+> скрипт автоматически перейдёт к следующему (legendary / nile).
 
-Скачайте exe с https://github.com/Sude-/lgogdownloader/releases и положите в папку, которая есть в PATH.
+**Если хотите использовать GOG — установите через WSL (Windows Subsystem for Linux):**
 
-**Вариант Б — через [Scoop](https://scoop.sh/) (пакетный менеджер для Windows):**
+1. Включите WSL (если ещё не включён):
+   ```powershell
+   wsl --install
+   ```
+2. Перезагрузите компьютер, откройте Ubuntu из меню «Пуск» и выполните:
+   ```bash
+   sudo apt update && sudo apt install lgogdownloader -y
+   lgogdownloader --login
+   ```
 
-Если Scoop ещё не установлен — откройте PowerShell и выполните:
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-```
-> Это стандартный способ установки Scoop — подробнее на https://scoop.sh/
-
-Затем установите lgogdownloader:
-```powershell
-scoop install lgogdownloader
-```
-
-После установки авторизуйтесь:
-```
-lgogdownloader --login
-```
+После этого `lgogdownloader` будет доступен **только внутри WSL**.
+Скрипт `install_games.py` сможет его найти, если запущен из WSL.
 
 ### nile (Amazon Games)
 ```
