@@ -409,6 +409,229 @@ Example `games.json` structure:
 >
 > **Совет**: Проверяйте точные размеры на [download.kiwix.org/zim/](https://download.kiwix.org/zim/). Для экономии места используйте варианты `_nopic` (без изображений).
 
+#### Документация по технологиям / Tech Stack Documentation (DevDocs ZIM)
+
+Индивидуальные ZIM-файлы с документацией по конкретным технологиям скачиваются с [download.kiwix.org/zim/devdocs/](https://download.kiwix.org/zim/devdocs/). Формат имён: `devdocs_en_<технология>_<дата>.zim`. Все файлы маленькие (< 60 MB каждый), суммарно ~200 MB.
+
+**🤖 Machine Learning & AI:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_pytorch` | PyTorch — документация фреймворка | ~3 MB |
+| `devdocs_en_tensorflow` | TensorFlow — документация API | ~6 MB |
+| `devdocs_en_tensorflow-cpp` | TensorFlow C++ API | ~1.4 MB |
+| `devdocs_en_numpy` | NumPy — массивы и математика | ~4.7 MB |
+| `devdocs_en_pandas` | pandas — анализ данных | ~4.7 MB |
+| `devdocs_en_scikit-learn` | scikit-learn — классический ML | ~54 MB |
+| `devdocs_en_matplotlib` | Matplotlib — визуализация данных | ~31 MB |
+| `devdocs_en_statsmodels` | statsmodels — статистические модели | ~8 MB |
+| `devdocs_en_opencv` | OpenCV (если есть) — компьютерное зрение | varies |
+
+**🐍 Языки программирования / Programming Languages:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_python` | Python — полная документация языка | ~4.1 MB |
+| `devdocs_en_c` | C — справочник языка C | ~1.2 MB |
+| `devdocs_en_javascript` | JavaScript — документация MDN | ~2.6 MB |
+| `devdocs_en_typescript` | TypeScript — типизация для JS | ~1.1 MB |
+| `devdocs_en_bash` | Bash — скрипты оболочки | ~546 KB |
+| `devdocs_en_latex` | LaTeX — вёрстка документов | ~767 KB |
+
+**⚛️ Frontend:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_react` | React — UI-фреймворк | ~2.6 MB |
+| `devdocs_en_vue` | Vue 3 — прогрессивный фреймворк | ~951 KB |
+| `devdocs_en_vue-router` | Vue Router — маршрутизация | ~418 KB |
+| `devdocs_en_html` | HTML — разметка | ~1.6 MB |
+| `devdocs_en_css` | CSS — стили | ~4.6 MB |
+| `devdocs_en_dom` | DOM API — взаимодействие с документом | ~14 MB |
+| `devdocs_en_jquery` | jQuery — библиотека DOM | ~1.1 MB |
+| `devdocs_en_svg` | SVG — векторная графика | ~867 KB |
+| `devdocs_en_webpack` | Webpack — сборка | ~769 KB |
+| `devdocs_en_vite` | Vite — сборщик нового поколения | ~483 KB |
+| `devdocs_en_sass` | Sass — CSS-препроцессор | ~639 KB |
+| `devdocs_en_tailwindcss` | Tailwind CSS — utility-first CSS | ~554 KB |
+
+**🖥️ Backend:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_node` | Node.js — серверный JavaScript | ~1.3 MB |
+| `devdocs_en_express` | Express — минимальный веб-фреймворк | ~433 KB |
+| `devdocs_en_php` | PHP — документация языка | ~6.8 MB |
+| `devdocs_en_nginx` | Nginx — веб-сервер | ~797 KB |
+| `devdocs_en_http` | HTTP — протокол | ~1.9 MB |
+
+**🗄️ Базы данных / Databases:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_mongoose` | Mongoose — ODM для MongoDB | ~586 KB |
+| `devdocs_en_mariadb` | MariaDB/MySQL — реляционная БД | ~9.3 MB |
+| `devdocs_en_redis` | Redis — in-memory хранилище | ~853 KB |
+| `devdocs_en_postgresql` | PostgreSQL — реляционная БД | ~2.5 MB |
+| `devdocs_en_sqlite` | SQLite — встроенная БД | ~3.4 MB |
+
+**🔧 DevOps & Tools:**
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `devdocs_en_docker` | Docker — контейнеризация | ~1.7 MB |
+| `devdocs_en_git` | Git — система контроля версий | ~1.5 MB |
+| `devdocs_en_man` | Linux man pages — справочник команд | ~28 MB |
+| `devdocs_en_npm` | npm — пакетный менеджер | ~649 KB |
+| `devdocs_en_cmake` | CMake — система сборки | ~2.5 MB |
+| `devdocs_en_gnu-make` | GNU Make — автоматизация сборки | ~600 KB |
+| `devdocs_en_markdown` | Markdown — разметка | ~325 KB |
+
+#### 📐 Учебники / Academic Textbooks
+
+| Archive | Description | Size (approx.) |
+|---------|-------------|-----------------|
+| `libretexts_en_all` | LibreTexts — открытые учебники по математике, статистике, CS, инженерии (включает линейную алгебру, теорию вероятностей, теорию автоматов) | ~50 GB |
+| `wikibooks_en_all_maxi` | Wikibooks — учебники (Linear Algebra, Statistics, Automata) | ~2 GB |
+| `wikiversity_en_all_maxi` | Wikiversity — курсы | ~500 MB |
+| `mathematics.stackexchange.com_en_all` | Mathematics SE — задачи по линейной алгебре и статистике | ~8 GB |
+| `stats.stackexchange.com_en_all` | Cross Validated — статистика, ML, data science Q&A | ~2 GB |
+| `cs.stackexchange.com_en_all` | Computer Science SE — теория автоматов, формальные языки | ~500 MB |
+| `datascience.stackexchange.com_en_all` | Data Science SE — практический ML и анализ данных | ~300 MB |
+
+> **Ключевые темы в LibreTexts**: Statistics and Probability, Linear Algebra (Kuttler, Cherney et al.), Theory of Computation / Automata Theory — доступны как полные открытые учебники.
+
+#### 🎨 Творчество / Creative Learning
+
+**Рисование / Drawing & Art:**
+
+| Resource | Description | Format |
+|----------|-------------|--------|
+| `gutenberg_en_all` | Project Gutenberg — классические книги по рисованию и искусству (напр. "The Practice and Science of Drawing" — Harold Speed) | ZIM (~65 GB, уже в общем списке) |
+| `wikibooks_en_all_maxi` | Wikibooks — "Drawing", "Art", "Painting" разделы | ZIM (~2 GB, уже в списке) |
+| Wikipedia + WikiArt | Статьи по техникам рисования, истории искусства | в составе `wikipedia_en_all_maxi` |
+
+> **Совет по рисованию**: Лучшие учебники по рисованию ("Drawing on the Right Side of the Brain", "Figure Drawing for All It's Worth") защищены копирайтом и не доступны в ZIM. Рекомендуется скачать их заранее в PDF/EPUB и положить в `FICTION_LIBRARY_PATH`. В LibreTexts есть открытые курсы по Studio Arts.
+
+**Музыкальная композиция / Music Composition:**
+
+| Resource | Description | Format |
+|----------|-------------|--------|
+| `music.stackexchange.com_en_all` | Music: Practice & Theory SE — теория музыки Q&A | ZIM (~300 MB) |
+| `openmusictheory.com_en_all` | Open Music Theory — открытый учебник по теории музыки | ZIM (~79 MB) |
+| `wikibooks_en_all_maxi` | Wikibooks — "Music Theory", "Music Composition" | ZIM (в составе ~2 GB) |
+| Wikipedia | Статьи по гармонии, контрапункту, оркестровке | в составе `wikipedia_en_all_maxi` |
+
+> **Совет по музыке**: `openmusictheory.com_en_all` — лучший открытый ZIM для изучения теории музыки с нуля. Скачивается с [download.kiwix.org/zim/zimit/](https://download.kiwix.org/zim/zimit/).
+
+#### ⛏️ Minecraft Fabric Modding
+
+Документация для разработки модов Fabric (Minecraft 1.20.1, Fabric API 0.92.5+1.20.1, Yarn 1.20.1+build.10, Loader 0.16.14).
+
+**Проекты:**
+- `endlessrail` (`spodesleep.endlessrail`) — мод на чистом Fabric API
+- `zadanie` (`net.spodesleep`) — мод с зависимостями: CC:Tweaked 1.108.3, Create Fabric 0.5.1-f-build.1417+mc1.20.1
+- Terra — генерация мира (worldgen)
+
+**Документация Fabric (нет официальных ZIM — скачать вручную):**
+
+| Resource | Как получить оффлайн | Notes |
+|----------|---------------------|-------|
+| [Fabric Wiki](https://wiki.fabricmc.net/) | `wget --mirror https://wiki.fabricmc.net/` или `zimit` → ZIM | Setup, mixins, events, networking |
+| [Fabric Docs](https://docs.fabricmc.net/) | `git clone https://github.com/FabricMC/fabric-docs` | Официальная кураторская документация |
+| [Fabric API Javadoc](https://maven.fabricmc.net/docs/) | Скачать JAR с javadoc: `fabric-api:0.92.5+1.20.1` | API reference |
+| [Yarn Mappings](https://github.com/FabricMC/yarn) | Включены в Gradle cache | Обфускация → читаемые имена |
+| [Minecraft Wiki](https://minecraft.wiki/) | Может быть доступен как ZIM от сообщества | Механики игры, блоки, entities |
+
+**Документация CC:Tweaked (ComputerCraft):**
+
+| Resource | Как получить оффлайн | Notes |
+|----------|---------------------|-------|
+| [tweaked.cc](https://tweaked.cc/) | `wget --mirror https://tweaked.cc/` | Полная документация API: Lua-среда, Turtle, Peripheral, Redstone, HTTP, Networking |
+| [GitHub CC:Tweaked](https://github.com/cc-tweaked/CC-Tweaked) | `git clone` — папка `doc/` содержит Markdown-доки | Исходники + документация |
+| `devdocs_en_lua` | ZIM (~418 KB) — Lua-справочник | CC:Tweaked программируется на Lua |
+| In-game `help` | Встроено в мод — команда `help` в Lua-консоли | Упрощённая документация прямо в игре |
+
+**Документация Create Fabric:**
+
+| Resource | Как получить оффлайн | Notes |
+|----------|---------------------|-------|
+| [Create Wiki (GitHub)](https://github.com/Creators-of-Create/Create/wiki) | `wget --mirror` или скачать wiki через git | Механики, рецепты, changelogs |
+| [Create Modrinth](https://modrinth.com/mod/create-fabric) | Скачать страницу релизов | Changelog для v0.5.1 |
+| Ponder (in-game) | Встроенная интерактивная документация внутри мода | Лучший способ изучить механики Create оффлайн — всё работает без интернета |
+| [GitHub Create Source](https://github.com/Creators-of-Create/Create) | `git clone` для JavaDoc и исходников | API reference |
+
+**Документация Terra (worldgen):**
+
+| Resource | Как получить оффлайн | Notes |
+|----------|---------------------|-------|
+| [Terra Docs](https://terra.polydev.org/) | `wget --mirror https://terra.polydev.org/` | Установка, настройка, конфиг-паки |
+| [GitHub Terra](https://github.com/PolyhedralDev/Terra) | `git clone` — README + архитектура + исходники | Addons, платформы, конфигурация |
+| [Terra Wiki](https://github.com/PolyhedralDev/TerraWiki/wiki) | `git clone` wiki | Создание миров, настройка биомов и terrain |
+| [Community Packs](https://terra.polydev.org/community-packs.html) | Скачать нужные паки заранее | Skylands, Origen, Hydraxia и др. |
+
+**Maven & Gradle (оффлайн-разработка):**
+
+| Resource | Description | Format / Size |
+|----------|-------------|---------------|
+| `devdocs_en_groovy` | Groovy — язык для `build.gradle` | ZIM (~3.2 MB) |
+| `devdocs_en_openjdk` | OpenJDK — Java API (Minecraft и моды на Java) | ZIM (~14 MB) |
+| `devdocs_en_lua` | Lua — язык CC:Tweaked | ZIM (~418 KB) |
+| Gradle Docs | [docs.gradle.org](https://docs.gradle.org) — скачать через `wget --mirror` | HTML (~50 MB) |
+| Maven Docs | [maven.apache.org](https://maven.apache.org) — скачать через `wget --mirror` | HTML (~20 MB) |
+
+**Подготовка Gradle к оффлайн-работе:**
+
+```bash
+# Пока есть интернет — скачать все зависимости для ОБОИХ проектов:
+cd endlessrail/ && ./gradlew build --refresh-dependencies && cd ..
+cd zadanie/ && ./gradlew build --refresh-dependencies && cd ..
+
+# После — работать оффлайн:
+./gradlew build --offline
+```
+
+**Подготовка Maven-репозитория:**
+
+```bash
+# Скачать все зависимости в ~/.m2/repository:
+mvn dependency:go-offline
+
+# Или настроить mavenLocal() в build.gradle:
+repositories {
+    mavenLocal()  // ~/.m2/repository
+    // закомментировать remote-репозитории для оффлайна
+}
+```
+
+**Скрипт для сохранения всей документации модов:**
+
+```bash
+#!/bin/bash
+# save-mod-docs.sh — запустить ПОКА ЕСТЬ интернет
+DOCS_DIR="$HOME/minecraft-mod-docs"
+mkdir -p "$DOCS_DIR"
+
+# Fabric
+wget --mirror --convert-links --adjust-extension -P "$DOCS_DIR/fabric-wiki" https://wiki.fabricmc.net/
+git clone https://github.com/FabricMC/fabric-docs "$DOCS_DIR/fabric-docs"
+
+# CC:Tweaked
+wget --mirror --convert-links --adjust-extension -P "$DOCS_DIR/cctweaked" https://tweaked.cc/
+git clone https://github.com/cc-tweaked/CC-Tweaked "$DOCS_DIR/cctweaked-src"
+
+# Create
+git clone https://github.com/Creators-of-Create/Create.wiki.git "$DOCS_DIR/create-wiki"
+
+# Terra
+wget --mirror --convert-links --adjust-extension -P "$DOCS_DIR/terra" https://terra.polydev.org/
+git clone https://github.com/PolyhedralDev/Terra "$DOCS_DIR/terra-src"
+
+echo "Документация сохранена в $DOCS_DIR"
+```
+
+> **Совет**: Убедитесь, что весь Gradle cache (`~/.gradle/caches/`) сохранён до потери интернета. Там хранятся Minecraft JAR, Yarn-маппинги, Fabric Loader, Fabric API, CC:Tweaked, Create и все транзитивные зависимости. Без них `./gradlew build --offline` не сработает. Для `zadanie` это особенно важно — Create Fabric тянет за собой много зависимостей.
+
 ---
 
 ## Using External Drives (USB, HDD)
