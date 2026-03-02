@@ -68,9 +68,18 @@ python install_games.py batches/batch_01.txt "E:\Archive\rawg"
 Для каждой игры:
 1. **Поиск** в библиотеках legendary → lgogdownloader → nile
 2. **Скачивание** в `D:\rawg_downloads\{name}`
-3. **Копирование** на HDD через robocopy
+3. **Копирование** на HDD в `{install_dir}\{service_id}` (ID сервиса, как Steam использует AppID)
 4. **Верификация** — сравнение размеров
 5. **Удаление** локальной копии
+
+### Именование папок
+
+Папки на HDD именуются по **ID сервиса**, а не по названию игры:
+- **Epic** (legendary): app_name (например `KiwiGame`, `Pear`)
+- **GOG** (lgogdownloader): slug (например `celeste`, `enter_the_gungeon`)
+- **Amazon** (nile): game_id (например `amzn1.adg.product.xxx`)
+
+Это аналогично тому, как Steam-архиватор использует AppID для папок.
 
 ## 6. Батчи (порядок приоритета)
 
@@ -97,12 +106,14 @@ python mark_archived.py results/YYYYMMDD_HHMMSS/installed.txt --hdd ARCHIVE1
 ```
 
 Скрипт ищет игры **по имени** (не по ключу) и помечает только rawg-игры.
+`installed.txt` содержит ID папки для каждой игры — `archivePath` в games.json
+указывает на папку по ID сервиса (не по имени).
 
 ## 8. Результаты
 
 После завершения в папке `results/YYYYMMDD_HHMMSS/`:
 - `install.log` — полный лог
-- `installed.txt` — успешно скачанные (можно передать в mark_archived.py)
+- `installed.txt` — успешно скачанные (формат: `name<TAB>service<TAB>folder_id`)
 - `failed.txt` — не скачанные (можно перезапустить)
 - `warnings.txt` — подозрительно маленькие
 

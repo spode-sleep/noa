@@ -29,15 +29,25 @@ def normalize(name):
 
 
 def parse_names_file(path):
-    """Читает файл с именами игр: одно имя на строку, # — комментарии."""
-    names = []
+    """Читает файл с именами игр.
+
+    Поддерживает два формата:
+    - простой: одно имя на строку
+    - табулированный: name<TAB>service<TAB>folder_id (из installed.txt)
+
+    Возвращает список кортежей (name, folder_id или None).
+    """
+    entries = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            names.append(line)
-    return names
+            parts = line.split("\t")
+            name = parts[0].strip()
+            folder_id = parts[2].strip() if len(parts) >= 3 else None
+            entries.append((name, folder_id))
+    return entries
 
 
 def find_rawg_game(games, name):
@@ -81,8 +91,8 @@ def main():
         print("Ошибка: имя HDD не указано")
         sys.exit(1)
 
-    names = parse_names_file(args.names_file)
-    if not names:
+    entries = parse_names_file(args.names_file)
+    if not entries:
         print(f"Нет имён игр в файле: {args.names_file}")
         sys.exit(1)
 
@@ -93,12 +103,16 @@ def main():
     not_found = []
     fuzzy_matched = []
 
-    for name in names:
+    for name, folder_id in entries:
         key, game = find_rawg_game(games, name)
         if key is not None:
-            safe_name = re.sub(r'[<>:"/\\|?*]', "_", game["name"])
+            # Папка на HDD: service ID (если есть) или safe name (fallback)
+            if folder_id:
+                folder = folder_id
+            else:
+                folder = re.sub(r'[<>:"/\\|?*]', "_", game["name"])
             games[key]["isArchived"] = True
-            games[key]["archivePath"] = f"/mnt/{hdd_name}/rawg/{safe_name}"
+            games[key]["archivePath"] = f"/mnt/{hdd_name}/rawg/{folder}"
             marked += 1
 
             if game["name"] != name:
@@ -110,8 +124,8 @@ def main():
         json.dump(games, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
-    print(f"✓ Помечено как заархивированные: {marked}/{len(names)}")
-    print(f"  Путь: /mnt/{hdd_name}/rawg/{{name}}")
+    print(f"✓ Помечено как заархивированные: {marked}/{len(entries)}")
+    print(f"  Путь: /mnt/{hdd_name}/rawg/{{folder_id}}")
 
     if fuzzy_matched:
         print(f"\n⚠ Нечёткие совпадения ({len(fuzzy_matched)}):")
