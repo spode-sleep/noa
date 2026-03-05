@@ -309,7 +309,7 @@ Set MUSIC_LIBRARY_PATH in .env, then click **Rescan Library** in the Music secti
 Set FICTION_LIBRARY_PATH in .env, then click **Rescan Library**. Supports PDF, EPUB, FB2.
 
 ### Reference
-Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM archives from https://download.kiwix.org/zim/
+Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM archives from https://download.kiwix.org/zim/ — see [SYSTEM.md](SYSTEM.md#recommended-zim-archives-for-long-term-offline-use) for a comprehensive list of recommended ZIM files for long-term offline use.
 
 ### Warez
 Set WAREZ_LIBRARY_PATH in .env, pointing to directories containing git repositories or other project folders. BOX will display them with git metadata (branch, commits, last commit message) and render README files.
