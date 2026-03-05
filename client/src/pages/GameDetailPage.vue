@@ -2,7 +2,7 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <a class="sidebar-link" @click="router.push('/games')" style="cursor:pointer">
+      <a class="sidebar-link" @click="goBack()" style="cursor:pointer">
         <Icon icon="mdi:arrow-left" class="back-icon" /> Games
       </a>
       <div class="sidebar-divider"></div>
@@ -17,7 +17,7 @@
     </nav>
 
     <div class="page">
-      <a v-if="!game" class="btn btn-back" @click="router.push('/games')" style="cursor:pointer">← Games</a>
+      <a v-if="!game" class="btn btn-back" @click="goBack()" style="cursor:pointer">← Games</a>
 
       <div v-if="loading" class="loading">Loading game...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
@@ -346,6 +346,15 @@ interface Game {
 
 const route = useRoute()
 const router = useRouter()
+
+function goBack() {
+  const back = window.history.state?.back as string | undefined
+  if (back && back.startsWith('/games')) {
+    router.back()
+  } else {
+    router.push('/games')
+  }
+}
 const game = ref<Game | null>(null)
 const loading = ref(true)
 const error = ref('')

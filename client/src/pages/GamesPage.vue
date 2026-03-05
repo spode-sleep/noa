@@ -14,13 +14,28 @@
           <Icon icon="mdi:close" />
         </button>
       </div>
-      <select v-model="sourceFilter" class="source-select">
-        <option value="">All Sources</option>
-        <option value="steam">Steam</option>
-        <option value="rawg">RAWG</option>
-        <option value="epic_games">Epic Games</option>
-        <option value="gog">GOG</option>
-      </select>
+
+      <!-- Custom source selector -->
+      <div class="source-select-wrap" ref="sourceDropdownRef">
+        <button class="source-select-btn" @click="showSourceDropdown = !showSourceDropdown">
+          <Icon :icon="selectedSource.icon" class="source-select-icon" :class="selectedSource.cls" />
+          <span>{{ selectedSource.label }}</span>
+          <Icon icon="mdi:chevron-down" class="source-chevron" :class="{ open: showSourceDropdown }" />
+        </button>
+        <div v-if="showSourceDropdown" class="source-dropdown">
+          <button
+            v-for="opt in sourceOptions"
+            :key="opt.value"
+            class="source-option"
+            :class="{ active: sourceFilter === opt.value }"
+            @click="selectSource(opt.value)"
+          >
+            <Icon :icon="opt.icon" class="source-option-icon" :class="opt.cls" />
+            <span>{{ opt.label }}</span>
+          </button>
+        </div>
+      </div>
+
       <button class="tags-btn" @click="showTagModal = true">
         <Icon icon="mdi:tag-multiple" class="tags-icon" /> Tags
         <span v-if="selectedTags.size" class="tags-count">{{ selectedTags.size }}</span>
@@ -150,6 +165,21 @@ interface Game {
   archivePath?: string
 }
 
+interface SourceOption {
+  value: string
+  label: string
+  icon: string
+  cls: string
+}
+
+const sourceOptions: SourceOption[] = [
+  { value: '',           label: 'All Sources', icon: 'mdi:layers-outline',  cls: 'all-icon'   },
+  { value: 'steam',      label: 'Steam',       icon: 'mdi:steam',            cls: 'steam-icon' },
+  { value: 'epic_games', label: 'Epic Games',  icon: 'mdi:alpha-e-box',      cls: 'epic-icon'  },
+  { value: 'gog',        label: 'GOG',         icon: 'mdi:gog',              cls: 'gog-icon'   },
+  { value: 'rawg',       label: 'RAWG',        icon: 'mdi:gamepad-variant',  cls: 'rawg-icon'  },
+]
+
 const route = useRoute()
 const router = useRouter()
 
@@ -164,8 +194,25 @@ const selectedTags = ref<Set<string>>(
 )
 const loading = ref(true)
 const showTagModal = ref(false)
+const showSourceDropdown = ref(false)
 const tagSearch = ref('')
 const tagSearchRef = ref<HTMLInputElement | null>(null)
+const sourceDropdownRef = ref<HTMLElement | null>(null)
+
+const selectedSource = computed(() =>
+  sourceOptions.find(o => o.value === sourceFilter.value) ?? sourceOptions[0]
+)
+
+function selectSource(value: string) {
+  sourceFilter.value = value
+  showSourceDropdown.value = false
+}
+
+function onClickOutside(e: MouseEvent) {
+  if (sourceDropdownRef.value && !sourceDropdownRef.value.contains(e.target as Node)) {
+    showSourceDropdown.value = false
+  }
+}
 
 const PAGE_SIZE = 48
 const displayedCount = ref(PAGE_SIZE)
@@ -247,6 +294,7 @@ watch(() => route.query, (q) => {
 
 onMounted(async () => {
   document.title = 'Games - BOX'
+  document.addEventListener('click', onClickOutside)
   try {
     const [gamesRes, tagsRes] = await Promise.all([
       fetch('/api/games'),
@@ -276,6 +324,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.body.style.overflow = ''
+  document.removeEventListener('click', onClickOutside)
   observer?.disconnect()
 })
 </script>
@@ -301,8 +350,16 @@ h1 {
   box-shadow: inset 1px 1px 0 var(--askew-btn-highlight), inset -1px -1px 0 var(--askew-btn);
 }
 
-.search-input,
-.source-select {
+.search-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
   background: var(--askew-input-bg);
   border: 1px solid var(--askew-input-border);
   border-radius: 0px;
@@ -312,19 +369,116 @@ h1 {
   outline: none;
 }
 
-.search-input {
-  flex: 1;
-  min-width: 200px;
-}
-
-.source-select {
-  min-width: 140px;
-}
-
-.search-input:focus,
-.source-select:focus {
+.search-input:focus {
   border-color: var(--askew-btn-hover);
 }
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.search-clear:hover {
+  color: var(--text-primary);
+}
+
+/* Custom source select */
+.source-select-wrap {
+  position: relative;
+}
+
+.source-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--askew-input-bg);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
+  color: var(--text-primary);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+.source-select-btn:hover {
+  border-color: var(--askew-btn-hover);
+}
+
+.source-select-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.source-chevron {
+  margin-left: auto;
+  font-size: 1rem;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.source-chevron.open {
+  transform: rotate(180deg);
+}
+
+.source-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--askew-input-border);
+  border-radius: 0px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 1px 1px 0 var(--askew-btn-highlight);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.source-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.source-option:hover {
+  background: var(--askew-btn);
+  color: var(--text-primary);
+}
+
+.source-option.active {
+  color: var(--text-primary);
+  background: var(--askew-btn-disabled);
+}
+
+.source-option-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* Source icon colours */
+.all-icon   { color: var(--text-muted); }
+.steam-icon { color: var(--askew-cyan); }
+.epic-icon  { color: var(--askew-gold); }
+.gog-icon   { color: #b384e0; }
+.rawg-icon  { color: var(--askew-salmon); }
 
 /* Tags button */
 .tags-btn {
@@ -649,22 +803,6 @@ h1 {
 .source-icon {
   flex-shrink: 0;
   display: inline-flex;
-}
-
-.steam-icon {
-  color: var(--askew-cyan);
-}
-
-.rawg-icon {
-  color: var(--askew-salmon);
-}
-
-.epic-icon {
-  color: var(--askew-gold);
-}
-
-.gog-icon {
-  color: #b384e0;
 }
 
 .game-tags {
