@@ -3,8 +3,6 @@
 #
 #100% Orange Juice
 282800
-#[Chilla's Art] The Bathhouse | 地獄銭湯♨️
-1956830
 #[Chilla's Art] The Caregiver | 終焉介護
 1503670
 #Age of Wonders III
@@ -97,12 +95,8 @@
 343860
 #The Bureau: XCOM Declassified
 65930
-#The Dark Pictures Anthology: Man of Medan
-939850
 #The Elder Scrolls IV: Oblivion Remastered
 2623190
-#Thief
-239160
 #Thief Gold
 211600
 #Thief: Deadly Shadows

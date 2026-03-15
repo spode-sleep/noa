@@ -7,16 +7,12 @@
 483420
 #Ahnayro: The Dream World
 449730
-#AppGameKit Classic: Easy Game Development
-325180
 #BADLAND: Game of the Year Edition
 269670
 #Bayonetta
 460790
 #BioShock Infinite
 8870
-#BioShock® 2
-8850
 #BioShock™ 2 Remastered
 409720
 #BRAZILIAN DRUG DEALER 3: I OPENED A PORTAL TO HELL IN THE FAVELA TRYING TO REVIVE MIT AIA I NEED TO CLOSE IT
@@ -49,8 +45,6 @@
 606480
 #God's Basement
 753930
-#hackmud
-469920
 #Hotline Miami 2: Wrong Number
 274170
 #Hyper Light Drifter
@@ -85,8 +79,6 @@
 975620
 #Purgatory -NARAKU-
 2851770
-#RWBY: Grimm Eclipse
-418340
 #Seen
 1069740
 #Shadow Warrior
