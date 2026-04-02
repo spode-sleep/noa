@@ -4,9 +4,10 @@
 
 1. **install_games.sh** - главный установщик (использует DepotDownloader)
 2. **extract_appids.py** - извлечение AppID из существующих игр
-3. **view_games.sh** - просмотр установленных игр
-4. **kill_stuck.sh** - убийство зависших процессов
-5. **install_games_steamcmd.sh** - старая версия на SteamCMD (не рекомендуется)
+3. **mark_archived.py** - пометка скачанных игр в games.json
+4. **view_games.sh** - просмотр установленных игр
+5. **kill_stuck.sh** - убийство зависших процессов
+6. **install_games_steamcmd.sh** - старая версия на SteamCMD (не рекомендуется)
 
 ---
 
@@ -143,6 +144,47 @@ du -sh /mnt/ARCHIVE1/steam/*
 
 ---
 
+## ✅ ПОМЕТКА КАК ЗААРХИВИРОВАННЫХ:
+
+После скачивания нужно пометить игры в `games.json`, чтобы фронтенд показывал их
+как заархивированные (с путём на HDD).
+
+```bash
+# Из папки results (installed.txt содержит AppID успешных)
+python3 mark_archived.py results/20260218_041500/installed.txt --hdd ARCHIVE1
+
+# Или из собственного файла AppID
+python3 mark_archived.py my_games.txt --hdd ARCHIVE1
+```
+
+**Как работает:**
+
+```
+mark_archived.py installed.txt --hdd ARCHIVE1
+├─ 1. Читает файл с AppID (формат my_games.txt: один AppID на строку)
+├─ 2. Для каждого AppID ищет ключ в games.json
+├─ 3. Проставляет isArchived: true
+├─ 4. Проставляет archivePath: /mnt/ARCHIVE1/steam/{appId}
+└─ 5. Сохраняет games.json
+
+Результат в games.json:
+  "730": {
+    "name": "Counter-Strike 2",
+    "source": "steam",
+    "isArchived": true,
+    "archivePath": "/mnt/ARCHIVE1/steam/730"
+  }
+```
+
+Параметры:
+- `--hdd ARCHIVE1` — имя HDD (если не указано, спросит интерактивно)
+- `--games-json путь` — путь к games.json (по умолчанию `../data/games/games.json`)
+
+> **Для rawg/epic_games/gog** — используйте отдельный скрипт:
+> `python "rawg archiving scripts/mark_archived.py" installed.txt --hdd ARCHIVE1`
+
+---
+
 ## 🆘 ПРОБЛЕМЫ:
 
 ### DepotDownloader не запускается
@@ -214,10 +256,14 @@ LOCAL_DOWNLOAD_DIR="$HOME/steam_downloads"   # Куда скачивать
 
 ---
 
-## 🎯 ОДНА КОМАНДА:
+## 🎯 ДВЕ КОМАНДЫ:
 
 ```bash
+# 1. Скачать игры
 ./install_games.sh my_games.txt /mnt/ARCHIVE1/steam
+
+# 2. Пометить как заархивированные в games.json
+python3 mark_archived.py results/*/installed.txt --hdd ARCHIVE1
 ```
 
 **Готово!** 🚀

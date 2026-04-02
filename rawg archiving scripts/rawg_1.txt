@@ -1,0 +1,48 @@
+Darkest Dungeon	legendary	Darkest_Dungeon
+Kingdom: New Lands	legendary	Kingdom_New_Lands
+Mutant Year Zero: Road to Eden	legendary	Mutant_Year_Zero_Road_to_Eden
+Star Wars: Galactic Battlegrounds	gogdl	STAR_WARS_Galactic_Battlegrounds_Saga
+Fate (2005)	gogdl	FATE
+AK-xolotl	legendary	AKxolotl_Together
+Jupiter Hell	gogdl	Jupiter_Hell
+Colt Canyon	gogdl	Colt_Canyon
+Hive Jump 2: Survivors	gogdl	Hive_Jump_2_Survivors
+Necroking	gogdl	Necroking
+Dredge	gogdl	DREDGE
+Kerbal Space Program	gogdl	Kerbal_Space_Program
+Hero's Hour	gogdl	Heros_Hour
+Thronebreaker: The Witcher Tales	gogdl	Thronebreaker_The_Witcher_Tales
+Hard West 2	gogdl	Hard_West_2
+Showgunners	gogdl	Showgunners
+Shadow Tactics: Blades of the Shogun	legendary	Shadow_Tactics_Blades_of_the_Shogun
+Card Shark	legendary	Card_Shark
+Gloomhaven	legendary	Gloomhaven
+Mordheim: City of the Damned	gogdl	Mordheim_City_of_the_Damned
+Redemption Reapers	legendary	Redemption_Reapers
+RIOT - Civil Unrest	gogdl	RIOT__Civil_Unrest
+Hardspace: Shipbreaker	legendary	Hardspace_Shipbreaker
+Dark Envoy	gogdl	Dark_Envoy
+Sands of Aura	legendary	Sands_of_Aura
+Overcooked! 2	gogdl	Overcooked_2
+Overcooked	legendary	Overcooked
+Totally Reliable Delivery Service	legendary	Totally_Reliable_Delivery_Service
+Filthy Animals | Heist Simulator	legendary	Filthy_Animals__Heist_Simulator
+Elite Dangerous	legendary	Elite_Dangerous
+To The Rescue	legendary	To_The_Rescue
+The Escapists 2	legendary	The_Escapists_2
+The Escapists	legendary	The_Escapists
+Into the Breach	legendary	Into_The_Breach
+Nuclear Throne	legendary	Nuclear_Throne
+Enter the Gungeon	legendary	Enter_the_Gungeon
+Loop Hero	legendary	Loop_Hero
+Celeste	legendary	Celeste
+Super Meat Boy	legendary	Super_Meat_Boy
+FEZ	legendary	Fez
+Solitairica	legendary	Solitairica
+Star Stuff	legendary	Star_Stuff
+Moonlighter	legendary	Moonlighter
+Dreamscaper	legendary	Dreamscaper
+Crying Suns	legendary	Crying_Suns
+PlateUp!	legendary	PlateUp
+Surviving Mars	legendary	Surviving_Mars
+Electrician Simulator	legendary	Electrician_Simulator

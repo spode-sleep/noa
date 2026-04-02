@@ -17,8 +17,6 @@
 650570
 #Controller Companion
 367670
-#Dark SASI
-856130
 #Dark Sector
 29900
 #Darksiders II
@@ -45,8 +43,6 @@
 42910
 #Mister Furry: Hot Muscles
 1578220
-#Murderous Pursuits
-638070
 #Outland
 305050
 #Outlast

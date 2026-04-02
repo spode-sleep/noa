@@ -1,16 +1,12 @@
 # Батч 8: 60 игр
 # Создан: 2026-02-19 01:59:57
 #
-#[Chilla's Art] Inunaki Tunnel | 犬鳴トンネル
-1185160
 #A Rose in the Twilight
 548840
 #A=B
 1720850
 #Amnesia: A Machine for Pigs
 239200
-#Among the Sleep - Enhanced Edition
-250620
 #Assault Spy
 767930
 #Bastion

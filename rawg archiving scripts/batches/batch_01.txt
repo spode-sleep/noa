@@ -1,0 +1,34 @@
+# Батч 1: Креативные / песочницы / рогалики — 27 игр
+# Приоритет: высокая реиграбельность, креативные инструменты, малый размер
+#
+# Рогалики и рогалайты с процедурной генерацией дают бесконечную реиграбельность.
+# Песочницы и симуляторы дают свободу творчества.
+# Большинство игр занимают < 2 GB.
+#
+Into the Breach
+Nuclear Throne
+Enter the Gungeon
+Loop Hero
+Celeste
+Super Meat Boy
+FEZ
+Jupiter Hell
+Solitairica
+AK-xolotl
+Colt Canyon
+Star Stuff
+Wall World
+Samurai Bringer
+Moonlighter
+Darkest Dungeon
+Dreamscaper
+Crying Suns
+Hive Jump 2: Survivors
+Necroking
+Dredge
+Kingdom: New Lands
+PlateUp!
+Kerbal Space Program
+Surviving Mars
+Hero's Hour
+Electrician Simulator
