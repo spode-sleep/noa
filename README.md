@@ -49,6 +49,7 @@ Open http://localhost:5173
 - **Node.js 18+** (recommended: 20 LTS)
 - **npm 9+**
 - **Linux** (tested on Linux Mint 22 / Ubuntu 24.04)
+- **universal-ctags** (required for AI code agent `outline_file` tool)
 
 ### 1. Clone & Install
 
@@ -170,7 +171,7 @@ All voices: https://huggingface.co/rhasspy/piper-voices/tree/main
 Custom community voices: https://github.com/drycen/piper-tts-voices / https://community.home-assistant.io/t/collections-of-pre-trained-piper-voices/915666
 Skyrim character voices (via Mantella project): https://github.com/art-from-the-machine/Mantella
 
-### 5. Install kiwix-serve (Reference Library) — Optional
+### 5. Install kiwix-serve (Reference Library)
 
 ```bash
 # Install kiwix-tools
@@ -180,6 +181,13 @@ sudo apt install kiwix-tools
 ```
 
 > BOX auto-starts kiwix-serve with all ZIM files found in REFERENCE_LIBRARY_PATH.
+
+### 6. Install ctags
+
+```bash
+# ctags
+sudo apt install universal-ctags
+```
 
 ---
 
@@ -336,13 +344,21 @@ The agent has access to the following tools via Ollama native tool-calling:
 
 | Tool | Description |
 |------|-------------|
+| `outline_file` | Show file structure (classes, methods, fields) with line numbers via ctags |
 | `list_files` | List files and directories in the repository |
 | `read_file` | Read file contents (max 512KB) |
 | `write_file` | Create or overwrite files |
-| `git_create_branch` | Create a new branch and switch to it |
+| `edit_file` | Replace a specific block of text in an existing file |
+| `delete_file` | Delete a file |
+| `move_file` | Move or rename a file |
+| `search_files` | Search for a pattern across the codebase (regex supported) |
+| `gradle_build` | Run Gradle tasks (build, jar, clean, test) with optional -P flags. Returns filtered output: errors, warnings, build status |
+| `run_command` | Execute non-Gradle builds, tests, linters (restricted allowlist) |
 | `git_status` | Show changed/staged/untracked files |
 | `git_diff` | Show uncommitted changes |
 | `git_commit` | Stage all changes and commit |
+| `git_log` | Show recent commit history |
+| `git_revert` | Hard reset to a specific commit |
 
 ### Auto-init git
 

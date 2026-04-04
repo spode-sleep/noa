@@ -10,6 +10,7 @@ const MAX_TOOL_RESULT_CHARS = 8000;
 const MAX_SEARCH_RESULTS = 50;
 const MAX_GIT_LOG_COUNT = 50;
 const MAX_RUN_COMMAND_TIMEOUT = 30000;
+const MAX_GRADLE_TIMEOUT = 600000; // 10 minutes — gradle downloads deps on first run
 const MAX_TREE_ENTRIES_PER_DIR = 30;
 const MAX_ERROR_PREVIEW_LENGTH = 4096;
 const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
@@ -23,9 +24,14 @@ const GIT_RETRY_DELAY_MS = 500;
 const GIT_LOCK_WAIT_MS = 5000;
 const GIT_LOCK_POLL_MS = 200;
 
+const MAX_REPEAT_COUNT = 3;
+// Tracks (tool, primary-arg) pairs; window of 6 is enough to detect 3 consecutive hits on same target
+const MAX_RECENT_TOOL_TARGETS = 6;
+
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
   'run_command', 'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
+  'delete_file', 'move_file', 'outline_file', 'gradle_build',
 ]);
 
 // --- Git stability helpers ---
@@ -253,11 +259,13 @@ const AGENT_TOOLS: Tool[] = [
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Read the contents of a file in the repository',
+      description: 'Read the contents of a file in the repository. For large files, use outline_file first to find relevant line numbers, then pass start_line/end_line to read only the needed section.',
       parameters: {
         type: 'object',
         properties: {
           file_path: { type: 'string', description: 'Relative path to the file from repository root' },
+          start_line: { type: 'number', description: 'Optional: first line to read (1-based, inclusive). Add ~5 lines of padding before the target so edit_file has enough context to form a unique old_text.' },
+          end_line: { type: 'number', description: 'Optional: last line to read (1-based, inclusive). Add ~5 lines of padding after the target for the same reason.' },
         },
         required: ['file_path'],
       },
@@ -395,7 +403,145 @@ const AGENT_TOOLS: Tool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_file',
+      description: 'Delete a file from the repository. Use when removing files during refactoring or cleanup.',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: 'Relative path to the file to delete' },
+        },
+        required: ['file_path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'move_file',
+      description: 'Move or rename a file in the repository. Preserves file content. Use for renaming or restructuring.',
+      parameters: {
+        type: 'object',
+        properties: {
+          src_path: { type: 'string', description: 'Current relative path of the file' },
+          dst_path: { type: 'string', description: 'New relative path for the file (including new name)' },
+        },
+        required: ['src_path', 'dst_path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'outline_file',
+      description: 'Show the structure of a file (classes, methods, functions, fields) with line numbers using ctags. Use BEFORE read_file on large files to understand what is in the file and decide which parts to read.',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: 'Relative path to the file to outline' },
+        },
+        required: ['file_path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'gradle_build',
+      description: 'Run a Gradle task (build, jar, clean, test, etc.) using the project\'s gradlew wrapper. Returns filtered output: compilation errors, warnings, and build status. Use this instead of run_command for all Gradle operations.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task: {
+            type: 'string',
+            description: 'Gradle task to run, e.g. "build", "jar", "clean", "test", "classes". Defaults to "build".',
+          },
+          properties: {
+            type: 'string',
+            description: 'Optional space-separated Gradle -P flags without the -P prefix, e.g. "include_create=true offline=true". Each key=value pair becomes -Pkey=value.',
+          },
+        },
+      },
+    },
+  },
 ];
+
+// --- Gradle output filter ---
+// Gradle produces verbose output — download progress, task names, deprecation noise.
+// We extract only what the agent needs: compilation errors/warnings, test failures,
+// the final build result line, and any exception stacktraces.
+
+function filterGradleOutput(raw: string): string {
+  const lines = raw.split('\n');
+  const kept: string[] = [];
+
+  // Patterns that indicate a relevant line
+  const relevant = [
+    /^.*error:/i,                          // Java compilation errors
+    /^.*warning:/i,                        // Java compilation warnings
+    /^.*\d+ error/i,                       // "N errors" summary line
+    /^.*\d+ warning/i,                     // "N warnings" summary line
+    /^FAILURE:/,                           // Gradle failure header
+    /^> Task /,                            // Task execution lines (shows what ran)
+    /^> Could not/,                        // Dependency / config errors
+    /^\s+> /,                              // Nested cause lines
+    /^.*Exception.*:/,                     // Exception class lines
+    /^\s+at .+\(.*\.java:\d+\)/,          // Java stacktrace frames (src files only)
+    /^BUILD (SUCCESSFUL|FAILED)/,          // Final status
+    /^\d+ tests? completed/i,             // Test summary
+    /^.*FAILED$/,                          // Failed test names
+    /^.*MethodSource/,                     // JUnit test method source
+  ];
+
+  // Patterns to always skip regardless
+  const noise = [
+    /^Download /,
+    /^Generating /,
+    /^\s*$/,
+    /^To honour the JVM settings/,
+    /^Daemon will be stopped/,
+    /^Deprecated Gradle/,
+    /^All deprecated usages/,
+    /^Configure project/,
+    /^\s+file:\/\//,                       // Local file URL lines in stacktraces
+    /^> Transform /,
+    /^Calculating task graph/,
+    /^Task ':.*' is not up-to-date/,
+  ];
+
+  let inStacktrace = false;
+
+  for (const line of lines) {
+    if (noise.some(p => p.test(line))) continue;
+
+    // Detect start of stacktrace block — keep until blank line after it
+    if (/^.*Exception.*:/.test(line) || /^\s+at .+\(.*\.java:\d+\)/.test(line)) {
+      inStacktrace = true;
+    }
+    if (inStacktrace) {
+      kept.push(line);
+      // End stacktrace on blank line or BUILD line
+      if (/^BUILD/.test(line) || line.trim() === '') inStacktrace = false;
+      continue;
+    }
+
+    if (relevant.some(p => p.test(line))) {
+      kept.push(line);
+    }
+  }
+
+  if (kept.length === 0) return '(no errors or warnings — see build status above)';
+
+  // Truncate if still too long (unlikely after filtering but safety net)
+  const result = kept.join('\n');
+  if (result.length > MAX_TOOL_RESULT_CHARS) {
+    const half = Math.floor(MAX_TOOL_RESULT_CHARS / 2);
+    return result.slice(0, half) + '\n... (truncated) ...\n' + result.slice(-half);
+  }
+  return result;
+}
 
 // --- Tool execution ---
 
@@ -427,7 +573,18 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
         const stat = fs.statSync(fullPath);
         if (stat.size > MAX_FILE_SIZE_BYTES) return { text: 'Error: file too large (max 512KB)' };
-        return { text: fs.readFileSync(fullPath, 'utf-8') };
+        const raw = fs.readFileSync(fullPath, 'utf-8');
+        const startLine = args.start_line ? parseInt(args.start_line, 10) : null;
+        const endLine = args.end_line ? parseInt(args.end_line, 10) : null;
+        if (startLine !== null || endLine !== null) {
+          const lines = raw.split('\n');
+          const from = Math.max(1, startLine ?? 1) - 1;
+          const to = Math.min(lines.length, endLine ?? lines.length);
+          const slice = lines.slice(from, to).join('\n');
+          const header = `[${rel} lines ${from + 1}–${to} of ${lines.length}]\n`;
+          return { text: header + slice };
+        }
+        return { text: raw };
       }
       case 'write_file': {
         const rel = sanitizeRelativePath(args.file_path || '');
@@ -481,7 +638,7 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         const searchDir = sanitizeRelativePath(args.dir_path || '.') || '.';
         const fullSearchDir = path.join(repoPath, searchDir);
         if (!fs.existsSync(fullSearchDir)) return { text: `Error: directory not found: ${searchDir}` };
-        const grepArgs = ['grep', '-n', '-I', `--max-count=${MAX_SEARCH_RESULTS}`, '-e', pattern];
+        const grepArgs = ['grep', '-n', '-I', '--untracked', `--max-count=${MAX_SEARCH_RESULTS}`, '-e', pattern];
         if (args.file_glob) grepArgs.push('--', args.file_glob);
         try {
           const result = execFileSync('git', grepArgs,
@@ -561,6 +718,117 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         waitForGitLock(repoPath);
         execFileSync('git', ['reset', '--hard', hash], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return { text: `Repository reverted to commit: ${hash}` };
+      }
+      case 'delete_file': {
+        const rel = sanitizeRelativePath(args.file_path || '');
+        if (!rel) return { text: 'Error: invalid file path' };
+        const fullPath = path.join(repoPath, rel);
+        if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
+        const before = fs.readFileSync(fullPath, 'utf-8');
+        fs.unlinkSync(fullPath);
+        return { text: `File deleted: ${rel}`, diff: { before, after: '' } };
+      }
+      case 'move_file': {
+        const srcRel = sanitizeRelativePath(args.src_path || '');
+        const dstRel = sanitizeRelativePath(args.dst_path || '');
+        if (!srcRel) return { text: 'Error: invalid src_path' };
+        if (!dstRel) return { text: 'Error: invalid dst_path' };
+        const srcFull = path.join(repoPath, srcRel);
+        const dstFull = path.join(repoPath, dstRel);
+        if (!fs.existsSync(srcFull)) return { text: `Error: source file not found: ${srcRel}` };
+        if (fs.existsSync(dstFull)) return { text: `Error: destination already exists: ${dstRel}. Delete it first if you want to overwrite.` };
+        const dstDir = path.dirname(dstFull);
+        if (!fs.existsSync(dstDir)) fs.mkdirSync(dstDir, { recursive: true });
+        fs.renameSync(srcFull, dstFull);
+        return { text: `File moved: ${srcRel} → ${dstRel}` };
+      }
+      case 'outline_file': {
+        const rel = sanitizeRelativePath(args.file_path || '');
+        if (!rel) return { text: 'Error: invalid file path' };
+        const fullPath = path.join(repoPath, rel);
+        if (!fs.existsSync(fullPath)) return { text: `Error: file not found: ${rel}` };
+        try {
+          const raw = execFileSync(
+            'ctags',
+            ['-f', '-', '--output-format=json', '--fields=+nS', fullPath],
+            { encoding: 'utf-8', timeout: 10000 },
+          );
+          const tags = raw
+            .split('\n')
+            .filter(Boolean)
+            .map(line => { try { return JSON.parse(line); } catch { return null; } })
+            .filter(Boolean)
+            .filter((t: any) => t._type === 'tag' && t.kind !== 'package')
+            .sort((a: any, b: any) => (a.line || 0) - (b.line || 0));
+
+          if (tags.length === 0) return { text: '(no symbols found — file may be empty or language not supported by ctags)' };
+
+          const lines = tags.map((t: any) => {
+            const indent = t.scopeKind ? '  ' : '';
+            const visibility = t.file ? '[private] ' : '';
+            const signature = t.signature ? t.signature : '';
+            return `${indent}${t.kind.padEnd(8)} ${visibility}${t.name}${signature}  (line ${t.line})`;
+          });
+
+          return { text: `${rel}\n${lines.join('\n')}` };
+        } catch (err: any) {
+          if (err.code === 'ENOENT') {
+            return { text: 'Error: ctags not found. Install with: sudo apt install universal-ctags' };
+          }
+          return { text: `Error running ctags: ${err.message}` };
+        }
+      }
+      case 'gradle_build': {
+        // Verify gradlew exists in the repo
+        const gradlew = path.join(repoPath, 'gradlew');
+        if (!fs.existsSync(gradlew)) {
+          return { text: 'Error: gradlew not found in repository root. Is this a Gradle project?' };
+        }
+
+        // Ensure gradlew is executable
+        try {
+          fs.chmodSync(gradlew, 0o755);
+        } catch { /* ignore */ }
+
+        const task = (args.task || 'build').trim();
+
+        // Validate task name — only alphanumeric, hyphens, colons (e.g. "compileJava", "clean build", "fabric:build")
+        if (!/^[a-zA-Z0-9:_\-\s]+$/.test(task)) {
+          return { text: `Error: invalid Gradle task name: "${task}"` };
+        }
+
+        // Parse -P properties from "key=value key2=value2" string
+        const propFlags: string[] = [];
+        if (args.properties) {
+          for (const pair of args.properties.trim().split(/\s+/)) {
+            if (!pair) continue;
+            // Validate: only word chars, dots, hyphens, equals, and simple values
+            if (!/^[\w.\-]+=[\w.\-]*$/.test(pair)) {
+              return { text: `Error: invalid property format: "${pair}". Use key=value format, e.g. "include_create=true"` };
+            }
+            propFlags.push(`-P${pair}`);
+          }
+        }
+
+        const gradleArgs = [...task.trim().split(/\s+/), ...propFlags, '--console=plain', '--stacktrace'];
+
+        let rawOutput = '';
+        let exitCode = 0;
+        try {
+          rawOutput = execFileSync('./gradlew', gradleArgs, {
+            cwd: repoPath,
+            encoding: 'utf-8',
+            timeout: MAX_GRADLE_TIMEOUT,
+            env: { ...process.env, TERM: 'dumb' }, // suppress ANSI colour codes
+          });
+        } catch (err: any) {
+          rawOutput = [err.stdout, err.stderr].filter(Boolean).join('\n');
+          exitCode = err.status ?? 1;
+        }
+
+        const filtered = filterGradleOutput(rawOutput);
+        const status = exitCode === 0 ? 'BUILD SUCCESSFUL' : 'BUILD FAILED';
+        return { text: `${status}\n\n${filtered}` };
       }
       default:
         return { text: `Error: unknown tool: ${toolName}` };
@@ -932,6 +1200,192 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
   }
 }
 
+// [CHANGE 5] Reset workdir to snapshot commit and clean untracked files
+function rollbackToSnapshot(workdir: string, snapshotCommit: string): void {
+  if (!snapshotCommit || !fs.existsSync(path.join(workdir, '.git'))) return;
+  try {
+    waitForGitLock(workdir);
+    cleanupInterruptedGitOps(workdir);
+    execFileSync('git', ['reset', '--hard', snapshotCommit],
+      { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+    execFileSync('git', ['clean', '-fd'],
+      { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+    console.log(`[agent] Workdir rolled back to snapshot: ${snapshotCommit}`);
+  } catch (err: any) {
+    console.error(`[agent] Rollback failed: ${err.message}`);
+  }
+}
+
+// Returns the argument that identifies *what* a tool is operating on,
+// ignoring content arguments like `content` or `new_text`.
+// This lets us detect loops based on the target rather than the payload.
+function getPrimaryArg(toolName: string, args: Record<string, string>): string {
+  switch (toolName) {
+    case 'read_file':
+      // Include line range so reading different sections of the same file is not flagged as a loop
+      return `${args.file_path || ''}:${args.start_line || ''}:${args.end_line || ''}`;
+    case 'write_file':
+    case 'edit_file':
+      return args.file_path || '';
+    case 'list_files':
+      return args.dir_path || '.';
+    case 'search_files':
+      return `${args.pattern || ''}@${args.dir_path || '.'}`;
+    case 'run_command':
+      return (args.command || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    case 'git_commit':
+      // commits on the same message are suspicious but not the key loop indicator;
+      // use a fixed token so any two consecutive git_commits count
+      return '__commit__';
+    case 'delete_file':
+      return args.file_path || '';
+    case 'move_file':
+      return `${args.src_path || ''}→${args.dst_path || ''}`;
+    case 'outline_file':
+      return args.file_path || '';
+    case 'gradle_build':
+      return `${args.task || 'build'}:${args.properties || ''}`;
+    case 'git_revert':
+      return args.commit_hash || '';
+    default:
+      // For argument-free tools (git_status, git_diff, git_log) use the tool name
+      // so three consecutive calls to git_diff count as a loop
+      return toolName;
+  }
+}
+
+// Core agent loop extracted so runAgent can retry it on loop failure
+async function runAgentLoop(
+  client: Ollama,
+  model: string,
+  messages: Message[],
+  workdir: string,
+  actions: AgentStep[],
+  abortSignal: AbortSignal,
+  isRetry: boolean,
+): Promise<{ response: string; loopDetected: boolean }> {
+  let lastResponse = '';
+  // Tracks (tool:primaryArg) for consecutive repeat detection
+  const recentToolTargets: string[] = [];
+  const WRAP_UP_THRESHOLD = Math.floor(MAX_TOOL_ITERATIONS * 0.75);
+
+  // [CHANGE 4] Track consecutive failures per (tool, args) signature
+  const toolFailCounts: Record<string, number> = {};
+
+  for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+    if (abortSignal.aborted) {
+      lastResponse = 'Agent execution was aborted.';
+      break;
+    }
+
+    if (i === WRAP_UP_THRESHOLD) {
+      messages.push({ role: 'system', content: `You have ${MAX_TOOL_ITERATIONS - i} iterations remaining. Wrap up: commit your changes and finish.` });
+    }
+
+    const response = await client.chat({
+      model,
+      messages,
+      tools: AGENT_TOOLS,
+    });
+
+    let toolCalls = response.message.tool_calls || [];
+    let parsedFromText = false;
+    let parsedSegments: ParseResult['segments'] = [];
+
+    if (toolCalls.length === 0 && response.message.content) {
+      const parsed = parseToolCallsFromText(response.message.content);
+      if (parsed.toolCalls.length > 0) {
+        toolCalls = parsed.toolCalls.map(p => ({
+          function: { name: p.name, arguments: p.arguments },
+        }));
+        parsedFromText = true;
+        parsedSegments = parsed.segments;
+      }
+    }
+
+    lastResponse = response.message.content || '';
+
+    if (toolCalls.length === 0) {
+      break;
+    }
+
+    // Capture inner monologue between tool calls
+    const addThinkingParagraphs = (text: string) => {
+      for (const para of text.split(/\n\n+/)) {
+        const trimmed = para.trim();
+        if (trimmed) actions.push({ type: 'thinking', content: trimmed });
+      }
+    };
+    if (parsedFromText && parsedSegments.length > 0) {
+      for (const seg of parsedSegments) {
+        if (seg.type === 'thinking' && seg.content) addThinkingParagraphs(seg.content);
+      }
+    } else if (lastResponse.trim()) {
+      addThinkingParagraphs(lastResponse);
+    }
+
+    // Detect repeated tool calls on the same primary target (file path, pattern, etc.)
+    // We only care about the argument that identifies *what* is being operated on,
+    // not the full content — so write_file(a,"hi1") and write_file(a,"hi2") both
+    // count as targeting "a". Consecutive repeats on the same target signal a loop.
+    for (const tc of toolCalls) {
+      const primaryArg = getPrimaryArg(tc.function.name, (tc.function.arguments || {}) as Record<string, string>);
+      const target = `${tc.function.name}:${primaryArg}`;
+      recentToolTargets.push(target);
+    }
+    while (recentToolTargets.length > MAX_RECENT_TOOL_TARGETS) recentToolTargets.shift();
+
+    // Count consecutive tail hits for the most recent target
+    const lastTarget = recentToolTargets[recentToolTargets.length - 1];
+    let consecutiveCount = 0;
+    for (let k = recentToolTargets.length - 1; k >= 0; k--) {
+      if (recentToolTargets[k] === lastTarget) consecutiveCount++;
+      else break;
+    }
+    if (consecutiveCount >= MAX_REPEAT_COUNT) {
+      console.log(`[agent] Loop detected: "${lastTarget}" repeated ${consecutiveCount} times consecutively`);
+      return { response: lastResponse, loopDetected: true };
+    }
+
+    if (parsedFromText) {
+      messages.push({ role: 'assistant', content: response.message.content || '' });
+    } else {
+      messages.push(response.message);
+    }
+
+    // Execute each tool call
+    for (const tc of toolCalls) {
+      const toolName = tc.function.name;
+      const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
+
+      console.log(`[agent] Tool: ${toolName}(${Object.values(toolArgs).join(', ')})`);
+      const result = executeTool(toolName, toolArgs, workdir);
+      actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.text.slice(0, MAX_ACTION_RESULT_LENGTH), diff: result.diff });
+
+      // [CHANGE 4] Track tool failures and inject a system message after 2 consecutive failures
+      if (result.text.startsWith('Error:')) {
+        const failKey = `${toolName}:${JSON.stringify(toolArgs)}`;
+        toolFailCounts[failKey] = (toolFailCounts[failKey] || 0) + 1;
+        if (toolFailCounts[failKey] >= 2) {
+          console.log(`[agent] Tool ${toolName} failed twice with same args — injecting redirect hint`);
+          messages.push({
+            role: 'system',
+            content: `${toolName} has failed twice with the same arguments. You MUST try a completely different approach now — do not repeat the same call again.`,
+          });
+        }
+      }
+
+      const resultRole = parsedFromText ? 'user' : 'tool';
+      const resultContent = parsedFromText
+        ? `[Tool result for ${toolName}]: ${truncateToolResult(result.text)}`
+        : truncateToolResult(result.text);
+      messages.push({ role: resultRole, content: resultContent });
+    }
+  }
+
+  return { response: lastResponse, loopDetected: false };
+}
+
 export async function runAgent(
   model: string,
   userMessage: string,
@@ -946,7 +1400,6 @@ export async function runAgent(
   const actions: AgentStep[] = [];
   console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
 
-  // Set up abort controller for this agent run
   const abortController = new AbortController();
   const abortSignal = abortController.signal;
 
@@ -954,7 +1407,6 @@ export async function runAgent(
   const client = new Ollama({
     host: ollamaHost,
     fetch: (url: RequestInfo | URL, init?: RequestInit) => {
-      // Combine abort signal with timeout
       const timeoutSignal = AbortSignal.timeout(AGENT_REQUEST_TIMEOUT);
       const combinedSignal = AbortSignal.any([abortSignal, timeoutSignal]);
       return fetch(url, { ...init, signal: combinedSignal });
@@ -964,38 +1416,31 @@ export async function runAgent(
   // Ensure warez repo is git-initialized and accepts pushes
   if (!isBareRepo(repoPath)) {
     if (fs.existsSync(path.join(repoPath, '.git'))) {
-      // Existing non-bare git repo → just enable push support
       ensureReceivePush(repoPath);
     } else {
-      // Not a git repo at all → init with standard .git + enable push
       autoInitGit(repoPath, actions);
     }
   }
 
-  // Clone from warez into agent workdir (per-conversation)
   const workdir = ensureAgentWorkdir(repoPath, repoName, conversationId, actions);
   if (!workdir) {
     return { response: 'Error: could not create agent workspace.', actions, currentBranch: '' };
   }
 
-  // Clean up any interrupted git operations from previous runs
   cleanupInterruptedGitOps(workdir);
 
-  // Checkout the requested branch if specified
   if (branch && /^[\w.\-/]+$/.test(branch)) {
     try {
       waitForGitLock(workdir);
       const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
         console.log(`[agent] Checking out branch: ${branch}`);
-        // Stash any local changes before switching branches
         try {
           const status = execFileSync('git', ['status', '--porcelain'], { cwd: workdir, encoding: 'utf-8', timeout: 10000 }).trim();
           if (status) {
             execFileSync('git', ['stash', '--include-untracked'], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
           }
         } catch { /* ignore stash failures */ }
-        // Try local branch first, then remote tracking branch
         try {
           execFileSync('git', ['checkout', branch], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         } catch {
@@ -1003,14 +1448,12 @@ export async function runAgent(
         }
         actions.push({ type: 'tool', tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
       }
-      // Always pull latest changes (even if already on the branch)
       try {
         console.log(`[agent] Pulling latest changes for branch: ${branch}`);
         const pullOutput = execFileSync('git', ['pull', '--rebase', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
         actions.push({ type: 'tool', tool: 'git_pull', args: { branch }, result: pullOutput.trim() || 'Already up to date' });
       } catch {
-        // Pull/rebase may fail due to conflicts or local-only branch
         cleanupInterruptedGitOps(workdir);
         console.log(`[agent] Pull failed (conflict or local-only branch), continuing with local state`);
       }
@@ -1030,7 +1473,6 @@ export async function runAgent(
       let uniqueName = branchName;
       try {
         waitForGitLock(workdir);
-        // Ensure unique branch name by appending numeric suffix if it already exists
         const existingBranches = execFileSync('git', ['branch', '--list'], { cwd: workdir, encoding: 'utf-8', timeout: 10000 })
           .split('\n').map(b => b.replace(/^\*?\s+/, '').trim()).filter(Boolean);
         let suffix = 2;
@@ -1051,7 +1493,6 @@ export async function runAgent(
     ? `A new branch "${createdBranch}" has been automatically created for this task (parent: "${branch}").`
     : '';
 
-  // Get compact repo overview for context on first message
   const repoTree = isFirstMessage ? getRepoTreeOverview(workdir) : '';
   const treeSection = repoTree ? `\nREPOSITORY STRUCTURE:\n${repoTree}` : '';
 
@@ -1067,12 +1508,24 @@ WORKFLOW (follow in order):
 5. COMMIT: Always commit with git_commit when done
 
 TOOL SELECTION GUIDE:
-- edit_file: For modifying EXISTING files — replaces a specific text block (search/replace). More precise than write_file.
+- outline_file: ALWAYS use this first on any file over ~100 lines to see its structure before reading
+- read_file: To read file contents — use after outline_file to target only the relevant section via start_line/end_line. Always add ~5 lines of padding on both sides of the target range so edit_file has enough context to form a unique old_text.
+- edit_file: For modifying EXISTING files — replaces a specific text block (search/replace). More precise than write_file. When you read only part of a file, make sure old_text includes at least 2-3 lines of surrounding context above and below the change to ensure it is unique in the full file.
 - write_file: For CREATING new files or when the entire file needs rewriting
+- delete_file: To remove a file entirely during refactoring or cleanup
+- move_file: To rename or relocate a file — preserves content, use instead of read+write+delete
 - search_files: To find where functions/variables/patterns are used across the codebase
-- run_command: To execute builds, tests, linters (e.g. "npm test", "python -m pytest", "make build")
+- gradle_build: To compile or build Gradle/Minecraft mod projects — use instead of run_command for all Gradle tasks. Supports -P flags via the properties parameter (e.g. properties: "include_create=true offline=true")
+- run_command: To execute non-Gradle builds, tests, linters (e.g. "npm test", "python -m pytest", "make build")
 - list_files: To explore directory structure
-- read_file: To read file contents
+
+PROGRESS TRACKING (follow for every tool call):
+Before each tool call, write one line:
+  DOING: [tool_name] — [one sentence why, it must justify this call based on your previous thinking and tool results]
+If you are about to make a tool call you cannot justify, or you notice you are creating an endless cycle of calls, write instead:
+  ABORT: [why] — then change strategy.
+After getting the tool result, write one line:
+  LEARNED: [what the result of the tool call tells you and what you have achieved with it]
 
 IMPORTANT RULES:
 - Do NOT create new branches. The branch has already been created for you.
@@ -1080,6 +1533,7 @@ IMPORTANT RULES:
 - When working with files, ALWAYS determine the programming language FIRST by file extension (${FILE_EXTENSION_LANGUAGES}), and only if the extension is ambiguous or missing, then by content (shebangs, syntax patterns). Write code in the same programming language as the file.
 - When writing entire files, include ALL the content — do not use placeholders like "// rest of the code".
 - Prefer edit_file over write_file for existing files — it is safer and preserves unchanged parts.
+- When using edit_file after reading only part of a file, old_text MUST include at least 2-3 lines of surrounding context above and below the actual change to ensure it matches exactly once in the full file. If you are not confident old_text is unique, read more context first.
 - If a tool returns an error, explain what went wrong and try a different approach. If edit_file fails twice, switch to write_file.
 - Do NOT re-read a file right after editing it — the edit_file/write_file result already confirms the change. Move on to the next task.
 - Do NOT read the same file more than once in a row — you already have its content from the first read. Use the content you received immediately.
@@ -1092,7 +1546,7 @@ IMPORTANT RULES:
 
 Answer in the language the user writes in. Be concise about tool usage but explain what you're doing.`;
 
-  const messages: Message[] = [
+  const buildMessages = (): Message[] => [
     { role: 'system', content: systemPrompt },
     ...history
       .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -1101,175 +1555,81 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     { role: 'user', content: userMessage },
   ];
 
-  let lastResponse = '';
-  const recentToolNames: string[] = []; // Track tool name history for cycle detection
-  let lastToolKey = '';
-  let repeatCount = 0;
-  const MAX_REPEAT_COUNT = 3;
-  const WRAP_UP_THRESHOLD = Math.floor(MAX_TOOL_ITERATIONS * 0.75);
-
-  // Record snapshot commit for abort/revert support
+  // Capture snapshot commit for rollback support
   let snapshotCommit = '';
   try {
     snapshotCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: workdir, encoding: 'utf-8', timeout: 5000 }).trim();
   } catch (err: any) {
-    // May fail if workdir has no commits yet, or on corrupted/permission errors
     console.warn(`[agent] Could not capture snapshot commit: ${err.message || String(err)}`);
   }
 
-  // Register this agent run so it can be aborted externally
   runningAgents.set(conversationId, { abortController, workdir, snapshotCommit });
 
   try {
-    for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-      // Check abort signal at the start of each iteration
-      if (abortSignal.aborted) {
-        console.log(`[agent] Aborted by user at iteration ${i}`);
-        lastResponse = 'Agent execution was aborted.';
-        break;
-      }
+    // [CHANGE 5] First attempt
+    const firstAttempt = await runAgentLoop(client, model, buildMessages(), workdir, actions, abortSignal, false);
 
-      // Inject "wrap up" hint when running low on iterations
-      if (i === WRAP_UP_THRESHOLD) {
-        messages.push({ role: 'system', content: `You have ${MAX_TOOL_ITERATIONS - i} iterations remaining. Wrap up: commit your changes and finish.` });
-      }
-
-      const response = await client.chat({
-        model,
-        messages,
-        tools: AGENT_TOOLS,
-      });
-
-      let toolCalls = response.message.tool_calls || [];
-      let parsedFromText = false;
-      let parsedSegments: ParseResult['segments'] = [];
-
-      // Fallback: parse tool calls from text content when model doesn't
-      // use structured tool_calls (common with local models)
-      if (toolCalls.length === 0 && response.message.content) {
-        const parsed = parseToolCallsFromText(response.message.content);
-        if (parsed.toolCalls.length > 0) {
-          toolCalls = parsed.toolCalls.map(p => ({
-            function: { name: p.name, arguments: p.arguments },
-          }));
-          parsedFromText = true;
-          parsedSegments = parsed.segments;
-        }
-      }
-
-      lastResponse = response.message.content || '';
-
-      // If no tool calls found (neither structured nor text), this is
-      // the final message — don't add it as thinking, just break
-      if (toolCalls.length === 0) {
-        break;
-      }
-
-      // Capture inner monologue between tool calls (only for intermediate iterations)
-      const addThinkingParagraphs = (text: string) => {
-        for (const para of text.split(/\n\n+/)) {
-          const trimmed = para.trim();
-          if (trimmed) actions.push({ type: 'thinking', content: trimmed });
-        }
-      };
-      if (parsedFromText && parsedSegments.length > 0) {
-        for (const seg of parsedSegments) {
-          if (seg.type === 'thinking' && seg.content) addThinkingParagraphs(seg.content);
-        }
-      } else if (lastResponse.trim()) {
-        addThinkingParagraphs(lastResponse);
-      }
-
-      // Detect repeated identical tool calls to prevent infinite loops
-      const toolKey = toolCalls.map(tc => `${tc.function.name}(${JSON.stringify(tc.function.arguments)})`).join(';');
-      if (toolKey === lastToolKey) {
-        repeatCount++;
-        if (repeatCount >= MAX_REPEAT_COUNT) {
-          console.log(`[agent] Breaking loop: same tool call repeated ${repeatCount + 1} times`);
-          break;
-        }
-      } else {
-        lastToolKey = toolKey;
-        repeatCount = 0;
-      }
-
-      // Detect cycling patterns (e.g. read→edit→read→edit)
-      for (const tc of toolCalls) {
-        recentToolNames.push(tc.function.name);
-      }
-      // Keep bounded: only need last 9 names max (cycleLen 3 × 3 repetitions)
-      while (recentToolNames.length > 9) recentToolNames.shift();
-
-      let cycleDetected = false;
-      for (const cycleLen of [2, 3]) {
-        if (recentToolNames.length < cycleLen * 3) continue;
-        const window = recentToolNames.slice(-cycleLen * 3);
-        const chunk1 = window.slice(0, cycleLen).join(',');
-        const chunk2 = window.slice(cycleLen, cycleLen * 2).join(',');
-        const chunk3 = window.slice(cycleLen * 2, cycleLen * 3).join(',');
-        if (chunk1 === chunk2 && chunk1 === chunk3) {
-          console.log(`[agent] Breaking loop: detected cycle pattern [${chunk1}] repeating 3 times`);
-          messages.push({ role: 'system', content: `You are stuck in a loop (${chunk1} repeating). Stop and try a completely different approach, or commit what you have and finish.` });
-          cycleDetected = true;
-          break;
-        }
-      }
-      if (cycleDetected) break;
-
-      // Add assistant message to history — preserve structured tool_calls
-      // when available, use plain content when parsed from text
-      if (parsedFromText) {
-        messages.push({ role: 'assistant', content: response.message.content || '' });
-      } else {
-        messages.push(response.message);
-      }
-
-      // Execute each tool call
-      for (const tc of toolCalls) {
-        const toolName = tc.function.name;
-        const toolArgs = (tc.function.arguments || {}) as Record<string, string>;
-
-        console.log(`[agent] Tool: ${toolName}(${Object.values(toolArgs).join(', ')})`);
-        const result = executeTool(toolName, toolArgs, workdir);
-        actions.push({ type: 'tool', tool: toolName, args: toolArgs, result: result.text.slice(0, MAX_ACTION_RESULT_LENGTH), diff: result.diff });
-
-        // Add tool result to conversation
-        // For text-parsed tool calls, use 'user' role so the model actually sees the result
-        // (models may ignore 'tool' role when they didn't emit structured tool_calls)
-        const resultRole = parsedFromText ? 'user' : 'tool';
-        const resultContent = parsedFromText
-          ? `[Tool result for ${toolName}]: ${truncateToolResult(result.text)}`
-          : truncateToolResult(result.text);
-        messages.push({ role: resultRole, content: resultContent });
-      }
-    }
-
-    // If aborted, don't auto-commit or push — workdir was already reset by abortAgent()
     if (abortSignal.aborted) {
       runningAgents.delete(conversationId);
       return {
-        response: lastResponse || 'Agent execution was aborted.',
+        response: firstAttempt.response || 'Agent execution was aborted.',
         actions,
         currentBranch: getCurrentBranch(workdir),
         aborted: true,
       };
     }
 
-    // Auto-commit any uncommitted changes
+    // [CHANGE 5] If loop detected: rollback, notify the model, retry once
+    if (firstAttempt.loopDetected) {
+      console.log(`[agent] Loop detected on first attempt — rolling back and retrying`);
+      rollbackToSnapshot(workdir, snapshotCommit);
+      actions.push({
+        type: 'thinking',
+        content: 'Loop detected: the agent got stuck repeating tool calls. Rolling back changes and retrying the task with a fresh approach.',
+      });
+
+      // Inject self-notification into the message history for the retry
+      const retryMessages = buildMessages();
+      retryMessages.push({
+        role: 'system',
+        content: `RETRY NOTICE: Your previous attempt at this task got stuck in a tool call loop and was automatically rolled back. The codebase is now back to its original state. Please approach the task differently this time — avoid repeating the same sequence of tool calls. Think carefully about the minimal set of steps needed.`,
+      });
+
+      const secondAttempt = await runAgentLoop(client, model, retryMessages, workdir, actions, abortSignal, true);
+
+      if (secondAttempt.loopDetected) {
+        console.log(`[agent] Loop detected on retry — giving up`);
+        rollbackToSnapshot(workdir, snapshotCommit);
+        runningAgents.delete(conversationId);
+        return {
+          response: 'I was unable to complete this task — I got stuck in a loop on both attempts. Please try rephrasing the request or breaking it into smaller steps.',
+          actions,
+          currentBranch: getCurrentBranch(workdir),
+        };
+      }
+
+      autoCommitChanges(workdir, actions);
+      pushToWarez(workdir, actions);
+      console.log(`[agent] Done (retry). Branch: ${getCurrentBranch(workdir)}, actions: ${actions.length}`);
+      runningAgents.delete(conversationId);
+      return {
+        response: secondAttempt.response || 'Done.',
+        actions,
+        currentBranch: getCurrentBranch(workdir),
+      };
+    }
+
     autoCommitChanges(workdir, actions);
-
-    // Push to warez (bare repo)
     pushToWarez(workdir, actions);
-
     console.log(`[agent] Done. Branch: ${getCurrentBranch(workdir)}, actions: ${actions.length}`);
     runningAgents.delete(conversationId);
     return {
-      response: lastResponse || 'Done.',
+      response: firstAttempt.response || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
     };
+
   } catch (err: any) {
-    // Only treat as user-abort if OUR abort controller was signaled (not a timeout)
     if (abortSignal.aborted) {
       console.log(`[agent] Agent aborted for conversation: ${conversationId}`);
       runningAgents.delete(conversationId);
@@ -1282,7 +1642,6 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     }
 
     console.error(`[agent] Error: ${err.message || String(err)}`);
-    // Auto-commit even on error
     autoCommitChanges(workdir, actions);
     pushToWarez(workdir, actions);
 
