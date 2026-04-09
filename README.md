@@ -4,11 +4,12 @@ Offline Knowledge & Media Hub — a fully offline local application for long-ter
 
 ## Features
 
-- **🎮 Games** — Game library from SteamDB/RAWG with ProtonDB compatibility reports
+- **🎮 Games** — Game library from SteamDB/RAWG with ProtonDB compatibility reports, PCGamingWiki fixes and tips
 - **🎵 Music** — Local music player with library scanning, metadata and playlists
 - **📖 Fiction** — PDF/EPUB/FB2 reader with bookmarks and reading position saving
 - **📚 Reference** — ZIM archive browser for offline Wikipedia, WikiHow, iFixIt and more
-- **🤖 AI Librarian** — Local AI chat with RAG-powered knowledge base search (Ollama + ChromaDB)
+- **🔧 Warez** — Local git repository browser with README viewer and file tree
+- **🤖 AI Librarian** — Local AI chat with multi-model selection and RAG-powered knowledge base search (Ollama + ChromaDB)
 - **🔊 TTS** — Text-to-speech via Piper TTS for reading AI responses and articles aloud
 
 ## Tech Stack
@@ -74,8 +75,12 @@ Ollama is **auto-launched** by BOX server if not already running.
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Pull the LLM model (first time only)
-ollama pull qwen2.5:7b
+# Pull the default LLM model (first time only)
+ollama pull huihui_ai/qwen3-abliterated:8b-v2
+
+# Pull additional models (optional)
+ollama pull huihui_ai/qwen2.5-abliterate:14b
+ollama pull qwen2.5-coder:14b
 
 # Pull the embedding model for RAG (first time only)
 ollama pull nomic-embed-text
@@ -109,29 +114,61 @@ CHROMA_DATA_PATH=./chroma_data
 
 ### 4. Install Piper TTS (Text-to-Speech) — Optional
 
+> ⚠️ **Do NOT use `apt install piper`** — that installs a GTK gaming device tool, not Piper TTS!
+
 ```bash
-# Download Piper binary
+# Step 1: Clean up any previous failed installs
+sudo rm -f /usr/local/bin/piper-tts  # Remove broken binary from previous attempt (if any)
+
+# Step 2: Download Piper TTS
+cd ~
 wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
+
+# Step 3: Extract (creates ~/piper/ directory with binary + libs)
 tar -xzf piper_linux_x86_64.tar.gz
-sudo mv piper /usr/local/bin/
 
-# Create models directory
-mkdir -p ~/models/piper
-cd ~/models/piper
+# Step 4: Move the ENTIRE directory to /opt (keeps shared libraries together)
+sudo mv piper /opt/piper-tts
 
-# Download Russian voice
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx.json
+# Step 5: Clean up tarball
+rm piper_linux_x86_64.tar.gz
 
-# Download English voice (optional)
+# Step 6: Verify it works
+LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help
+# ✓ Should show: --model, --output_file, --output_raw options
+# ✗ If "No such file or directory" — step 4 didn't run (check with: ls /opt/piper-tts/)
+# ✗ If "libpiper_phonemize.so.1 not found" — you moved only the binary, not the directory
+```
+
+```bash
+# Download voice models
+mkdir -p ~/models/piper && cd ~/models/piper
+
+# Russian voice (default: irina — female)
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
+
+# Other Russian voices: dmitri (male), denis (male), ruslan (male)
+
+# English voice (optional)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
 
-# Verify
-piper --help
+# Test a voice
+echo "Привет, мир!" | LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper \
+  --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
+aplay test.wav
 ```
 
-Full voice list: https://rhasspy.github.io/piper-samples/
+Set in your `.env`:
+```
+PIPER_PATH=/opt/piper-tts/piper
+```
+
+Voice samples: https://rhasspy.github.io/piper-samples/
+All voices: https://huggingface.co/rhasspy/piper-voices/tree/main
+Custom community voices: https://github.com/drycen/piper-tts-voices / https://community.home-assistant.io/t/collections-of-pre-trained-piper-voices/915666
+Skyrim character voices (via Mantella project): https://github.com/art-from-the-machine/Mantella
 
 ### 5. Install kiwix-serve (Reference Library) — Optional
 
@@ -158,6 +195,7 @@ PORT=3001
 MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
 FICTION_LIBRARY_PATH=/home/user/Books,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Reference,/media/user/USB_DRIVE/ZIM
+WAREZ_LIBRARY_PATH=/home/user/Repos,/media/user/USB_DRIVE/Repos
 
 # Data storage
 DATA_PATH=../data
@@ -167,12 +205,13 @@ KIWIX_PORT=9454
 KIWIX_SERVE_PATH=
 
 # TTS (optional)
+PIPER_PATH=/opt/piper-tts/piper
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-medium
+TTS_DEFAULT_VOICE=ru_RU-irina-medium
 
 # AI / LLM (auto-launched)
 LLM_API_URL=http://localhost:11434
-LLM_MODEL=qwen2.5:7b
+LLM_MODELS=huihui_ai/qwen3-abliterated:8b-v2,huihui_ai/qwen2.5-abliterate:14b,qwen2.5-coder:14b
 LLM_API_TYPE=auto
 EMBEDDING_MODEL=nomic-embed-text
 
@@ -271,6 +310,9 @@ Set FICTION_LIBRARY_PATH in .env, then click **Rescan Library**. Supports PDF, E
 ### Reference
 Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM archives from https://download.kiwix.org/zim/
 
+### Warez
+Set WAREZ_LIBRARY_PATH in .env, pointing to directories containing git repositories or other project folders. BOX will display them with git metadata (branch, commits, last commit message) and render README files.
+
 ---
 
 ## Troubleshooting
@@ -279,10 +321,10 @@ Set REFERENCE_LIBRARY_PATH in .env and place .zim files there. Download ZIM arch
 The server did not shut down cleanly. Find and stop the old process on port 3001.
 
 ### Ollama model pull fails
-Check model name at https://ollama.com/library. Common models:
-- qwen2.5:7b (best for RU/EN)
-- mistral:7b (fast, good English)
-- llama3.1:8b (strong reasoning)
+Check model name at https://ollama.com/library. Configured models:
+- huihui_ai/qwen3-abliterated:8b-v2 (uncensored, RU/EN, default)
+- huihui_ai/qwen2.5-abliterate:14b (uncensored, RU/EN, 14B)
+- qwen2.5-coder:14b (code generation, 14B)
 
 ### ChromaDB won't start
 ```bash
@@ -297,6 +339,23 @@ Ensure REFERENCE_LIBRARY_PATH points to the directory containing .zim files and 
 
 ### Music metadata not extracted
 After adding files, click **Rescan Library**. If artist/title still show as filename, the files may lack ID3 tags.
+
+### Piper TTS: "Unknown option --model"
+You likely have the wrong `piper` package installed. On some Linux distros, `apt install piper` installs a **GTK gaming device tool**, not Piper TTS.
+
+```bash
+# Check which piper you have:
+which piper
+piper --help  # Should show --model, --output_file, --output_raw options
+
+# If wrong, remove it and install Piper TTS:
+sudo apt remove piper
+# Download the correct Piper TTS from:
+# https://github.com/rhasspy/piper/releases
+# Install the whole directory (not just the binary — it needs libs):
+sudo mv piper /opt/piper-tts
+# Then set PIPER_PATH=/opt/piper-tts/piper in .env
+```
 
 ---
 

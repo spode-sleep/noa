@@ -6,15 +6,45 @@ import { execSync, spawn } from 'child_process';
 const router = Router();
 
 const ttsModelPath = process.env.TTS_MODEL_PATH || '';
-const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-medium';
+const ttsDefaultVoice = process.env.TTS_DEFAULT_VOICE || 'ru_RU-irina-medium';
+function detectPiperPath(): string | null {
+  const candidates = process.env.PIPER_PATH
+    ? [process.env.PIPER_PATH]
+    : ['piper', '/opt/piper-tts/piper'];
+  for (const candidate of candidates) {
+    try {
+      const dir = path.dirname(path.resolve(candidate));
+      const env = { ...process.env, LD_LIBRARY_PATH: [path.join(dir, 'lib'), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') };
+      // Use shell redirect to capture both stdout and stderr (piper may output help to stderr)
+      let output = '';
+      try {
+        output = execSync(`"${candidate}" --help 2>&1`, { timeout: 5000, env, encoding: 'utf-8' });
+      } catch (e: any) {
+        // --help may return non-zero exit code; check stdout/stderr from the error
+        output = (e.stdout || '') + (e.stderr || '');
+      }
+      if (output.includes('--model')) {
+        console.log(`[TTS] Piper TTS detected at: ${candidate}`);
+        return candidate;
+      }
+      console.log(`[TTS] Checked ${candidate}: not Piper TTS (no --model flag in help)`);
+    } catch (e) {
+      console.log(`[TTS] Checked ${candidate}: not found or error`);
+    }
+  }
+  console.log('[TTS] Piper TTS not found. Set PIPER_PATH in .env or install to /opt/piper-tts/');
+  return null;
+}
+
+const resolvedPiperPath = detectPiperPath();
+const piperDir = resolvedPiperPath ? path.dirname(path.resolve(resolvedPiperPath)) : '';
+const piperEnv = resolvedPiperPath ? {
+  ...process.env,
+  LD_LIBRARY_PATH: [path.join(piperDir, 'lib'), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':'),
+} : process.env;
 
 function isPiperInstalled(): boolean {
-  try {
-    execSync('piper --help', { stdio: 'ignore', timeout: 5000 });
-    return true;
-  } catch {
-    return false;
-  }
+  return resolvedPiperPath !== null;
 }
 
 function getModelPath(voice: string): string | null {
@@ -76,7 +106,7 @@ router.post('/synthesize', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'audio/wav');
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  const piper = spawn('piper', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+  const piper = spawn(resolvedPiperPath!, args, { stdio: ['pipe', 'pipe', 'pipe'], env: piperEnv });
 
   // Write WAV header first (Piper --output_raw outputs raw PCM, 16-bit mono 22050Hz)
   const sampleRate = 22050;

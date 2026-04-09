@@ -11,9 +11,26 @@ const router = Router();
 const dataPath = process.env.DATA_PATH || path.join(__dirname, '..', '..', '..', 'data');
 const metadataDir = path.join(dataPath, 'metadata');
 const llmApiUrl = process.env.LLM_API_URL || 'http://localhost:11434';
-const llmModel = process.env.LLM_MODEL || 'qwen2.5:7b';
 const llmApiType = process.env.LLM_API_TYPE || 'auto'; // 'ollama', 'openai', or 'auto'
 const MAX_HISTORY_MESSAGES = 20;
+
+const DEFAULT_MODEL = 'huihui_ai/qwen3-abliterated:8b-v2';
+
+function getConfiguredModels(): string[] {
+  const envModels = process.env.LLM_MODELS;
+  if (envModels) {
+    const models = envModels.split(',').map(m => m.trim()).filter(Boolean);
+    return models.length > 0 ? models : [DEFAULT_MODEL];
+  }
+  return [DEFAULT_MODEL];
+}
+
+const llmModel = getConfiguredModels()[0];
+
+function isModelAllowed(model: string): boolean {
+  const allowed = getConfiguredModels();
+  return allowed.includes(model);
+}
 
 function readJSON(filepath: string): unknown {
   try {
@@ -109,7 +126,7 @@ async function sendToOllama(model: string, messages: ChatMessage[]): Promise<str
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
-      timeout: 120000,
+      timeout: 600000,
     };
 
     const req = http.request(options, (res) => {
@@ -135,10 +152,11 @@ async function sendToOllama(model: string, messages: ChatMessage[]): Promise<str
   });
 }
 
-async function sendToLlamaCpp(messages: ChatMessage[]): Promise<string> {
+async function sendToLlamaCpp(model: string, messages: ChatMessage[]): Promise<string> {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(llmApiUrl);
     const payload = JSON.stringify({
+      model,
       messages,
       stream: false,
       temperature: 0.7,
@@ -154,7 +172,7 @@ async function sendToLlamaCpp(messages: ChatMessage[]): Promise<string> {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
-      timeout: 120000,
+      timeout: 600000,
     };
 
     const req = http.request(options, (res) => {
@@ -182,12 +200,18 @@ async function sendToLlamaCpp(messages: ChatMessage[]): Promise<string> {
 
 // POST /api/ai/chat - Send message to AI
 router.post('/chat', async (req: Request, res: Response) => {
-  const { message, history, context } = req.body;
+  const { message, history, context, model: requestedModel } = req.body;
 
   if (typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'message is required' });
     return;
   }
+
+  // Determine which model to use
+  const trimmedModel = typeof requestedModel === 'string' ? requestedModel.trim() : '';
+  const selectedModel = (trimmedModel && isModelAllowed(trimmedModel))
+    ? trimmedModel
+    : llmModel;
 
   const contextLoaded = { musicLibrary: false, fictionLibrary: false };
 
@@ -243,9 +267,9 @@ router.post('/chat', async (req: Request, res: Response) => {
   try {
     let response: string;
     if (detectApiType() === 'ollama') {
-      response = await sendToOllama(llmModel, messages);
+      response = await sendToOllama(selectedModel, messages);
     } else {
-      response = await sendToLlamaCpp(messages);
+      response = await sendToLlamaCpp(selectedModel, messages);
     }
 
     res.json({
@@ -283,7 +307,12 @@ router.get('/index/status', (_req: Request, res: Response) => {
 router.get('/status', async (_req: Request, res: Response) => {
   const status = await checkLlmAvailability();
   const ragStats = getIndexStats();
-  res.json({ ...status, rag: ragStats });
+  res.json({ ...status, models: getConfiguredModels(), defaultModel: llmModel, rag: ragStats });
+});
+
+// GET /api/ai/models - List configured models
+router.get('/models', (_req: Request, res: Response) => {
+  res.json({ models: getConfiguredModels(), defaultModel: llmModel });
 });
 
 export default router;

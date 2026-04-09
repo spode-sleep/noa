@@ -121,7 +121,8 @@ cp server/.env.example server/.env
 | `FICTION_LIBRARY_PATH`  | Book directories (comma-separated for multiple)  | `/home/user/Books,/media/user/USB/Books`|
 | `REFERENCE_LIBRARY_PATH`| ZIM archive directories (comma-separated)       | `/home/user/Reference,/media/user/USB/ZIM`|
 | `TTS_MODEL_PATH`       | Path to Piper TTS model files                   | `/home/user/models/piper`        |
-| `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-medium`                   |
+| `TTS_DEFAULT_VOICE`    | Default TTS voice identifier                    | `ru_RU-irina-medium`             |
+| `PIPER_PATH`           | Path to Piper TTS binary (avoids GTK piper conflict) | `/opt/piper-tts/piper`  |
 | `DATA_PATH`            | Path to data storage directory (relative or absolute) | `../data`                   |
 
 ### Example `.env`
@@ -132,7 +133,8 @@ MUSIC_LIBRARY_PATH=/home/user/Music,/media/user/USB_DRIVE/Music
 FICTION_LIBRARY_PATH=/home/user/Books/Fiction,/media/user/USB_DRIVE/Books
 REFERENCE_LIBRARY_PATH=/home/user/Books/Reference,/media/user/USB_DRIVE/ZIM
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-medium
+TTS_DEFAULT_VOICE=ru_RU-irina-medium
+PIPER_PATH=/opt/piper-tts/piper
 DATA_PATH=../data
 ```
 
@@ -388,13 +390,13 @@ Piper TTS enables offline text-to-speech for reading articles and AI responses a
 ### Installation
 
 ```bash
-# Download Piper binary
+# Download Piper binary (keep the whole directory — it has required libs)
 wget https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
 tar -xzf piper_linux_x86_64.tar.gz
-sudo mv piper /usr/local/bin/
+sudo mv piper /opt/piper-tts
 
-# Verify
-piper --help
+# Verify (LD_LIBRARY_PATH needed for shared libraries)
+LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --help  # Should show --model, --output_file, --output_raw options
 ```
 
 ### Download Voice Models
@@ -404,9 +406,9 @@ piper --help
 mkdir -p ~/models/piper
 cd ~/models/piper
 
-# Download Russian voice
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/medium/ru_RU-medium.onnx.json
+# Download Russian voice (irina — female, default)
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
 
 # Download English voice (optional)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
@@ -416,14 +418,15 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/mediu
 ### Configure in .env
 
 ```env
+PIPER_PATH=/opt/piper-tts/piper
 TTS_MODEL_PATH=/home/user/models/piper
-TTS_DEFAULT_VOICE=ru_RU-medium
+TTS_DEFAULT_VOICE=ru_RU-irina-medium
 ```
 
 ### Test TTS
 
 ```bash
-echo "Привет, мир!" | piper --model ~/models/piper/ru_RU-medium.onnx --output_file test.wav
+echo "Привет, мир!" | LD_LIBRARY_PATH=/opt/piper-tts/lib /opt/piper-tts/piper --model ~/models/piper/ru_RU-irina-medium.onnx --output_file test.wav
 aplay test.wav
 ```
 

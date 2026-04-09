@@ -11,7 +11,7 @@
           v-for="conv in conversations"
           :key="conv.id"
           class="conversation-item"
-          :class="{ active: conv.id === activeConversationId }"
+          :class="{ active: conv.id === activeConversationId, loading: loadingConversationIds.has(conv.id) }"
           @click="switchConversation(conv.id)"
         >
           <div class="conversation-title-row">
@@ -28,6 +28,7 @@
             <span v-else class="conversation-title">{{ conv.title }}</span>
           </div>
           <div class="conversation-actions" @click.stop>
+            <span v-if="loadingConversationIds.has(conv.id)" class="conv-loading"><Icon icon="mdi:loading" class="spin" /></span>
             <button class="icon-btn" @click="startRename(conv)" title="Rename">
               <Icon icon="mdi:pencil" />
             </button>
@@ -45,6 +46,7 @@
       <div class="chat-header glass">
         <h1>AI Librarian</h1>
         <div class="header-right">
+          <span v-if="selectedModel" class="model-badge">{{ selectedModel }}</span>
           <span class="ai-status" :class="{ online: aiStatus.available }">
             AI: {{ aiStatus.available ? 'Online' : 'Not configured' }}
             <template v-if="ragStatus.ready"> · RAG: {{ ragStatus.backend === 'chromadb' ? 'ChromaDB' : ragStatus.chunksIndexed + ' chunks' }}</template>
@@ -54,7 +56,7 @@
 
       <!-- Context indicator -->
       <div v-if="chatStarted && activeContextLabel" class="context-indicator glass">
-        Connected: {{ activeContextLabel }}
+        <span>Connected: {{ activeContextLabel }}</span>
       </div>
 
       <!-- Library switches (visible only before first message) -->
@@ -70,6 +72,12 @@
           <span class="toggle-slider"></span>
           <span class="toggle-text">Fiction Library</span>
         </label>
+        <div v-if="availableModels.length > 1" class="model-selector">
+          <label class="model-label">Model</label>
+          <select v-model="selectedModel" class="model-dropdown">
+            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+          </select>
+        </div>
         <button class="index-btn" @click="buildIndex" :disabled="ragStatus.indexing">
           {{ ragStatus.indexing ? 'Indexing...' : ragStatus.ready ? 'Rebuild RAG Index' : 'Build RAG Index' }}
         </button>
@@ -124,8 +132,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Icon } from '@iconify/vue'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/atom-one-dark.css'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -138,6 +148,7 @@ interface Conversation {
   title: string
   messages: Message[]
   createdAt: string
+  model?: string
 }
 
 const STORAGE_KEY = 'box-ai-conversations'
@@ -168,10 +179,14 @@ const renameInputRef = ref<HTMLInputElement[] | null>(null)
 
 const messages = ref<Message[]>([])
 const input = ref('')
-const loading = ref(false)
+const loadingConversationIds = reactive(new Set<string>())
+const loading = computed(() => loadingConversationIds.has(activeConversationId.value))
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
+const selectedModel = ref('')
+const availableModels = ref<string[]>([])
+const defaultModel = ref('')
 const aiStatus = ref<{ available: boolean; message: string }>({ available: false, message: '' })
 const ragStatus = ref<{ ready: boolean; chunksIndexed: number; indexing: boolean; backend: string }>({ ready: false, chunksIndexed: 0, indexing: false, backend: 'none' })
 
@@ -206,6 +221,7 @@ function switchConversation(id: string) {
   if (conv) {
     messages.value = conv.messages
     chatStarted.value = conv.messages.length > 0
+    selectedModel.value = conv.model || defaultModel.value
   }
 }
 
@@ -213,6 +229,7 @@ function syncCurrentConversation() {
   const conv = conversations.value.find(c => c.id === activeConversationId.value)
   if (conv) {
     conv.messages = messages.value
+    conv.model = selectedModel.value
     saveConversations()
   }
 }
@@ -254,14 +271,48 @@ function finishRename(id: string) {
 // --- Existing chat logic ---
 
 function formatContent(text: string): string {
-  let html = text
+  // Extract code blocks first to protect them from escaping
+  const codeBlocks: string[] = []
+  let processed = text.replace(/```([\w-]*)\n?([\s\S]*?)```/g, (_match, lang: string, code: string) => {
+    const trimmedCode = code.replace(/^\n+|\n+$/g, '')
+    let highlighted: string
+    try {
+      highlighted = lang && hljs.getLanguage(lang)
+        ? hljs.highlight(trimmedCode, { language: lang }).value
+        : hljs.highlightAuto(trimmedCode).value
+    } catch {
+      highlighted = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+    const safeLang = (lang || 'code').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+    codeBlocks.push(
+      `<div class="code-block"><div class="code-header"><span class="code-lang">${safeLang}</span><button class="code-copy-btn" data-code="${encodeURIComponent(trimmedCode)}" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg></button></div><pre><code class="hljs">${highlighted}</code></pre></div>`
+    )
+    return placeholder
+  })
+
+  // Escape HTML in remaining text
+  processed = processed
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\n{2,}/g, '</p><p>')
-  html = '<p>' + html + '</p>'
-  return html
+
+  // Inline code
+  processed = processed.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+
+  // Bold
+  processed = processed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+  // Paragraphs
+  processed = processed.replace(/\n{2,}/g, '</p><p>')
+  processed = '<p>' + processed + '</p>'
+
+  // Restore code blocks
+  codeBlocks.forEach((block, i) => {
+    processed = processed.replace(`__CODE_BLOCK_${i}__`, block)
+  })
+
+  return processed
 }
 
 function autoResize() {
@@ -286,29 +337,44 @@ watch(messages, () => {
 
 async function sendMessage() {
   const text = input.value.trim()
-  if (!text || loading.value) return
+  if (!text) return
+  if (loadingConversationIds.has(activeConversationId.value)) return
 
   // Create conversation lazily on first message
   if (!activeConversationId.value) {
     createNewConversation()
   }
 
+  const currentConvId = activeConversationId.value
   messages.value.push({ role: 'user', content: text })
   chatStarted.value = true
   input.value = ''
+  syncCurrentConversation()
 
   if (textareaRef.value) {
     textareaRef.value.style.height = 'auto'
   }
 
-  loading.value = true
+  function pushResponse(msg: Message) {
+    const conv = conversations.value.find(c => c.id === currentConvId)
+    if (conv) {
+      conv.messages.push(msg)
+      if (activeConversationId.value === currentConvId) {
+        messages.value = conv.messages
+      }
+      saveConversations()
+    }
+  }
+
+  loadingConversationIds.add(currentConvId)
   try {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
-        history: messages.value,
+        history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
+        model: selectedModel.value,
         context: {
           musicLibrary: musicLibraryEnabled.value,
           fictionLibrary: fictionLibraryEnabled.value,
@@ -316,15 +382,15 @@ async function sendMessage() {
       }),
     })
     const data = await res.json()
-    messages.value.push({
+    pushResponse({
       role: 'assistant',
       content: data.content ?? data.response ?? 'No response.',
       sources: data.sources?.length ? data.sources : undefined,
     })
   } catch {
-    messages.value.push({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+    pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
   } finally {
-    loading.value = false
+    loadingConversationIds.delete(currentConvId)
   }
 }
 
@@ -336,7 +402,8 @@ async function readAloud(text: string) {
       body: JSON.stringify({ text }),
     })
     if (!res.ok) {
-      alert('TTS not configured')
+      const data = await res.json().catch(() => null)
+      alert(data?.error || 'TTS not configured. Set PIPER_PATH and TTS_MODEL_PATH in .env')
       return
     }
     const blob = await res.blob()
@@ -344,7 +411,7 @@ async function readAloud(text: string) {
     const audio = new Audio(url)
     audio.play()
   } catch {
-    alert('TTS not configured')
+    alert('TTS not configured. Set PIPER_PATH and TTS_MODEL_PATH in .env')
   }
 }
 
@@ -365,7 +432,29 @@ async function buildIndex() {
   }
 }
 
+const copySvg = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg>'
+const checkSvg = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>'
+
+function handleCodeCopy(e: Event) {
+  const el = e.target
+  if (!(el instanceof Element)) return
+  const target = el.closest('.code-copy-btn') as HTMLElement | null
+  if (!target) return
+  const code = decodeURIComponent(target.dataset.code || '')
+  navigator.clipboard.writeText(code).then(() => {
+    target.innerHTML = checkSvg
+    target.classList.add('copied')
+    setTimeout(() => {
+      target.innerHTML = copySvg
+      target.classList.remove('copied')
+    }, 1500)
+  }).catch(() => {})
+}
+
 onMounted(async () => {
+  document.documentElement.style.overflow = 'hidden'
+  document.addEventListener('click', handleCodeCopy)
+
   // Load existing conversations, but don't create new one (lazy creation on first message)
   if (conversations.value.length > 0) {
     switchConversation(conversations.value[0].id)
@@ -375,6 +464,15 @@ onMounted(async () => {
     const res = await fetch('/api/ai/status')
     const data = await res.json()
     aiStatus.value = { available: data.available ?? false, message: data.message ?? '' }
+    if (data.models) {
+      availableModels.value = data.models
+    }
+    if (data.defaultModel) {
+      defaultModel.value = data.defaultModel
+      if (!selectedModel.value) {
+        selectedModel.value = data.defaultModel
+      }
+    }
     if (data.rag) {
       ragStatus.value = { ready: data.rag.ready ?? false, chunksIndexed: data.rag.chunksIndexed ?? 0, indexing: data.rag.indexing ?? false, backend: data.rag.backend ?? 'unknown' }
     }
@@ -382,13 +480,18 @@ onMounted(async () => {
     aiStatus.value = { available: false, message: 'Unable to reach AI service' }
   }
 })
+
+onBeforeUnmount(() => {
+  document.documentElement.style.overflow = ''
+  document.removeEventListener('click', handleCodeCopy)
+})
 </script>
 
 <style scoped>
 .chat-layout {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 80px - 24px - 48px);
+  height: calc(100vh - 100px);
   overflow: hidden;
 }
 
@@ -470,6 +573,17 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
+.conv-loading {
+  color: var(--accent-teal);
+  display: inline-flex;
+  align-items: center;
+}
+
+.conv-loading .spin {
+  animation: spin 1s linear infinite;
+  font-size: 0.9rem;
+}
+
 .rename-input {
   width: 100%;
   background: rgba(255, 255, 255, 0.08);
@@ -490,7 +604,8 @@ onMounted(async () => {
 }
 
 .conversation-item:hover .conversation-actions,
-.conversation-item.active .conversation-actions {
+.conversation-item.active .conversation-actions,
+.conversation-item.loading .conversation-actions {
   opacity: 1;
 }
 
@@ -587,6 +702,18 @@ onMounted(async () => {
   font-size: 0.85rem;
   color: var(--accent-teal);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-badge {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.2);
 }
 
 .library-switches {
@@ -652,6 +779,40 @@ onMounted(async () => {
 .toggle-text {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+/* Model selector */
+.model-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.model-dropdown {
+  padding: 6px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.model-dropdown:hover,
+.model-dropdown:focus {
+  border-color: var(--accent-teal);
+}
+
+.model-dropdown option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Chat area */
@@ -790,6 +951,11 @@ onMounted(async () => {
   40% { opacity: 1; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Input area */
 .input-area {
   display: flex;
@@ -838,5 +1004,70 @@ onMounted(async () => {
 
 .send-btn:not(:disabled):hover {
   opacity: 0.85;
+}
+
+/* Code blocks (v-html content needs :deep) */
+:deep(.code-block) {
+  margin: 12px 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+:deep(.code-header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(0, 232, 184, 0.06);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+:deep(.code-lang) {
+  font-size: 0.8rem;
+  color: var(--accent-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:deep(.code-copy-btn) {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+:deep(.code-copy-btn:hover) {
+  color: var(--accent-teal);
+  background: rgba(0, 232, 184, 0.1);
+}
+
+:deep(.code-copy-btn.copied) {
+  color: #4ade80;
+}
+
+:deep(.code-block pre) {
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+:deep(.code-block code) {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+:deep(.inline-code) {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 232, 184, 0.1);
+  color: var(--accent-teal);
 }
 </style>
