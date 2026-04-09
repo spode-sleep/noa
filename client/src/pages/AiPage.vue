@@ -167,6 +167,9 @@
           <div class="message-bubble glass loading-bubble">
             <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
           </div>
+          <button class="abort-icon-btn" @click="abortCurrentMessage" title="Abort">
+            <Icon icon="mdi:stop-circle-outline" width="18" height="18" />
+          </button>
         </div>
       </div>
 
@@ -177,6 +180,7 @@
           v-model="input"
           placeholder="Type a message..."
           rows="1"
+          :disabled="loading"
           @input="autoResize"
           @keydown.enter.exact.prevent="sendMessage"
         ></textarea>
@@ -258,6 +262,7 @@ const messages = ref<Message[]>([])
 const input = ref('')
 const loadingConversationIds = reactive(new Set<string>())
 const loading = computed(() => loadingConversationIds.has(activeConversationId.value))
+const currentAbortController = ref<AbortController | null>(null)
 const musicLibraryEnabled = ref(false)
 const fictionLibraryEnabled = ref(false)
 const chatStarted = ref(false)
@@ -492,11 +497,15 @@ async function sendMessage() {
     }
   }
 
+  const abortCtrl = new AbortController()
+  currentAbortController.value = abortCtrl
+
   loadingConversationIds.add(currentConvId)
   try {
     const res = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: abortCtrl.signal,
       body: JSON.stringify({
         message: text,
         history: conversations.value.find(c => c.id === currentConvId)?.messages || [],
@@ -513,17 +522,58 @@ async function sendMessage() {
     const data = await res.json()
     if (data.currentBranch) agentCurrentBranch.value = data.currentBranch
     if (data.parentBranch) agentParentBranch.value = data.parentBranch
-    pushResponse({
-      role: 'assistant',
-      content: data.content ?? data.response ?? 'No response.',
-      sources: data.sources?.length ? data.sources : undefined,
-      actions: data.actions?.length ? data.actions : undefined,
-    })
-  } catch {
-    pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+    if (!data.aborted) {
+      pushResponse({
+        role: 'assistant',
+        content: data.content ?? data.response ?? 'No response.',
+        sources: data.sources?.length ? data.sources : undefined,
+        actions: data.actions?.length ? data.actions : undefined,
+      })
+    }
+  } catch (err: any) {
+    // Don't push error if aborted by user
+    if (err.name !== 'AbortError') {
+      pushResponse({ role: 'assistant', content: 'Error: Could not reach the AI service.' })
+    }
   } finally {
     loadingConversationIds.delete(currentConvId)
+    currentAbortController.value = null
   }
+}
+
+async function abortCurrentMessage() {
+  const convId = activeConversationId.value
+  if (!convId) return
+
+  // Abort the fetch request
+  if (currentAbortController.value) {
+    currentAbortController.value.abort()
+    currentAbortController.value = null
+  }
+
+  // Tell the backend to abort the agent and revert workdir
+  try {
+    await fetch('/api/ai/abort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: convId }),
+    })
+  } catch (err) {
+    console.warn('Failed to abort agent on server:', err)
+  }
+
+  // Remove the last user message (the one that triggered this request)
+  const conv = conversations.value.find(c => c.id === convId)
+  if (conv && conv.messages.length > 0 && conv.messages[conv.messages.length - 1].role === 'user') {
+    conv.messages.pop()
+    if (activeConversationId.value === convId) {
+      messages.value = conv.messages
+    }
+    chatStarted.value = conv.messages.length > 0
+    saveConversations()
+  }
+
+  loadingConversationIds.delete(convId)
 }
 
 async function readAloud(text: string) {
@@ -1215,6 +1265,8 @@ onBeforeUnmount(() => {
 }
 
 .loading-bubble {
+  display: flex;
+  align-items: center;
   padding: 12px 20px;
 }
 
@@ -1299,6 +1351,25 @@ onBeforeUnmount(() => {
 .send-btn:not(:disabled):hover {
   background: var(--askew-btn-hover);
   color: var(--bg-primary);
+}
+
+.abort-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 6px;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.abort-icon-btn:hover {
+  opacity: 1;
+  color: #cc4444;
 }
 
 /* Code blocks (v-html content needs :deep) */

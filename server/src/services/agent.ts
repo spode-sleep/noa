@@ -11,15 +11,119 @@ const MAX_SEARCH_RESULTS = 50;
 const MAX_GIT_LOG_COUNT = 50;
 const MAX_RUN_COMMAND_TIMEOUT = 30000;
 const MAX_TREE_ENTRIES_PER_DIR = 30;
+const MAX_ERROR_PREVIEW_LENGTH = 4096;
 const ALLOWED_COMMANDS = ['npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3', 'make', 'cargo', 'go', 'gcc', 'g++', 'javac', 'java', 'ruby', 'perl', 'cat', 'head', 'tail', 'wc', 'sort', 'grep', 'find', 'ls', 'pwd', 'echo', 'test', 'diff', 'patch'];
 const SHELL_METACHARACTERS = /[;|&`$(){}><\n\r]/;
 const EXCLUDED_TREE_DIRS = ['.git', 'node_modules', '__pycache__', '.venv', 'dist', 'build', '.next'];
 const AGENT_GIT_AUTHOR = 'AI Librarian <ai-librarian@box.local>';
+const AGENT_GIT_NAME = 'AI Librarian';
+const AGENT_GIT_EMAIL = 'ai-librarian@box.local';
+const GIT_RETRY_COUNT = 3;
+const GIT_RETRY_DELAY_MS = 500;
+const GIT_LOCK_WAIT_MS = 5000;
+const GIT_LOCK_POLL_MS = 200;
 
 const KNOWN_TOOL_NAMES = new Set([
   'read_file', 'write_file', 'edit_file', 'list_files', 'search_files',
   'run_command', 'git_status', 'git_diff', 'git_commit', 'git_revert', 'git_log',
 ]);
+
+// --- Git stability helpers ---
+
+/** Synchronous sleep using execFileSync (avoids shell injection) */
+function sleepMs(ms: number): void {
+  const seconds = String(ms / 1000);
+  try { execFileSync('sleep', [seconds], { timeout: ms + 1000 }); } catch { /* ignore */ }
+}
+
+/** Wait for a git lock file to be released before proceeding */
+function waitForGitLock(repoPath: string): void {
+  const lockFile = path.join(repoPath, '.git', 'index.lock');
+  const start = Date.now();
+  while (fs.existsSync(lockFile) && Date.now() - start < GIT_LOCK_WAIT_MS) {
+    const elapsed = Date.now() - start;
+    if (elapsed > 0 && elapsed % 1000 < GIT_LOCK_POLL_MS) {
+      console.log(`[agent] Waiting for git lock: ${lockFile}`);
+    }
+    sleepMs(GIT_LOCK_POLL_MS);
+  }
+  // Remove stale lock if it persists beyond the wait period
+  if (fs.existsSync(lockFile)) {
+    console.warn(`[agent] Removing stale git lock file: ${lockFile}`);
+    try { fs.unlinkSync(lockFile); } catch (e: any) {
+      console.error(`[agent] Failed to remove lock file: ${e.message}`);
+    }
+  }
+}
+
+/** Retry a git operation with exponential backoff on transient failures */
+function retryGit<T>(fn: () => T, description: string, retries = GIT_RETRY_COUNT): T {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return fn();
+    } catch (err: any) {
+      const msg = err.message || String(err);
+      const isTransient = msg.includes('index.lock') ||
+        msg.includes('Unable to create') ||
+        msg.includes('cannot lock ref') ||
+        msg.includes('Connection refused') ||
+        msg.includes('could not read') ||
+        msg.includes('bad object');
+      if (isTransient && attempt < retries) {
+        const delay = GIT_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.warn(`[agent] Retrying "${description}" (attempt ${attempt}/${retries}): ${msg}`);
+        sleepMs(delay);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(`retryGit: maximum retries (${retries}) exceeded for "${description}"`);
+}
+
+/** Configure git user identity in a repository to prevent commit failures */
+function configureGitIdentity(repoPath: string): void {
+  try {
+    execFileSync('git', ['config', 'user.name', AGENT_GIT_NAME],
+      { cwd: repoPath, encoding: 'utf-8', timeout: 5000 });
+    execFileSync('git', ['config', 'user.email', AGENT_GIT_EMAIL],
+      { cwd: repoPath, encoding: 'utf-8', timeout: 5000 });
+  } catch (err: any) {
+    console.warn(`[agent] Failed to configure git identity: ${err.message}`);
+  }
+}
+
+/** Check if a git commit hash exists in the repository */
+function commitExists(repoPath: string, hash: string): boolean {
+  try {
+    execFileSync('git', ['cat-file', '-t', hash],
+      { cwd: repoPath, encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Safely clean up interrupted git operations (rebase, merge, cherry-pick) */
+function cleanupInterruptedGitOps(repoPath: string): void {
+  const gitDir = path.join(repoPath, '.git');
+  const ops = [
+    { marker: 'rebase-merge', abort: ['rebase', '--abort'] },
+    { marker: 'rebase-apply', abort: ['rebase', '--abort'] },
+    { marker: 'MERGE_HEAD', abort: ['merge', '--abort'] },
+    { marker: 'CHERRY_PICK_HEAD', abort: ['cherry-pick', '--abort'] },
+  ];
+  for (const op of ops) {
+    if (fs.existsSync(path.join(gitDir, op.marker))) {
+      console.log(`[agent] Cleaning up interrupted git operation: ${op.marker}`);
+      try {
+        execFileSync('git', op.abort, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+      } catch (err: any) {
+        console.warn(`[agent] Failed to abort ${op.marker}: ${err.message}`);
+      }
+    }
+  }
+}
 
 // --- Text-based tool call parser ---
 // Many local models output tool calls as JSON text instead of using the
@@ -237,6 +341,14 @@ const AGENT_TOOLS: Tool[] = [
   {
     type: 'function',
     function: {
+      name: 'git_status',
+      description: 'Show the status of the working tree (changed, staged, and untracked files)',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'git_diff',
       description: 'Show the diff of current uncommitted changes',
       parameters: { type: 'object', properties: {} },
@@ -294,7 +406,15 @@ interface ToolResult {
 
 /** Force git to re-read file mtimes and detect changes made within the same second (racy git fix) */
 function refreshGitIndex(repoPath: string) {
-  try { execSync('git update-index --refresh', { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }); } catch {}
+  waitForGitLock(repoPath);
+  try {
+    retryGit(
+      () => execFileSync('git', ['update-index', '--refresh'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }),
+      'update-index --refresh',
+    );
+  } catch (err: any) {
+    console.warn(`[agent] git update-index --refresh failed: ${err.message}`);
+  }
 }
 
 function executeTool(toolName: string, args: Record<string, string>, repoPath: string): ToolResult {
@@ -330,7 +450,10 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
         if (!oldText) return { text: 'Error: old_text is required' };
         const content = fs.readFileSync(fullPath, 'utf-8');
         const idx = content.indexOf(oldText);
-        if (idx === -1) return { text: `Error: old_text not found in ${rel}. Make sure the text matches exactly including whitespace.` };
+        if (idx === -1) {
+          const preview = content.length > MAX_ERROR_PREVIEW_LENGTH ? content.slice(0, MAX_ERROR_PREVIEW_LENGTH) + '\n... (truncated)' : content;
+          return { text: `Error: old_text not found in ${rel}. The file may have been modified by a previous tool call. Current content:\n${preview}` };
+        }
         // Ensure only one occurrence to avoid ambiguous edits
         const secondIdx = content.indexOf(oldText, idx + 1);
         if (secondIdx !== -1) return { text: `Error: old_text matches multiple locations in ${rel}. Include more surrounding context to make it unique.` };
@@ -395,28 +518,48 @@ function executeTool(toolName: string, args: Record<string, string>, repoPath: s
       }
       case 'git_status':
         refreshGitIndex(repoPath);
-        return { text: execSync('git status --short', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)' };
+        return { text: retryGit(
+          () => execFileSync('git', ['status', '--short'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(working tree clean)',
+          'status',
+        ) };
       case 'git_diff':
         refreshGitIndex(repoPath);
-        return { text: execSync('git diff', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)' };
+        return { text: retryGit(
+          () => execFileSync('git', ['diff'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no changes)',
+          'diff',
+        ) };
       case 'git_commit': {
         const message = args.message || 'Agent commit';
+        waitForGitLock(repoPath);
         refreshGitIndex(repoPath);
-        execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-        const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+        retryGit(
+          () => execFileSync('git', ['add', '-A'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }),
+          'add -A',
+        );
+        const status = execFileSync('git', ['status', '--porcelain'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
         if (!status) return { text: 'Nothing to commit -- working tree is clean. No action needed.' };
-        execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m ${JSON.stringify(message)}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        retryGit(
+          () => execFileSync('git', ['commit', `--author=${AGENT_GIT_AUTHOR}`, '-m', message],
+            { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }),
+          'commit',
+        );
         return { text: `Changes committed: ${message}` };
       }
       case 'git_log': {
         const count = parseInt(args.count || '10', 10);
         const safeCount = Math.min(Math.max(1, count), MAX_GIT_LOG_COUNT);
-        return { text: execSync(`git log --oneline -n ${safeCount}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)' };
+        return { text: retryGit(
+          () => execFileSync('git', ['log', '--oneline', '-n', String(safeCount)],
+            { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim() || '(no commits)',
+          'log',
+        ) };
       }
       case 'git_revert': {
         const hash = args.commit_hash || '';
-        if (!hash || !/^[a-f0-9]{4,40}$/i.test(hash)) return { text: 'Error: invalid commit hash' };
-        execSync(`git reset --hard ${hash}`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+        if (!hash || !/^[a-f0-9]{7,40}$/i.test(hash)) return { text: 'Error: invalid commit hash (must be at least 7 hex characters)' };
+        if (!commitExists(repoPath, hash)) return { text: `Error: commit ${hash} not found in repository. Use git_log to find valid commits.` };
+        waitForGitLock(repoPath);
+        execFileSync('git', ['reset', '--hard', hash], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
         return { text: `Repository reverted to commit: ${hash}` };
       }
       default:
@@ -488,10 +631,24 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
   // If clone already exists, fetch latest from warez
   if (fs.existsSync(path.join(workdir, '.git'))) {
     console.log(`[agent] Workdir exists, fetching origin: ${workdir}`);
+    cleanupInterruptedGitOps(workdir);
+    waitForGitLock(workdir);
     try {
-      execSync('git fetch origin', { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-    } catch {
-      // fetch may fail, continue
+      retryGit(
+        () => execFileSync('git', ['fetch', 'origin'], { cwd: workdir, encoding: 'utf-8', timeout: 30000 }),
+        'fetch origin',
+      );
+    } catch (err: any) {
+      // Fetch failure may indicate corrupted workdir — re-clone
+      console.warn(`[agent] Fetch failed, re-cloning workdir: ${err.message}`);
+      try {
+        fs.rmSync(workdir, { recursive: true, force: true });
+      } catch (rmErr: any) {
+        console.error(`[agent] Failed to remove corrupted workdir: ${rmErr.message}`);
+        return '';
+      }
+      // Fall through to clone logic below
+      return cloneWorkdir(warezPath, workdir, repoName, actions);
     }
     return workdir;
   }
@@ -502,6 +659,10 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
     fs.rmSync(workdir, { recursive: true, force: true });
   }
 
+  return cloneWorkdir(warezPath, workdir, repoName, actions);
+}
+
+function cloneWorkdir(warezPath: string, workdir: string, repoName: string, actions: AgentStep[]): string {
   // Create workdir base
   if (!fs.existsSync(WORKDIR_BASE)) {
     fs.mkdirSync(WORKDIR_BASE, { recursive: true });
@@ -510,13 +671,21 @@ function ensureAgentWorkdir(warezPath: string, repoName: string, conversationId:
   // Clone from warez repo
   console.log(`[agent] Cloning from warez: ${warezPath} → ${workdir}`);
   try {
-    execFileSync('git', ['clone', warezPath, workdir],
-      { encoding: 'utf-8', timeout: 60000 });
+    retryGit(
+      () => execFileSync('git', ['clone', warezPath, workdir],
+        { encoding: 'utf-8', timeout: 60000 }),
+      'clone',
+    );
+    configureGitIdentity(workdir);
     console.log(`[agent] Cloned successfully`);
     actions.push({ type: 'tool', tool: 'git_clone', args: { source: repoName }, result: 'Cloned from warez' });
   } catch (err: any) {
     console.error(`[agent] Clone failed: ${err.message}`);
     actions.push({ type: 'tool', tool: 'git_clone', args: { source: repoName }, result: `Clone error: ${err.message}` });
+    // Clean up partial clone
+    if (fs.existsSync(workdir)) {
+      try { fs.rmSync(workdir, { recursive: true, force: true }); } catch { /* ignore */ }
+    }
     return ''; // empty string signals failure — caller checks with `if (!workdir)`
   }
 
@@ -528,12 +697,15 @@ function autoInitGit(repoPath: string, actions: AgentStep[]) {
   if (fs.existsSync(path.join(repoPath, '.git'))) return;
   console.log(`[agent] Initializing git in: ${repoPath}`);
   try {
-    execSync('git init', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m "Initial commit" --allow-empty`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    execFileSync('git', ['init'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    configureGitIdentity(repoPath);
+    execFileSync('git', ['add', '-A'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    execFileSync('git', ['commit', `--author=${AGENT_GIT_AUTHOR}`, '-m', 'Initial commit', '--allow-empty'],
+      { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
     ensureReceivePush(repoPath);
     actions.push({ type: 'tool', tool: 'git_init', args: {}, result: 'Git initialized with initial commit' });
   } catch (err: any) {
+    console.error(`[agent] Git init error: ${err.message}`);
     actions.push({ type: 'tool', tool: 'git_init', args: {}, result: `Git init error: ${err.message}` });
   }
 }
@@ -585,6 +757,53 @@ export interface AgentResult {
   response: string;
   actions: AgentStep[];
   currentBranch: string;
+  aborted?: boolean;
+}
+
+// --- Abort support ---
+// Tracks running agent sessions so they can be cancelled externally.
+
+interface RunningAgent {
+  abortController: AbortController;
+  workdir: string;
+  snapshotCommit: string; // HEAD commit before agent started making changes
+}
+
+const runningAgents = new Map<string, RunningAgent>();
+
+/** Abort a running agent for a given conversation. Resets workdir to pre-message state. */
+export function abortAgent(conversationId: string): { aborted: boolean; message: string } {
+  const entry = runningAgents.get(conversationId);
+  if (!entry) {
+    return { aborted: false, message: 'No running agent found for this conversation.' };
+  }
+
+  console.log(`[agent] Aborting agent for conversation: ${conversationId}`);
+  entry.abortController.abort();
+
+  // Reset workdir to the snapshot commit (state before this message)
+  if (entry.workdir && entry.snapshotCommit && fs.existsSync(path.join(entry.workdir, '.git'))) {
+    try {
+      waitForGitLock(entry.workdir);
+      cleanupInterruptedGitOps(entry.workdir);
+      execFileSync('git', ['reset', '--hard', entry.snapshotCommit],
+        { cwd: entry.workdir, encoding: 'utf-8', timeout: 10000 });
+      // Clean up any untracked files the agent may have created
+      execFileSync('git', ['clean', '-fd'],
+        { cwd: entry.workdir, encoding: 'utf-8', timeout: 10000 });
+      console.log(`[agent] Workdir reset to ${entry.snapshotCommit}`);
+    } catch (err: any) {
+      console.error(`[agent] Failed to reset workdir on abort: ${err.message}`);
+    }
+  }
+
+  runningAgents.delete(conversationId);
+  return { aborted: true, message: 'Agent aborted and workdir reverted.' };
+}
+
+/** Check if an agent is currently running for a conversation */
+export function isAgentRunning(conversationId: string): boolean {
+  return runningAgents.has(conversationId);
 }
 
 // --- Main agent runner using official Ollama client ---
@@ -595,7 +814,7 @@ const FILE_EXTENSION_LANGUAGES = '.py=Python, .ts=TypeScript, .js=JavaScript, .j
 
 function getCurrentBranch(repoPath: string): string {
   try {
-    return execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+    return execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
   } catch {
     return '';
   }
@@ -604,7 +823,7 @@ function getCurrentBranch(repoPath: string): string {
 function hasUncommittedChanges(repoPath: string): boolean {
   try {
     refreshGitIndex(repoPath);
-    const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+    const status = execFileSync('git', ['status', '--porcelain'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
     return status.length > 0;
   } catch {
     return false;
@@ -643,13 +862,20 @@ async function generateBranchName(client: Ollama, model: string, userMessage: st
 
 function autoCommitChanges(repoPath: string, actions: AgentStep[]) {
   try {
-    // Always stage everything first, then check
+    waitForGitLock(repoPath);
     refreshGitIndex(repoPath);
-    execSync('git add -A', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
-    const status = execSync('git status --porcelain', { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
+    retryGit(
+      () => execFileSync('git', ['add', '-A'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }),
+      'auto-commit add',
+    );
+    const status = execFileSync('git', ['status', '--porcelain'], { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }).trim();
     if (!status) return;
     console.log(`[agent] Auto-committing uncommitted changes`);
-    execSync(`git commit --author=${JSON.stringify(AGENT_GIT_AUTHOR)} -m "Agent: auto-commit changes"`, { cwd: repoPath, encoding: 'utf-8', timeout: 10000 });
+    retryGit(
+      () => execFileSync('git', ['commit', `--author=${AGENT_GIT_AUTHOR}`, '-m', 'Agent: auto-commit changes'],
+        { cwd: repoPath, encoding: 'utf-8', timeout: 10000 }),
+      'auto-commit',
+    );
     actions.push({ type: 'tool', tool: 'git_commit', args: { message: 'Agent: auto-commit changes' }, result: 'Auto-committed uncommitted changes' });
   } catch (err: any) {
     console.error(`[agent] Auto-commit failed: ${err.message || String(err)}`);
@@ -667,7 +893,8 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
     // Check if there are any commits to push (local ahead of remote or no upstream)
     let hasUnpushed = false;
     try {
-      const log = execSync(`git log origin/${branch}..HEAD --oneline`, { cwd: workdir, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }).trim();
+      const log = execFileSync('git', ['log', `origin/${branch}..HEAD`, '--oneline'],
+        { cwd: workdir, encoding: 'utf-8', timeout: 10000, stdio: 'pipe' }).trim();
       hasUnpushed = log.length > 0;
     } catch {
       // No upstream tracking branch yet — means everything is unpushed
@@ -675,20 +902,25 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
     }
     if (!hasUnpushed) return;
     console.log(`[agent] Pushing branch ${branch} to warez`);
+    waitForGitLock(workdir);
     try {
-      execFileSync('git', ['push', '-u', 'origin', branch],
-        { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+      retryGit(
+        () => execFileSync('git', ['push', '-u', 'origin', branch],
+          { cwd: workdir, encoding: 'utf-8', timeout: 30000 }),
+        'push',
+      );
     } catch {
       // Push rejected (non-fast-forward) — pull --rebase and retry once
       console.log(`[agent] Push rejected, attempting pull --rebase and retry`);
       try {
-        execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        execFileSync('git', ['pull', '--rebase', 'origin', branch],
+          { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
         execFileSync('git', ['push', '-u', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
-      } catch {
+      } catch (rebaseErr: any) {
         // Rebase conflict — abort and force push as last resort
-        try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* ignore */ }
-        console.log(`[agent] Rebase failed, force pushing`);
+        cleanupInterruptedGitOps(workdir);
+        console.warn(`[agent] Rebase failed (${rebaseErr.message}), force pushing`);
         execFileSync('git', ['push', '--force-with-lease', '-u', 'origin', branch],
           { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
       }
@@ -696,6 +928,7 @@ function pushToWarez(workdir: string, actions: AgentStep[]) {
     actions.push({ type: 'tool', tool: 'git_push', args: { branch }, result: `Pushed ${branch} to hub` });
   } catch (err: any) {
     console.error(`[agent] Push failed: ${err.message}`);
+    actions.push({ type: 'tool', tool: 'git_push', args: {}, result: `Push error: ${err.message}` });
   }
 }
 
@@ -712,11 +945,19 @@ export async function runAgent(
 ): Promise<AgentResult> {
   const actions: AgentStep[] = [];
   console.log(`[agent] Starting agent for repo="${repoName}" branch="${branch}" firstMessage=${isFirstMessage}`);
+
+  // Set up abort controller for this agent run
+  const abortController = new AbortController();
+  const abortSignal = abortController.signal;
+
   const ollamaHost = process.env.LLM_API_URL || 'http://localhost:11434';
   const client = new Ollama({
     host: ollamaHost,
     fetch: (url: RequestInfo | URL, init?: RequestInit) => {
-      return fetch(url, { ...init, signal: AbortSignal.timeout(AGENT_REQUEST_TIMEOUT) });
+      // Combine abort signal with timeout
+      const timeoutSignal = AbortSignal.timeout(AGENT_REQUEST_TIMEOUT);
+      const combinedSignal = AbortSignal.any([abortSignal, timeoutSignal]);
+      return fetch(url, { ...init, signal: combinedSignal });
     },
   });
 
@@ -737,30 +978,40 @@ export async function runAgent(
     return { response: 'Error: could not create agent workspace.', actions, currentBranch: '' };
   }
 
+  // Clean up any interrupted git operations from previous runs
+  cleanupInterruptedGitOps(workdir);
+
   // Checkout the requested branch if specified
   if (branch && /^[\w.\-/]+$/.test(branch)) {
     try {
+      waitForGitLock(workdir);
       const currentBranch = getCurrentBranch(workdir);
       if (currentBranch !== branch) {
         console.log(`[agent] Checking out branch: ${branch}`);
+        // Stash any local changes before switching branches
+        try {
+          const status = execFileSync('git', ['status', '--porcelain'], { cwd: workdir, encoding: 'utf-8', timeout: 10000 }).trim();
+          if (status) {
+            execFileSync('git', ['stash', '--include-untracked'], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+          }
+        } catch { /* ignore stash failures */ }
         // Try local branch first, then remote tracking branch
         try {
-          execSync(`git checkout ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+          execFileSync('git', ['checkout', branch], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         } catch {
-          execSync(`git checkout -b ${branch} origin/${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
+          execFileSync('git', ['checkout', '-b', branch, `origin/${branch}`], { cwd: workdir, encoding: 'utf-8', timeout: 10000 });
         }
         actions.push({ type: 'tool', tool: 'git_checkout', args: { branch }, result: `Switched to branch: ${branch}` });
       }
       // Always pull latest changes (even if already on the branch)
       try {
         console.log(`[agent] Pulling latest changes for branch: ${branch}`);
-        const pullOutput = execSync(`git pull --rebase origin ${branch}`, { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
+        const pullOutput = execFileSync('git', ['pull', '--rebase', 'origin', branch],
+          { cwd: workdir, encoding: 'utf-8', timeout: 30000 });
         actions.push({ type: 'tool', tool: 'git_pull', args: { branch }, result: pullOutput.trim() || 'Already up to date' });
       } catch {
         // Pull/rebase may fail due to conflicts or local-only branch
-        // Abort any in-progress rebase to leave workdir clean
-        try { execSync('git rebase --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* no rebase in progress */ }
-        try { execSync('git merge --abort', { cwd: workdir, encoding: 'utf-8', timeout: 10000 }); } catch { /* no merge in progress */ }
+        cleanupInterruptedGitOps(workdir);
         console.log(`[agent] Pull failed (conflict or local-only branch), continuing with local state`);
       }
     } catch (err: any) {
@@ -778,8 +1029,9 @@ export async function runAgent(
     } else {
       let uniqueName = branchName;
       try {
+        waitForGitLock(workdir);
         // Ensure unique branch name by appending numeric suffix if it already exists
-        const existingBranches = execSync('git branch --list', { cwd: workdir, encoding: 'utf-8' })
+        const existingBranches = execFileSync('git', ['branch', '--list'], { cwd: workdir, encoding: 'utf-8', timeout: 10000 })
           .split('\n').map(b => b.replace(/^\*?\s+/, '').trim()).filter(Boolean);
         let suffix = 2;
         while (existingBranches.includes(uniqueName)) {
@@ -856,8 +1108,27 @@ Answer in the language the user writes in. Be concise about tool usage but expla
   const MAX_REPEAT_COUNT = 3;
   const WRAP_UP_THRESHOLD = Math.floor(MAX_TOOL_ITERATIONS * 0.75);
 
+  // Record snapshot commit for abort/revert support
+  let snapshotCommit = '';
+  try {
+    snapshotCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: workdir, encoding: 'utf-8', timeout: 5000 }).trim();
+  } catch (err: any) {
+    // May fail if workdir has no commits yet, or on corrupted/permission errors
+    console.warn(`[agent] Could not capture snapshot commit: ${err.message || String(err)}`);
+  }
+
+  // Register this agent run so it can be aborted externally
+  runningAgents.set(conversationId, { abortController, workdir, snapshotCommit });
+
   try {
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      // Check abort signal at the start of each iteration
+      if (abortSignal.aborted) {
+        console.log(`[agent] Aborted by user at iteration ${i}`);
+        lastResponse = 'Agent execution was aborted.';
+        break;
+      }
+
       // Inject "wrap up" hint when running low on iterations
       if (i === WRAP_UP_THRESHOLD) {
         messages.push({ role: 'system', content: `You have ${MAX_TOOL_ITERATIONS - i} iterations remaining. Wrap up: commit your changes and finish.` });
@@ -973,6 +1244,17 @@ Answer in the language the user writes in. Be concise about tool usage but expla
       }
     }
 
+    // If aborted, don't auto-commit or push — workdir was already reset by abortAgent()
+    if (abortSignal.aborted) {
+      runningAgents.delete(conversationId);
+      return {
+        response: lastResponse || 'Agent execution was aborted.',
+        actions,
+        currentBranch: getCurrentBranch(workdir),
+        aborted: true,
+      };
+    }
+
     // Auto-commit any uncommitted changes
     autoCommitChanges(workdir, actions);
 
@@ -980,17 +1262,31 @@ Answer in the language the user writes in. Be concise about tool usage but expla
     pushToWarez(workdir, actions);
 
     console.log(`[agent] Done. Branch: ${getCurrentBranch(workdir)}, actions: ${actions.length}`);
+    runningAgents.delete(conversationId);
     return {
       response: lastResponse || 'Done.',
       actions,
       currentBranch: getCurrentBranch(workdir),
     };
   } catch (err: any) {
+    // Only treat as user-abort if OUR abort controller was signaled (not a timeout)
+    if (abortSignal.aborted) {
+      console.log(`[agent] Agent aborted for conversation: ${conversationId}`);
+      runningAgents.delete(conversationId);
+      return {
+        response: 'Agent execution was aborted.',
+        actions,
+        currentBranch: getCurrentBranch(workdir),
+        aborted: true,
+      };
+    }
+
     console.error(`[agent] Error: ${err.message || String(err)}`);
     // Auto-commit even on error
     autoCommitChanges(workdir, actions);
     pushToWarez(workdir, actions);
 
+    runningAgents.delete(conversationId);
     return {
       response: `Agent error: ${err.message || String(err)}`,
       actions,

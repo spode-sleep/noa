@@ -1,0 +1,121 @@
+# Батч 10: 60 игр
+# Создан: 2026-02-19 01:59:57
+#
+#[Chilla's Art] The Ghost Train | 幽霊列車
+1349960
+#Adam Wolfe
+483420
+#Ahnayro: The Dream World
+449730
+#AppGameKit Classic: Easy Game Development
+325180
+#BADLAND: Game of the Year Edition
+269670
+#Bayonetta
+460790
+#BioShock Infinite
+8870
+#BioShock® 2
+8850
+#BioShock™ 2 Remastered
+409720
+#BRAZILIAN DRUG DEALER 3: I OPENED A PORTAL TO HELL IN THE FAVELA TRYING TO REVIVE MIT AIA I NEED TO CLOSE IT
+3191050
+#Buddy Simulator 1984
+1269950
+#Bullet Witch
+696180
+#Chicory: A Colorful Tale
+1123450
+#Cruelty Squad
+1388770
+#DARK
+225360
+#Decay: The Mare
+323720
+#DmC: Devil May Cry
+220440
+#DOM RUSALOK
+1281420
+#E.Y.E: Divine Cybermancy
+91700
+#Eets Munchies
+214550
+#Evil God Korone
+1748610
+#F.E.A.R. 3
+21100
+#Flood of Light
+606480
+#God's Basement
+753930
+#hackmud
+469920
+#Hotline Miami 2: Wrong Number
+274170
+#Hyper Light Drifter
+257850
+#ICEY
+553640
+#Last Epoch
+899770
+#Legends of Iskaria: Days of Thieves
+664530
+#Lorelai
+593960
+#MHRD
+576030
+#Mirror Layers
+1490980
+#Moons of Madness
+1012840
+#Narita Boy
+1069530
+#NITE Team 4 - Military Hacking Division
+544390
+#Penumbra Overture
+22180
+#Penumbra: Black Plague Gold Edition
+22120
+#Penumbra: Requiem
+22140
+#Peripeteia
+1437760
+#Project DeepWeb
+975620
+#Purgatory -NARAKU-
+2851770
+#RWBY: Grimm Eclipse
+418340
+#Seen
+1069740
+#Shadow Warrior
+233130
+#Sinless + OST
+340320
+#Sorry, James
+659190
+#SPACECOM
+263860
+#Stealth Inc 2: A Game of Clones
+329380
+#The Black Watchmen
+349220
+#The Fall Part 2: Unbound
+510490
+#The Magic Circle
+323380
+#The Vagrant
+598700
+#TIS-100
+370360
+#Vampire: The Masquerade - Redemption
+559680
+#Viscera Cleanup Detail: Shadow Warrior
+255520
+#Yomawari: Midnight Shadows
+625980
+#Zenith
+438420
+#ШП - ShP
+727640

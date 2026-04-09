@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
 import { initRag, rebuildIndex, ragSearch, buildRagContext, getIndexStats } from '../services/rag';
-import { runAgent, isBareRepo, cleanupWorkdirsForConversation } from '../services/agent';
+import { runAgent, isBareRepo, cleanupWorkdirsForConversation, abortAgent, isAgentRunning } from '../services/agent';
 
 const router = Router();
 
@@ -442,6 +442,23 @@ router.get('/repos/:name/branches', (req: Request, res: Response) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to list branches', details: String(err) });
   }
+});
+
+// POST /api/ai/abort - Abort a running agent and revert workdir
+router.post('/abort', (req: Request, res: Response) => {
+  const { conversationId } = req.body;
+  if (typeof conversationId !== 'string' || !conversationId.trim()) {
+    res.status(400).json({ error: 'conversationId is required' });
+    return;
+  }
+  const result = abortAgent(conversationId.trim());
+  res.json(result);
+});
+
+// GET /api/ai/running/:id - Check if agent is running for a conversation
+router.get('/running/:id', (req: Request, res: Response) => {
+  const convId = req.params.id as string;
+  res.json({ running: isAgentRunning(convId) });
 });
 
 // DELETE /api/ai/conversations/:id/workdir - Clean up agent workdir when conversation is deleted
