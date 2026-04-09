@@ -13,12 +13,17 @@
 
     <template v-else>
       <div v-if="repos.length > 0" class="toolbar glass">
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search repositories..."
-          class="search-input"
-        />
+        <div class="search-wrap">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Search repositories..."
+            class="search-input"
+          />
+          <button v-if="search" class="search-clear" @click="search = ''">
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
       </div>
 
       <div class="repo-grid">
@@ -48,7 +53,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 interface Repo {
   name: string
@@ -61,8 +68,11 @@ interface Repo {
   isGitRepo: boolean
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const repos = ref<Repo[]>([])
-const search = ref('')
+const search = ref((route.query.q as string) || '')
 const loading = ref(true)
 
 const filteredRepos = computed(() => {
@@ -74,6 +84,15 @@ const filteredRepos = computed(() => {
   )
 })
 
+watch(search, (val) => {
+  const query = val ? { q: val } : {}
+  router.replace({ query })
+})
+
+watch(() => route.query, (q) => {
+  search.value = (q.q as string) || ''
+})
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
@@ -81,6 +100,7 @@ function formatDate(dateStr: string): string {
 }
 
 onMounted(async () => {
+  document.title = 'Warez - BOX'
   try {
     const res = await fetch('/api/warez/repos')
     const data = await res.json()

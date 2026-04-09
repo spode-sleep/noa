@@ -3,12 +3,17 @@
     <h1>Games</h1>
 
     <div class="filters glass">
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Search games..."
-        class="search-input"
-      />
+      <div class="search-wrap">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search games..."
+          class="search-input"
+        />
+        <button v-if="search" class="search-clear" @click="search = ''">
+          <Icon icon="mdi:close" />
+        </button>
+      </div>
       <select v-model="sourceFilter" class="source-select">
         <option value="">All Sources</option>
         <option value="steam">Steam</option>
@@ -111,7 +116,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 
 interface Game {
@@ -124,11 +130,18 @@ interface Game {
   protondb_reports?: any[]
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const games = ref<Game[]>([])
 const allTags = ref<string[]>([])
-const search = ref('')
-const sourceFilter = ref('')
-const selectedTags = ref<Set<string>>(new Set())
+const search = ref((route.query.q as string) || '')
+const sourceFilter = ref((route.query.source as string) || '')
+const selectedTags = ref<Set<string>>(
+  route.query.tag
+    ? new Set(Array.isArray(route.query.tag) ? (route.query.tag as string[]) : [route.query.tag as string])
+    : new Set()
+)
 const loading = ref(true)
 const showTagModal = ref(false)
 const tagSearch = ref('')
@@ -176,13 +189,37 @@ function clearAllTags() {
 }
 
 watch(showTagModal, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
   if (open) {
     tagSearch.value = ''
     nextTick(() => tagSearchRef.value?.focus())
   }
 })
 
+function syncQuery() {
+  const query: Record<string, string | string[]> = {}
+  if (search.value) query.q = search.value
+  if (sourceFilter.value) query.source = sourceFilter.value
+  if (selectedTags.value.size > 0) query.tag = [...selectedTags.value]
+  router.replace({ query })
+}
+
+watch(search, syncQuery)
+watch(sourceFilter, syncQuery)
+watch(selectedTags, syncQuery)
+
+watch(() => route.query, (q) => {
+  search.value = (q.q as string) || ''
+  sourceFilter.value = (q.source as string) || ''
+  if (q.tag) {
+    selectedTags.value = new Set(Array.isArray(q.tag) ? (q.tag as string[]) : [q.tag as string])
+  } else {
+    selectedTags.value = new Set()
+  }
+})
+
 onMounted(async () => {
+  document.title = 'Games - BOX'
   try {
     const [gamesRes, tagsRes] = await Promise.all([
       fetch('/api/games'),
@@ -196,6 +233,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 </script>
 

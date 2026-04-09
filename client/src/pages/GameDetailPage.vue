@@ -2,11 +2,11 @@
   <div class="page-wrapper">
     <!-- Sticky left sidebar -->
     <nav class="sidebar" v-if="game">
-      <router-link to="/games" class="sidebar-link">
+      <a class="sidebar-link" @click="router.back()" style="cursor:pointer">
         <Icon icon="mdi:arrow-left" /> Games
-      </router-link>
+      </a>
       <div class="sidebar-divider"></div>
-      <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">Top</a>
+      <a href="#top" class="sidebar-link" @click.prevent="scrollToSection('top')">{{ game.name || 'Top' }}</a>
       <a v-if="game.game_data?.length" href="#game-data" class="sidebar-link" @click.prevent="scrollToSection('game-data')">Game Data</a>
       <a v-if="game.essential_improvements?.length" href="#essential-improvements" class="sidebar-link" @click.prevent="scrollToSection('essential-improvements')">Essential Improvements</a>
       <a v-if="game.issues_fixed?.length" href="#issues-fixed" class="sidebar-link" @click.prevent="scrollToSection('issues-fixed')">Issues Fixed</a>
@@ -17,7 +17,7 @@
     </nav>
 
     <div class="page">
-      <router-link v-if="!game" to="/games" class="btn btn-back">← Games</router-link>
+      <a v-if="!game" class="btn btn-back" @click="router.back()" style="cursor:pointer">← Games</a>
 
       <div v-if="loading" class="loading">Loading game...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
@@ -53,7 +53,7 @@
             </div>
             <div v-if="game.tags?.length" class="tags-section">
               <div class="tags-list">
-                <span v-for="tag in game.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                <span v-for="tag in game.tags" :key="tag" class="tag-pill clickable-tag" @click="router.push({ path: '/games', query: { tag: tag } })">{{ tag }}</span>
               </div>
             </div>
           </div>
@@ -81,7 +81,7 @@
                 <div v-for="(group, gi) in game.gameplay_tips" :key="gi" class="tips-group">
                   <h3 v-if="group.title" class="tips-group-title">{{ group.title }}</h3>
                   <ul class="tips-list">
-                    <li v-for="(tip, ti) in group.tips" :key="ti" class="tip-item">{{ tip }}</li>
+                    <TipItem v-for="(tip, ti) in group.tips" :key="ti" :tip="tip" :format-tip-text="formatTipText" />
                   </ul>
                 </div>
               </div>
@@ -102,11 +102,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h), 'middle-col': isMiddleCol(hi, table.headers.length, h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -128,11 +131,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h), 'middle-col': isMiddleCol(hi, table.headers.length, h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -156,11 +162,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h), 'middle-col': isMiddleCol(hi, table.headers.length, h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -192,11 +201,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h), 'middle-col': isMiddleCol(hi, table.headers.length, h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -218,11 +230,14 @@
                 </div>
                 <table v-else-if="table.type === 'table'" class="info-table">
                   <thead v-if="table.headers?.length">
-                    <tr><th v-for="(h, hi) in table.headers" :key="hi">{{ h }}</th></tr>
+                    <tr><th v-for="(h, hi) in table.headers" :key="hi" :class="{ 'arch-col': isArchColumn(h), 'middle-col': isMiddleCol(hi, table.headers.length, h) }">{{ h }}</th></tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, ri) in table.rows" :key="ri">
-                      <td v-for="(cell, ci) in row" :key="ci" v-html="formatContent(cell)"></td>
+                      <td v-for="(cell, ci) in row" :key="ci" :class="{ 'arch-col': table.headers && isArchColumn(table.headers[ci]), 'middle-col': table.headers && isMiddleCol(ci, table.headers.length, table.headers[ci]) }">
+                        <span v-if="getArchIcon(typeof cell === 'string' ? cell : '')" v-tooltip="typeof cell === 'string' ? cell : ''" class="arch-icon-wrap"><Icon :icon="getArchIcon(typeof cell === 'string' ? cell : '')!.icon" :class="['arch-icon', getArchIcon(typeof cell === 'string' ? cell : '')!.cls]" /></span>
+                        <span v-else v-html="formatContent(cell)"></span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -235,7 +250,7 @@
         <div v-if="game.protondb_reports?.length" id="protondb-reports" class="reviews-section">
           <h2>ProtonDB Reports</h2>
           <div
-            v-for="(report, i) in game.protondb_reports"
+            v-for="(report, i) in sortedProtonReports"
             :key="i"
             class="review-card glass"
           >
@@ -259,9 +274,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Icon, getIcon, buildIcon } from '@iconify/vue'
+import TipItem from '../components/TipItem.vue'
 
 interface ProtonReport {
   timestamp: number
@@ -297,9 +313,14 @@ interface IssueUnresolved {
   notes?: string
 }
 
+interface Tip {
+  text: string
+  children?: Tip[]
+}
+
 interface TipsGroup {
   title?: string
-  tips: string[]
+  tips: Tip[]
 }
 
 interface Game {
@@ -321,6 +342,7 @@ interface Game {
 }
 
 const route = useRoute()
+const router = useRouter()
 const game = ref<Game | null>(null)
 const loading = ref(true)
 const error = ref('')
@@ -372,6 +394,33 @@ function formatFixboxRow(row: string | string[]): string {
   return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>').replace(/`([^`]+)`/g, '<code>$1</code>'))
 }
 
+function formatTipText(text: string): string {
+  const escaped = escapeHtml(text)
+  return replaceEmojis(escaped.replace(/\n/g, '<br>').replace(/§([^§]+)§/g, '<code>$1</code>'))
+}
+
+const archColumns = new Set(['PPC', '16-bit', '32-bit', '64-bit', 'ARM'])
+
+function isArchColumn(header: string): boolean {
+  return archColumns.has(header)
+}
+
+function isMiddleCol(index: number, total: number, header: string): boolean {
+  return index > 0 && index < total - 1 && !isArchColumn(header)
+}
+
+const archValueMap: Record<string, { icon: string; cls: string }> = {
+  'Native support': { icon: 'mdi:check-circle', cls: 'arch-native' },
+  'No native support': { icon: 'mdi:close-circle', cls: 'arch-none' },
+  'Not applicable': { icon: 'mdi:minus-circle', cls: 'arch-na' },
+  'Hackable': { icon: 'mdi:wrench', cls: 'arch-hackable' },
+  'Unknown': { icon: 'mdi:help-circle', cls: 'arch-unknown' },
+}
+
+function getArchIcon(value: string): { icon: string; cls: string } | null {
+  return archValueMap[value] || null
+}
+
 function scrollToSection(id: string) {
   if (id === 'top') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -399,9 +448,30 @@ watch(game, () => {
   nextTick(() => setTimeout(checkOverflow, 50))
 })
 
+watch(showTipsModal, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
+})
+
 function ratingClass(rating: string): string {
   return (rating || '').toLowerCase()
 }
+
+const protonRankOrder: Record<string, number> = {
+  platinum: 0,
+  gold: 1,
+  silver: 2,
+  bronze: 3,
+  borked: 4,
+}
+
+const sortedProtonReports = computed(() => {
+  if (!game.value?.protondb_reports) return []
+  return [...game.value.protondb_reports].sort((a, b) => {
+    const ra = protonRankOrder[a.rating?.toLowerCase()] ?? 99
+    const rb = protonRankOrder[b.rating?.toLowerCase()] ?? 99
+    return ra - rb
+  })
+})
 
 function formatDate(ts: number): string {
   if (!ts) return ''
@@ -416,6 +486,7 @@ onMounted(async () => {
       return
     }
     game.value = await res.json()
+    if (game.value?.name) document.title = `${game.value.name} - BOX`
     await nextTick()
     checkOverflow()
   } catch (e) {
@@ -423,6 +494,11 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.title = 'BOX'
 })
 </script>
 
@@ -447,17 +523,16 @@ onMounted(async () => {
 }
 
 .sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   padding: 6px 12px;
   font-size: 0.8rem;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
-  white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .sidebar-link:hover {
@@ -663,6 +738,15 @@ h1 {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.clickable-tag {
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.clickable-tag:hover {
+  border-color: var(--accent-purple);
+  color: var(--text-primary);
+}
+
 .reviews-section {
   margin-top: 16px;
   scroll-margin-top: 70px;
@@ -833,26 +917,6 @@ h2 {
   padding: 0;
 }
 
-.tip-item {
-  position: relative;
-  padding: 8px 0 8px 18px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.6;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.tip-item:last-child {
-  border-bottom: none;
-}
-
-.tip-item::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: var(--accent-teal);
-}
-
 /* Info sections (Game Data, Essential Improvements, etc.) */
 .info-section {
   margin-bottom: 28px;
@@ -904,6 +968,7 @@ h2 {
 
 .info-table-wrap {
   margin-top: 10px;
+  overflow-x: auto;
 }
 
 /* Fixbox styling */
@@ -998,6 +1063,61 @@ h2 {
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
   word-break: break-word;
+}
+
+.info-table th:first-child,
+.info-table td:first-child {
+  min-width: 0;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.info-table th.middle-col,
+.info-table td.middle-col {
+  min-width: 0;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.info-table th.arch-col,
+.info-table td.arch-col {
+  min-width: 0;
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.arch-icon-wrap {
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arch-icon {
+  font-size: 1.2rem;
+  pointer-events: none;
+}
+
+.arch-native {
+  color: #34d399;
+}
+
+.arch-none {
+  color: #f44336;
+}
+
+.arch-na {
+  color: var(--text-muted);
+}
+
+.arch-hackable {
+  color: #f0a030;
+}
+
+.arch-unknown {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .info-table th {

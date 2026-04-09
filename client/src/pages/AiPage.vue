@@ -452,6 +452,7 @@ function handleCodeCopy(e: Event) {
 }
 
 onMounted(async () => {
+  document.title = 'AI Librarian - BOX'
   document.documentElement.style.overflow = 'hidden'
   document.addEventListener('click', handleCodeCopy)
 

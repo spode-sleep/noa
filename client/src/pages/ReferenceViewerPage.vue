@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <router-link to="/reference" class="back-link">← Back to Reference</router-link>
+    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Reference</a>
     <h1>{{ displayName }}</h1>
 
     <div v-if="loading" class="loading">Checking kiwix-serve...</div>
@@ -18,16 +18,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const archiveId = computed(() => route.params.id as string)
 const displayName = computed(() => archiveId.value.replace(/_/g, ' '))
 const kiwixUrl = ref('')
 const loading = ref(true)
 
 onMounted(async () => {
+  document.title = `${displayName.value} - BOX`
   try {
     const res = await fetch('/api/reference/status')
     const data = await res.json()
@@ -41,6 +43,10 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+onUnmounted(() => {
+  document.title = 'BOX'
+})
 </script>
 
 <style scoped>
@@ -48,17 +54,24 @@ onMounted(async () => {
   padding: 24px 0;
 }
 
-.back-link {
-  display: inline-block;
-  color: var(--accent-teal);
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
   text-decoration: none;
-  font-size: 0.95rem;
   margin-bottom: 12px;
-  transition: opacity var(--transition-fast);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.back-link:hover {
-  opacity: 0.8;
+.btn-back:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-teal);
 }
 
 h1 {

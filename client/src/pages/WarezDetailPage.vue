@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <router-link to="/warez" class="btn btn-back">← Warez</router-link>
+    <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Warez</a>
 
     <div v-if="loading" class="loading">Loading repository...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -41,8 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 interface RepoFile {
   name: string
@@ -63,6 +63,7 @@ interface RepoDetail {
 }
 
 const route = useRoute()
+const router = useRouter()
 const repo = ref<RepoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
@@ -154,11 +155,16 @@ onMounted(async () => {
       return
     }
     repo.value = await res.json()
+    if (repo.value?.name) document.title = `${repo.value.name} - BOX`
   } catch (e) {
     error.value = 'Failed to load repository'
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  document.title = 'BOX'
 })
 </script>
 

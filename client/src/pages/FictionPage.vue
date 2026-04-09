@@ -3,12 +3,17 @@
     <h1>Fiction</h1>
 
     <div class="toolbar glass">
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Search by title or author..."
-        class="search-input"
-      />
+      <div class="search-wrap">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search by title or author..."
+          class="search-input"
+        />
+        <button v-if="search" class="search-clear" @click="search = ''">
+          <Icon icon="mdi:close" />
+        </button>
+      </div>
       <select v-model="formatFilter" class="filter-select">
         <option value="">All Formats</option>
         <option value="pdf">PDF</option>
@@ -68,7 +73,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 interface Book {
   id: string
@@ -90,9 +97,12 @@ interface BookBookmark {
   }
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const books = ref<Book[]>([])
 const bookmarks = ref<BookBookmark[]>([])
-const search = ref('')
+const search = ref((route.query.q as string) || '')
 const formatFilter = ref('')
 const languageFilter = ref('')
 const authorFilter = ref('')
@@ -133,6 +143,15 @@ const filteredBooks = computed(() => {
   }
 
   return result
+})
+
+watch(search, (val) => {
+  const query = val ? { q: val } : {}
+  router.replace({ query })
+})
+
+watch(() => route.query, (q) => {
+  search.value = (q.q as string) || ''
 })
 
 function formatFileSize(bytes: number): string {
@@ -185,6 +204,7 @@ async function fetchBookmarks() {
 }
 
 onMounted(async () => {
+  document.title = 'Fiction - BOX'
   try {
     await Promise.all([fetchBooks(), fetchBookmarks()])
   } finally {

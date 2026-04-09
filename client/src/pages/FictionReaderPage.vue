@@ -1,7 +1,7 @@
 <template>
   <div class="reader-page">
     <div class="reader-header glass">
-      <router-link to="/fiction" class="btn btn-back">← Library</router-link>
+      <a class="btn btn-back" @click="router.back()" style="cursor:pointer">← Library</a>
       <div v-if="book" class="header-info">
         <span class="header-title">{{ book.title }}</span>
         <span class="header-author">{{ book.author }}</span>
@@ -117,7 +117,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { VueReader } from 'vue-book-reader'
 
 interface Book {
@@ -143,6 +143,7 @@ interface Fb2Chapter {
 }
 
 const route = useRoute()
+const router = useRouter()
 const bookId = route.params.id as string
 
 const book = ref<Book | null>(null)
@@ -392,6 +393,7 @@ async function fetchBook() {
     const res = await fetch(`/api/fiction/books/${bookId}`)
     if (res.ok) {
       book.value = await res.json()
+      if (book.value?.title) document.title = `${book.value.title} - BOX`
     }
   } catch (e) {
     console.error('Failed to fetch book:', e)
@@ -445,6 +447,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  document.title = 'BOX'
   savePosition()
   if (fb2ScrollTimer) clearInterval(fb2ScrollTimer)
   if (zimUrlTimer) clearInterval(zimUrlTimer)

@@ -54,6 +54,7 @@ function formatFileSize(bytes: number): string {
 }
 
 onMounted(async () => {
+  document.title = 'Reference - BOX'
   try {
     const res = await fetch('/api/reference/archives')
     const data = await res.json()
