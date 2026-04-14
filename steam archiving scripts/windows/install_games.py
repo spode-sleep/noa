@@ -28,7 +28,6 @@ from pathlib import Path
 # ═══════════════════════════ Настройки ═══════════════════════════
 
 GAME_LANG = "russian"
-GAME_OS = "linux"
 MIN_GAME_SIZE_BYTES = 1_048_576  # 1MB — меньше = подозрительно
 
 # DepotDownloader — по умолчанию ищем рядом со скриптом или в домашней папке
@@ -47,6 +46,7 @@ LOCAL_DOWNLOAD_DIR = Path("D:/steam_downloads")
 G = "\033[0;32m"
 R = "\033[0;31m"
 Y = "\033[1;33m"
+C = "\033[0;36m"
 NC = "\033[0m"
 
 
@@ -180,6 +180,51 @@ def copy_to_hdd(src: Path, dst: Path) -> bool:
     return copy_with_shutil(src, dst)
 
 
+def pick_platform_priority() -> str:
+    """Интерактивный выбор приоритетной платформы.
+
+    Спрашивает пользователя в начале сессии.
+    Возвращает 'linux' или 'windows'.
+    """
+    print()
+    print(f"{C}╔════════════════════════════════════════╗{NC}")
+    print(f"{C}║     Выбор приоритетной платформы       ║{NC}")
+    print(f"{C}╚════════════════════════════════════════╝{NC}")
+    print()
+    print("  [1] Linux   — сначала linux, потом windows")
+    print("  [2] Windows — сначала windows, потом linux")
+    print()
+
+    while True:
+        choice = input("Ваш выбор [1/2]: ").strip()
+        if choice == "1":
+            print()
+            log("✓ Приоритет: Linux → Windows")
+            return "linux"
+        if choice == "2":
+            print()
+            log("✓ Приоритет: Windows → Linux")
+            return "windows"
+        print(f"{Y}  Введите 1 или 2{NC}")
+
+
+def build_fallback_order(primary_os: str, primary_lang: str) -> list[tuple[str, str]]:
+    """Строит порядок перебора (os, lang) по приоритету.
+
+    Первые две пары — приоритетная ОС, следующие две — запасная.
+    Язык чередуется: основной → english.
+    """
+    secondary_os = "windows" if primary_os == "linux" else "linux"
+    secondary_lang = "english" if primary_lang != "english" else primary_lang
+
+    return [
+        (primary_os,   primary_lang),
+        (primary_os,   secondary_lang),
+        (secondary_os, primary_lang),
+        (secondary_os, secondary_lang),
+    ]
+
+
 def run_depot_downloader(
     dd_path: Path,
     appid: str,
@@ -268,6 +313,11 @@ def main() -> None:
         "--dd",
         help="Путь к DepotDownloader.exe",
     )
+    parser.add_argument(
+        "--platform",
+        choices=["linux", "windows"],
+        help="Приоритетная платформа (linux или windows). Если не указана — спросит интерактивно.",
+    )
     args = parser.parse_args()
 
     # Включаем ANSI escape коды на Windows
@@ -314,10 +364,21 @@ def main() -> None:
 
     total = len(appids)
 
+    # ── Выбор приоритетной платформы ──────────────────────────────────────
+    if args.platform:
+        primary_os = args.platform
+        log(f"✓ Приоритет платформы (из аргумента): {primary_os}")
+    else:
+        primary_os = pick_platform_priority()
+
+    fallback_order = build_fallback_order(primary_os, GAME_LANG)
+    fallback_desc = " → ".join(f"{os_}/{lang}" for os_, lang in fallback_order)
+
     log("════════════════════════════════════════════")
     log(f"Установка {total} игр (DepotDownloader)")
     log(f"Локальная папка: {LOCAL_DOWNLOAD_DIR}")
     log(f"HDD директория: {install_dir}")
+    log(f"Порядок перебора: {fallback_desc} → все платформы")
     log("Схема: скачать → скопировать на HDD → удалить локально")
     log("════════════════════════════════════════════")
     print()
@@ -386,38 +447,29 @@ def main() -> None:
             print()
             log(f"Скачиваем в: {local_dir}")
 
-            # Скачивание с фоллбэком по языку/ОС
+            # Скачивание с фоллбэком по языку/ОС (динамический порядок)
             download_ok = False
-            tried: set[str] = set()
 
-            for try_lang in [GAME_LANG, "english"]:
-                for try_os in [GAME_OS, "windows"]:
-                    key = f"{try_os}:{try_lang}"
-                    if key in tried:
-                        continue
-                    tried.add(key)
+            for try_os, try_lang in fallback_order:
+                log(f"Платформа: {try_os}, язык: {try_lang}")
 
-                    log(f"Платформа: {try_os}, язык: {try_lang}")
+                success, no_depots = run_depot_downloader(
+                    dd_path, appid, username, local_dir,
+                    language=try_lang, game_os=try_os,
+                    log_file=log_file,
+                )
 
-                    success, no_depots = run_depot_downloader(
-                        dd_path, appid, username, local_dir,
-                        language=try_lang, game_os=try_os,
-                        log_file=log_file,
-                    )
+                if no_depots:
+                    warn(f"Нет депотов для {try_os}/{try_lang}")
+                    if local_dir.exists():
+                        shutil.rmtree(local_dir)
+                    local_dir.mkdir(parents=True)
+                    continue
 
-                    if no_depots:
-                        warn(f"Нет депотов для {try_os}/{try_lang}")
-                        if local_dir.exists():
-                            shutil.rmtree(local_dir)
-                        local_dir.mkdir(parents=True)
-                        continue
+                download_ok = True
+                break
 
-                    download_ok = True
-                    break
-                if download_ok:
-                    break
-
-            # 5-й вариант: все платформы, без языка
+            # Последний вариант: все платформы, без языка
             if not download_ok:
                 warn("Все комбинации ОС/язык не дали результата")
                 log("Попытка: все платформы, без языкового фильтра")

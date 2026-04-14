@@ -48,15 +48,45 @@ python install_games.py ..\my_games.txt D:\steam
 - 1-й аргумент: путь к файлу с AppID
 - 2-й аргумент: путь на HDD (по умолчанию `D:\steam`)
 - `--dd`: путь к DepotDownloader если не в стандартном месте
+- `--platform`: приоритетная платформа (`linux` или `windows`), см. раздел 6
 
 Примеры:
 ```
 python install_games.py ..\my_games.txt
 python install_games.py ..\my_games.txt "E:\Archive\steam"
 python install_games.py ..\my_games.txt D:\steam --dd "C:\tools\DepotDownloader.exe"
+python install_games.py ..\my_games.txt D:\steam --platform windows
+python install_games.py ..\my_games.txt D:\steam --platform linux
 ```
 
-## 6. Что происходит
+## 6. Выбор приоритетной платформы
+
+При запуске без `--platform` скрипт спросит интерактивно:
+
+```
+╔════════════════════════════════════════╗
+║     Выбор приоритетной платформы       ║
+╚════════════════════════════════════════╝
+
+  [1] Linux   — сначала linux, потом windows
+  [2] Windows — сначала windows, потом linux
+
+Ваш выбор [1/2]:
+```
+
+Выбор определяет **порядок перебора** при фоллбэке:
+
+| Выбор | Порядок перебора |
+|-------|-----------------|
+| `1` Linux   | russian/linux → russian/windows → english/linux → english/windows → все платформы |
+| `2` Windows | russian/windows → russian/linux → english/windows → english/linux → все платформы |
+
+Для автоматизации (скрипты, планировщик задач) используйте флаг `--platform`:
+```
+python install_games.py my_games.txt D:\steam --platform windows
+```
+
+## 7. Что происходит
 
 Для каждой игры:
 1. **Скачивание** в `D:\steam_downloads\{appId}`
@@ -64,16 +94,7 @@ python install_games.py ..\my_games.txt D:\steam --dd "C:\tools\DepotDownloader.
 3. **Верификация** — сравнение размеров
 4. **Удаление** локальной копии
 
-### Фоллбэк по платформе/языку
-
-Если игра недоступна для текущей ОС/языка:
-1. russian / linux
-2. russian / windows
-3. english / linux
-4. english / windows
-5. все платформы / без языкового фильтра
-
-## 7. Результаты
+## 8. Результаты
 
 После завершения в папке `results/YYYYMMDD_HHMMSS/`:
 - `install.log` — полный лог
@@ -86,7 +107,7 @@ python install_games.py ..\my_games.txt D:\steam --dd "C:\tools\DepotDownloader.
 python install_games.py results\20260218_120000\failed.txt D:\steam
 ```
 
-## 8. Если зависло
+## 9. Если зависло
 
 ```
 python kill_stuck.py
