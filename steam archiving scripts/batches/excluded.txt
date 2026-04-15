@@ -1,208 +1,210 @@
-# Исключённые игры: 18
-# Причина: для основного геймплея нужен интернет + старые варианты игр + возможное вирусное содержимое
+# Исключённые игры: много
+# Причина указана для каждого тайтла
 # Создан: 2026-02-19 01:59:57
 #
-#Among Us
+#Among Us - online
 945360
-#Azulgar: Star Commanders
+#Azulgar: Star Commanders - endless early access
 503010
-#Black Desert
+#Black Desert - online
 582660
-#Black Desert (Retired)
+#Black Desert (Retired) - online
 836620
-#Blade Symphony
+#Blade Symphony - online
 225600
-#Chivalry: Medieval Warfare
+#Chivalry: Medieval Warfare - online
 219640
-#Comedy Night
+#Comedy Night - online
 665360
-#Deadlock
+#Deadlock - online
 1422450
-#Dota 2
+#Dota 2 - online
 570
-#DSX
-1812620
-#Otherland MMO
+#Otherland MMO  - online
 376310
-#Secret World Legends
+#Secret World Legends  - online
 215280
-#Team Fortress 2
+#Team Fortress 2  - online
 440
-#The Elder Scrolls® Online
+#The Elder Scrolls® Online  - online
 306130
-#Throne of Lies®: Medieval Politics
+#Throne of Lies®: Medieval Politics  - online
 595280
-#Wayfinder
+#Wayfinder - too big
 1171690
-#Witch It
+#Witch It - online
 559650
-#Worms Rumble
+#Worms Rumble - online
 1186040
-#>observer_
+#>observer_ - other version
 514900
-#Dragon Age: Origins
+#Dragon Age: Origins - other version
 17450
-#Grand Theft Auto V Enhanced
+#Grand Theft Auto V Enhanced - online DRM
 3240220
-#Grand Theft Auto V Legacy
+#Grand Theft Auto V Legacy - online DRM
 271590
-#S.T.A.L.K.E.R.: Call of Prypiat - Enhanced Edition
+#S.T.A.L.K.E.R.: Call of Prypiat - Enhanced Edition - prohibited
 2427430
-#S.T.A.L.K.E.R.: Shadow of Chornobyl - Enhanced Edition
+#S.T.A.L.K.E.R.: Shadow of Chornobyl - Enhanced Edition - prohibited
 2427410
-#S.T.A.L.K.E.R.: Clear Sky - Enhanced Edition
+#S.T.A.L.K.E.R.: Clear Sky - Enhanced Edition - prohibited
 2427420
-#Break the Game
-739540
-#Kingdoms of Amalur: Reckoning™
+#Kingdoms of Amalur: Reckoning™ - other version
 102500
-#Borderlands Game of the Year
+#Borderlands Game of the Year - other version
 8980
-#Minecraft Dungeons
+#Minecraft Dungeons - online
 1672970
-#Prey: Typhon Hunter
+#Prey: Typhon Hunter - online
 741820
-#[Chilla's Art] The Bathhouse | 地獄銭湯♨️
+#[Chilla's Art] The Bathhouse | 地獄銭湯♨️ - taste
 1956830
-#A Plague Tale: Innocence
+#A Plague Tale: Innocence - too big
 752590
-#A Story About My Uncle
+#A Story About My Uncle - too big
 278360
-#Ahnayro: The Dream World
+#Ahnayro: The Dream World - online
 449730
-#Among the Sleep - Enhanced Edition
+#Among the Sleep - Enhanced Edition - too big
 250620
-#ANIME STANDING
+#ANIME STANDING - taste
 1253870
-#AppGameKit Classic: Easy Game Development
+#AppGameKit Classic: Easy Game Development - taste
 325180
-#Apsulov: End of Gods
+#Apsulov: End of Gods - too big
 960980
-#Ashes of the Singularity: Escalation
+#Ashes of the Singularity: Escalation - too big
 507490
-#BioShock® 2
+#BioShock® 2 - other version
 8850
-#BioShock™
+#BioShock™ - other version
 7670
-#Dark SASI
+#Dark SASI - taste
 856130
-#DARK SOULS™: Prepare To Die™ Edition
+#DARK SOULS™: Prepare To Die™ Edition - taste
 211420
-#Darksiders II
+#Darksiders II - other version
 50650
-#Darksiders™
+#Darksiders™ - other version
 50620
-#Divinity: Original Sin (Classic)
+#Divinity: Original Sin (Classic) - other version
 230230
-#Dream Cycle
+#Dream Cycle - endless early access
 1105590
-#Fairy Fencer F Advent Dark Force
+#Fairy Fencer F Advent Dark Force - corrupted
 524580
-#FOR HONOR™
+#FOR HONOR™ - online
 304390
-#Garry's Mod
+#Garry's Mod - online
 4000
-#Gothic Playable Teaser
+#Gothic Playable Teaser - demo
 950670
-#hackmud
+#hackmud - online
 469920
-#Half-Life 2: Deathmatch
+#Half-Life 2: Deathmatch - online
 320
-#Half-Life Deathmatch: Source
+#Half-Life Deathmatch: Source - online
 360
-#HITMAN™ 2
+#HITMAN™ 2 - too big
 863550
-#KnightShift
+#KnightShift - too big
 254060
-#Mafia II: Definitive Edition
+#Mafia II: Definitive Edition - other version
 1030830
-#Mafia III: Definitive Edition
+#Mafia III: Definitive Edition - other version
 360430
-#Mahou Arms
+#Mahou Arms - endless early access
 1165870
-#MarionetteAI
+#MarionetteAI - online
 652520
-#Mister Furry: Hot Muscles
+#Mister Furry: Hot Muscles - taste
 1578220
-#Murderous Pursuits
+#Murderous Pursuits - online
 638070
-#Necrobarista
+#Necrobarista - taste
 725270
-#No Rest for the Wicked
+#No Rest for the Wicked - too big
 1371980
-#Outland
+#Outland - ???
 305050
-#PAYDAY 2
+#PAYDAY 2 - onilne
 218620
-#Pillars of Eternity
+#Pillars of Eternity - too big
 291650
-#RWBY: Grimm Eclipse
+#RWBY: Grimm Eclipse - taste
 418340
-#Sacred 3
+#Sacred 3 - taste
 247950
-#Sacred Citadel
+#Sacred Citadel - taste
 207930
-#Sorry, James Demo
+#Sorry, James Demo - demo
 740210
-#Storm Of Spears RPG
+#Storm Of Spears RPG - taste
 463350
-#Superliminal
+#Superliminal - too big
 1049410
-#Supreme Commander
+#Supreme Commander - taste
 9350
-#Sword of the Stars: Complete Collection
+#Sword of the Stars: Complete Collection - taste
 42890
-#Tell Me Why
+#Tell Me Why - prohibited
 1180660
-#The Awesome Adventures of Captain Spirit
+#The Awesome Adventures of Captain Spirit - too big
 845070
-#The Bathhouse | 地獄銭湯 Restored Edition
+#The Bathhouse | 地獄銭湯 Restored Edition - taste
 2989950
-#The Black Watchmen
+#The Black Watchmen - online
 349220
-#The Dark Pictures Anthology: Little Hope
+#The Dark Pictures Anthology: Little Hope - too big
 1194630
-#The Dark Pictures Anthology: Man of Medan
+#The Dark Pictures Anthology: Man of Medan - too big
 939850
-#The Incredible Adventures of Van Helsing II
+#The Incredible Adventures of Van Helsing II - too big
 272470
-#The Incredible Adventures of Van Helsing: Final Cut
+#The Incredible Adventures of Van Helsing: Final Cut - too big
 400170
-#The Life Of Greather
+#The Life Of Greather - taste
 503830
-#The Outer Worlds
+#The Outer Worlds - too big
 578650
-#The Vanishing of Ethan Carter Redux
+#The Vanishing of Ethan Carter Redux - too big
 400430
-#The World Next Door
+#The World Next Door - taste
 755470
-#Thief
+#Thief - taste
 239160
-#Victor Vran ARPG
+#Victor Vran ARPG - too big
 345180
-#Warhammer 40,000: Space Marine - Anniversary Edition
+#Warhammer 40,000: Space Marine - Anniversary Edition - too big
 55150
-#Warhammer: Vermintide 2
+#Warhammer: Vermintide 2 - online
 552500
-#Welcome to the Game
+#Welcome to the Game - taste
 485380
-#Werewolf: The Apocalypse - Heart of the Forest Demo
+#Werewolf: The Apocalypse - Heart of the Forest Demo - demo
 1384410
-#Yasuke Simulator
+#Yasuke Simulator - taste
 3272300
-#Zup! X
+#Zup! X - taste
 508900
-#ВЗЛОМ ЖОПЫ
+#ВЗЛОМ ЖОПЫ - taste
 1206700
-#港詭實錄ParanormalHK
+#港詭實錄ParanormalHK - taste
 1178490
-#Little Nightmares
+#Little Nightmares - other version
 424840
-#The Witcher Adventure Game
+#The Witcher Adventure Game - taste
 303800
-#The Witcher: Enhanced Edition Director's Cut
+#The Witcher: Enhanced Edition Director's Cut - too big
 20900
-#Yakuza 0
+#Yakuza 0 - too big
 638970
-#Yakuza: Like a Dragon
+#Yakuza: Like a Dragon - too big
 1235140
+#Blair Witch - too big
+1092660
+#Metro Exodus Enchanced Edition - other version
+1449560
+#Sinless + OST - ???
+340320
