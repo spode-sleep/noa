@@ -1,4 +1,9 @@
-# 🎮 БЫСТРЫЙ СТАРТ - Архивирование игр Steam
+# 🎮 БЫСТРЫЙ СТАРТ - Архивирование игр Steam (Linux)
+
+> ⚠️ **Рабочий процесс сейчас — Windows:** скачивание и пометка в `games.json`
+> делаются оттуда, см. [WORKFLOW.md](WORKFLOW.md) и [windows/QUICKSTART.md](windows/QUICKSTART.md).
+> Linux-скрипты ниже оставлены как запасной вариант: копирование больших объёмов
+> на USB HDD из Linux зависает (dirty page cache).
 
 ## 📦 Что у вас есть:
 

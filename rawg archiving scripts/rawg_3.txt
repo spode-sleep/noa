@@ -1,0 +1,38 @@
+Tales from the Borderlands: A Telltale Game Series	legendary	Tales_from_the_Borderlands
+Stasis: Bone Totem	legendary	STASIS_BONE_TOTEM
+LEGO Star Wars - The Complete Saga	gogdl	LEGO_Star_Wars__The_Complete_Saga
+LEGO The Lord of the Rings	gogdl	LEGO_The_Lord_of_the_Rings
+Hogwarts Legacy	legendary	Hogwarts_Legacy
+Assassin's Creed Syndicate	legendary	Assassins_Creed_Syndicate
+Detroit: Become Human	legendary	Detroit_Become_Human
+Another World – 20th Anniversary Edition	gogdl	Another_World_20th_Anniversary_Edition
+Gamedec	gogdl	Gamedec__Definitive_Edition
+The Wolf Among Us	legendary	The_Wolf_Among_Us
+Night in the Woods	legendary	Night_in_the_Woods
+New Tales from the Borderlands	legendary	New_Tales_from_the_Borderlands
+Amnesia: Rebirth	legendary	Amnesia_Rebirth
+Alien: Isolation	legendary	Alien_Isolation
+The Evil Within	legendary	The_Evil_Within
+Scorn	gogdl	Scorn
+Close To The Sun	legendary	Close_to_the_Sun
+Stories Untold	legendary	Stories_Untold
+The Town of Light	gogdl	The_Town_of_Light
+Last Day of June	legendary	Last_Day_of_June
+South of the Circle	gogdl	South_of_the_Circle
+Sherlock Holmes: Crimes and Punishments	legendary	Sherlock_Holmes_Crimes_and_Punishments
+Lovecraft's Untold Stories	legendary	Lovecrafts_Untold_Stories
+Afterparty	legendary	Afterparty
+Syberia: The World Before	gogdl	Syberia_The_World_Before
+Planet of Lana	gogdl	Planet_of_Lana
+Journey	legendary	Journey
+RiME	legendary	RIME
+Vampire: The Masquerade - Reckoning of New York	legendary	Vampire_The_Masquerade__Reckoning_of_New_York
+World of Goo	legendary	World_of_Goo
+Among Trees	legendary	Among_Trees
+Alan Wake's American Nightmare	legendary	Alan_Wakes_American_Nightmare
+Fort Solis	gogdl	Fort_Solis
+TowerFall Ascension	legendary	Towerfall_Ascension
+No Straight Roads: Encore Edition	legendary	No_Straight_Roads_Encore_Edition
+The Outer Worlds: Spacer's Choice Edition	legendary	The_Outer_Worlds_Spacers_Choice_Edition
+Control	legendary	Control
+Shadow of the Tomb Raider: Definitive Edition	legendary	Shadow_of_the_Tomb_Raider_Definitive_Edition

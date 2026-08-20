@@ -8,10 +8,14 @@ Steam Library Archiver — Windows version (Python3)
 Аналог install_games.sh, но для Windows с нативным копированием
 (robocopy) которое стабильно работает с NTFS HDD.
 
+Приоритет платформы по умолчанию — linux (архив собирается под Linux,
+даже когда скачивание идёт на Windows).
+
 Использование:
     python install_games.py my_games.txt
     python install_games.py my_games.txt D:/steam
     python install_games.py my_games.txt "E:/Archive/steam"
+    python install_games.py my_games.txt E:/steam --buffer D:/steam_downloads
 """
 
 import argparse
@@ -37,8 +41,9 @@ DEFAULT_DD_PATHS = [
     Path.home() / "depotdownloader" / "depotdownloader.exe",
 ]
 
-# Локальная папка для загрузки (диск D:)
-LOCAL_DOWNLOAD_DIR = Path("D:/steam_downloads")
+# Локальная папка-буфер для загрузки (диск D:) — переопределяется флагом --buffer
+DEFAULT_LOCAL_DOWNLOAD_DIR = Path("D:/steam_downloads")
+LOCAL_DOWNLOAD_DIR = DEFAULT_LOCAL_DOWNLOAD_DIR
 
 # ═══════════════════════════ Цвета ═══════════════════════════
 
@@ -191,13 +196,13 @@ def pick_platform_priority() -> str:
     print(f"{C}║     Выбор приоритетной платформы       ║{NC}")
     print(f"{C}╚════════════════════════════════════════╝{NC}")
     print()
-    print("  [1] Linux   — сначала linux, потом windows")
+    print("  [1] Linux   — сначала linux, потом windows  (по умолчанию)")
     print("  [2] Windows — сначала windows, потом linux")
     print()
 
     while True:
-        choice = input("Ваш выбор [1/2]: ").strip()
-        if choice == "1":
+        choice = input("Ваш выбор [1/2, Enter = 1]: ").strip()
+        if choice in ("", "1"):
             print()
             log("✓ Приоритет: Linux → Windows")
             return "linux"
@@ -299,6 +304,8 @@ def run_depot_downloader(
 
 
 def main() -> None:
+    global LOCAL_DOWNLOAD_DIR
+
     parser = argparse.ArgumentParser(
         description="Steam Library Archiver (Windows/Python3)"
     )
@@ -316,9 +323,23 @@ def main() -> None:
     parser.add_argument(
         "--platform",
         choices=["linux", "windows"],
-        help="Приоритетная платформа (linux или windows). Если не указана — спросит интерактивно.",
+        default="linux",
+        help="Приоритетная платформа (по умолчанию: linux). Для интерактивного выбора — --ask-platform.",
+    )
+    parser.add_argument(
+        "--buffer",
+        default=str(DEFAULT_LOCAL_DOWNLOAD_DIR),
+        help=f"Папка-буфер для скачивания (по умолчанию: {DEFAULT_LOCAL_DOWNLOAD_DIR}). "
+             "Должна быть на другом диске, чем HDD.",
+    )
+    parser.add_argument(
+        "--ask-platform",
+        action="store_true",
+        help="Спросить приоритетную платформу интерактивно (иначе берётся --platform).",
     )
     args = parser.parse_args()
+
+    LOCAL_DOWNLOAD_DIR = Path(args.buffer)
 
     # Включаем ANSI escape коды на Windows
     if os.name == "nt":
@@ -356,7 +377,7 @@ def main() -> None:
     hdd_drive = install_dir.resolve().drive.upper()
     if buf_drive and hdd_drive and buf_drive == hdd_drive:
         err(f"Диск буфера ({LOCAL_DOWNLOAD_DIR}) и диск HDD ({install_dir}) совпадают: {buf_drive}")
-        err("Копирование на тот же диск бессмысленно. Измените LOCAL_DOWNLOAD_DIR или install_dir.")
+        err("Копирование на тот же диск бессмысленно. Укажите другой --buffer или другой install_dir.")
         sys.exit(1)
 
     install_dir.mkdir(parents=True, exist_ok=True)
@@ -365,11 +386,11 @@ def main() -> None:
     total = len(appids)
 
     # ── Выбор приоритетной платформы ──────────────────────────────────────
-    if args.platform:
-        primary_os = args.platform
-        log(f"✓ Приоритет платформы (из аргумента): {primary_os}")
-    else:
+    if args.ask_platform:
         primary_os = pick_platform_priority()
+    else:
+        primary_os = args.platform
+        log(f"✓ Приоритет платформы: {primary_os} (по умолчанию linux, см. --platform/--ask-platform)")
 
     fallback_order = build_fallback_order(primary_os, GAME_LANG)
     fallback_desc = " → ".join(f"{os_}/{lang}" for os_, lang in fallback_order)

@@ -1,0 +1,123 @@
+# Батч 5: 61 игр
+# Создан: 2026-02-19 01:59:57
+#
+#1bitHeart
+618720
+#[Chilla's Art] Night Delivery | 例外配達
+1611490
+#[Chilla's Art] The Karaoke | ヒトカラ🎤
+2200190
+#A Hat in Time
+253230
+#Anima: Gate of Memories - The Nameless Chronicles
+850060
+#Ann
+1511270
+#Ashes of the Singularity: Escalation
+507490
+#Beholder
+475550
+#Beholder 2
+761620
+#Breathedge
+738520
+#DEAD OR SCHOOL
+789760
+#DISTRAINT: Deluxe Edition
+395170
+#Divinity: Original Sin 2 - Definitive Edition
+435150
+#ENDLESS™ Legend
+289130
+#EVERSPACE™ 2
+1128920
+#Fallout 4
+377160
+#Galactic Civilizations® II: Ultimate Edition
+202200
+#Ghostwire: Tokyo
+1475810
+#GOD EATER 2 Rage Burst
+438490
+#Gods Will Be Watching
+274290
+#Grim Dawn
+219990
+#Gujian3(古剑奇谭三)
+994280
+#Half-Life: Blue Shift
+130
+#Hexcells Infinite
+304410
+#Hitman: Blood Money
+6860
+#Hitman: Contracts
+247430
+#HITMAN™ 2
+863550
+#Kenshi
+233860
+#Kingdom Come: Deliverance
+379430
+#Kona
+365160
+#Layers of Fear 2 (2019)
+1029890
+#LEGO® Bricktales
+1898290
+#LIGHTNING RETURNS™: FINAL FANTASY® XIII
+345350
+#Magicmaker
+319250
+#Murdered: Soul Suspect
+233290
+#My Big Sister
+733300
+#NieR:Automata™
+524220
+#No Longer Home
+651490
+#Observer: System Redux
+1386900
+#Open Sorcery
+585180
+#Outer Wilds
+753640
+#Pathologic Classic HD
+384110
+#POSTAL
+232770
+#Quantum Break
+474960
+#Rain World
+312520
+#Rebel Galaxy
+290300
+#Reigns: Her Majesty
+717640
+#SCARLET NEXUS
+775500
+#SOMA
+282140
+#SPORE™
+17390
+#SPORE™ Galactic Adventures
+24720
+#Stories: The Path of Destinies
+439190
+#Styx: Master of Shadows
+242640
+#Tales of Berseria™
+429660
+#The Beginner's Guide
+303210
+#The Council
+287630
+#The First Tree
+555150
+#The Vanishing of Ethan Carter
+258520
+#The White Door
+1145960
+#Yakuza: Like a Dragon
+1235140

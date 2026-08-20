@@ -1,0 +1,68 @@
+Kid A Mnesia: Exhibition	legendary	KID_A_MNESIA_EXHIBITION
+The Talos Principle 2	gogdl	The_Talos_Principle_Gold_Edition
+Jotun: Valhalla Edition	legendary	Jotun_Valhalla_Edition
+Sundered: Eldritch Edition	legendary	Sundered_Eldritch_Edition
+Outward Definitive Edition	legendary	Outward
+Superbrothers: Sword & Sworcery	legendary	Superbrothers_Sword__Sworcery_EP
+Star Wars Bounty Hunter	gogdl	STAR_WARS_Bounty_Hunter
+Lifeless Planet Premier Edition	legendary	Lifeless_Planet_Premier_Edition
+Q.U.B.E. 2	legendary	QUBE_2
+Limbo	legendary	Limbo
+INSIDE	legendary	INSIDE
+Everything	legendary	Everything
+GNOG	legendary	GNOG
+Costume Quest	legendary	Costume_Quest
+The Forest Quartet	legendary	The_Forest_Quartet
+The Eternal Cylinder	legendary	The_Eternal_Cylinder
+Conarium	legendary	Conarium
+Skydrift Infinity	legendary	SkyDrift_Infinity
+Duck Paradox	gogdl	Duck_Paradox
+Out of Line	legendary	Out_of_Line
+Residual	gogdl	Residual
+Priest Simulator: Vampire Show	legendary	Priest_Simulator_Vampire_Show
+Wheels of Aurelia	legendary	Wheels_of_Aurelia
+HuniePop	gogdl	HuniePop
+Cat Quest II	gogdl	Cat_Quest_II
+Pillars of Eternity - Definitive Edition	legendary	Pillars_of_Eternity__Definitive_Edition
+GreedFall	gogdl	GreedFall
+Fallout	gogdl	Fallout
+Fallout 2	gogdl	Fallout_2
+Fallout 3: Game of the Year Edition	gogdl	Fallout_3_Game_of_the_Year_Edition
+Deus Ex 2: Invisible War	gogdl	Deus_Ex_2_Invisible_War
+Legacy of Kain: Defiance	gogdl	Legacy_of_Kain_Defiance
+Legacy of Kain: Blood Omen 2	gogdl	Legacy_of_Kain_Blood_Omen_2
+Stray Gods: The Roleplaying Musical	gogdl	Stray_Gods_The_Roleplaying_Musical
+Dex	gogdl	Dex
+X2: The Threat	gogdl	X2_The_Threat
+Fantasy Empires	gogdl	Fantasy_Empires
+Ravenloft: Strahd's Possession	gogdl	Ravenloft_Strahds_Possession
+Ravenloft: Stone Prophet	gogdl	Ravenloft_Stone_Prophet
+SpellJammer: Pirates of Realmspace	gogdl	Spelljammer_Pirates_of_Realmspace
+Heroes of the Lance	gogdl	Heroes_of_the_Lance
+Shadow Sorcerer	gogdl	Shadow_Sorcerer
+War of the Lance	gogdl	War_of_the_Lance
+Dragons of Flame	gogdl	Dragons_of_Flame
+Mortal Shell	legendary	Mortal_Shell
+Eternights	legendary	Eternights
+Ghostrunner	legendary	Ghostrunner
+Death's Door	legendary	Deaths_Door
+Ruiner	legendary	RUINER
+The Messenger	legendary	The_Messenger
+Ender Lilies: Quietus of the Knights	legendary	ENDER_LILIES_Quietus_of_the_Knights
+Midnight Fight Express	gogdl	Midnight_Fight_Express
+Pumpkin Jack	gogdl	Pumpkin_Jack
+Hob	legendary	Hob
+Soulstice	legendary	Soulstice
+Morbid: The Seven Acolytes	legendary	Morbid_The_Seven_Acolytes
+The End Is Nigh	legendary	The_End_is_Nigh
+Spirit of the North	legendary	Spirit_of_the_North
+City of Brass	legendary	City_of_Brass
+The Gunk	gogdl	The_Gunk
+Hitman	legendary	HITMAN
+Ghost Song	gogdl	Ghost_Song
+The Falconeer	gogdl	The_Falconeer
+Call of Juarez: Gunslinger	gogdl	Call_of_Juarez_Gunslinger
+Arcade Paradise	gogdl	Arcade_Paradise
+9 Years of Shadows	gogdl	9_Years_of_Shadows
+Industria	gogdl	INDUSTRIA
+Trek to Yomi	legendary	Trek_to_Yomi

@@ -4,9 +4,13 @@
 Принимает .txt файл с AppID (формат my_games.txt) и проставляет
 isArchived: true и archivePath для каждой найденной игры.
 
+Работает и на Windows: archivePath всегда собирается в Linux-виде
+(/mnt/ARCHIVEn/steam/{appId}), буквы дисков в games.json не попадают.
+
 Использование:
     python3 mark_archived.py installed.txt
-    python3 mark_archived.py installed.txt --hdd ARCHIVE1
+    python3 mark_archived.py installed.txt --hdd ARCHIVE4
+    python mark_archived.py windows/results/20260820_120000/installed.txt --hdd ARCHIVE4
     python3 mark_archived.py installed.txt --games-json ../data/games/games.json
     python3 mark_archived.py installed.txt --rawg   # TODO: не реализовано
 """

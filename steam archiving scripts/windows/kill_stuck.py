@@ -89,12 +89,16 @@ def main() -> None:
     print("════════════════════════════════════════")
     print()
 
-    # Проверяем возможные пути
+    # Проверяем возможные пути: буфер + steam-папки на HDD.
+    # Дополнительные пути можно передать аргументами:
+    #   python kill_stuck.py G:/steam
     check_dirs = [
+        Path("D:/steam_downloads"),   # буфер по умолчанию (--buffer в install_games.py)
         Path.home() / "steam_downloads",
         Path("D:/steam"),
         Path("E:/steam"),
-    ]
+        Path("F:/steam"),
+    ] + [Path(arg) for arg in sys.argv[1:]]
 
     for steam_dir in check_dirs:
         if not steam_dir.exists():
