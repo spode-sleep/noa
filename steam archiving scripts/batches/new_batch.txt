@@ -1,22 +1,31 @@
-#Mahou Arms - endless early access
-1165870
-#Pillars of Eternity - too big
-291650
-#The Dark Pictures Anthology: Little Hope - too big
-1194630
-#The Dark Pictures Anthology: Man of Medan - too big
-939850
-#The Incredible Adventures of Van Helsing: Final Cut - too big
-400170
-#The Vanishing of Ethan Carter Redux - too big
+# Батч ARCHIVE4: 11 игр, ранее исключённых как "too big"
+# Прогон: 2026-08-20 — 2026-08-22, диск ARCHIVE4
+# Итог: 10 из 11 скачано и помечено в games.json (/mnt/ARCHIVE4/steam/{appId}).
+#       Скачанные AppID закомментированы — файл можно перезапустить как есть,
+#       он дозальёт только оставшуюся игру.
+#
+# ─── Скачано на ARCHIVE4 ───────────────────────────────────────────
+#Mahou Arms — 14G
+#1165870
+#Pillars of Eternity — 45G
+#291650
+#The Dark Pictures Anthology: Little Hope — 43G
+#1194630
+#The Dark Pictures Anthology: Man of Medan — 51G
+#939850
+#The Incredible Adventures of Van Helsing: Final Cut — 56G
+#400170
+#Victor Vran ARPG — 4.5G
+#345180
+#The Witcher: Enhanced Edition Director's Cut — 16G
+#20900
+#Yakuza 0 — 25G
+#638970
+#Yakuza: Like a Dragon — 47G
+#1235140
+#Blair Witch — 14G
+#1092660
+#
+# ─── Осталось скачать ──────────────────────────────────────────────
+#The Vanishing of Ethan Carter Redux
 400430
-#Victor Vran ARPG - too big
-345180
-#The Witcher: Enhanced Edition Director's Cut - too big
-20900
-#Yakuza 0 - too big
-638970
-#Yakuza: Like a Dragon - too big
-1235140
-#Blair Witch - too big
-1092660

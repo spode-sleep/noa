@@ -21,6 +21,29 @@ def archive_mounts(defaults):
 
 DRIVES = [os.path.join(mount, "steam") for mount in archive_mounts(DEFAULT_MOUNTS)]
 
+def read_entries(path):
+    """Читает файл батча: строка-комментарий с названием + строка с AppID.
+
+    Устойчиво к шапке файла, пустым строкам и закомментированным AppID
+    (`#1165870` — уже скачанные): названием считается последний комментарий
+    перед числовой строкой, всё остальное игнорируется.
+    """
+    entries = []
+    name = None
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("#"):
+                name = line
+                continue
+            if line.isdigit():
+                entries.append((name or "#(без названия)", line))
+                name = None
+    return entries
+
+
 def find_game_paths(app_id):
     return [
         os.path.join(drive, app_id)
@@ -36,19 +59,7 @@ def main():
     input_path = sys.argv[1]
     output_path = "with_paths.txt"
 
-    with open(input_path, "r", encoding="utf-8") as f:
-        lines = f.read().splitlines()
-
-    entries = []
-    i = 0
-    while i < len(lines):
-        if lines[i].startswith("#") and i + 1 < len(lines):
-            name = lines[i]
-            app_id = lines[i + 1].strip()
-            entries.append((name, app_id))
-            i += 2
-        else:
-            i += 1
+    entries = read_entries(input_path)
 
     with open(output_path, "w", encoding="utf-8") as f:
         for name, app_id in entries:

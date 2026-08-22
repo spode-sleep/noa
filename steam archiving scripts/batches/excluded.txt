@@ -114,8 +114,6 @@
 1030830
 #Mafia III: Definitive Edition - other version
 360430
-#Mahou Arms - endless early access
-1165870
 #MarionetteAI - online
 652520
 #Mister Furry: Hot Muscles - taste
@@ -130,8 +128,6 @@
 305050
 #PAYDAY 2 - onilne
 218620
-#Pillars of Eternity - too big
-291650
 #RWBY: Grimm Eclipse - taste
 418340
 #Sacred 3 - taste
@@ -156,26 +152,16 @@
 2989950
 #The Black Watchmen - online
 349220
-#The Dark Pictures Anthology: Little Hope - too big
-1194630
-#The Dark Pictures Anthology: Man of Medan - too big
-939850
 #The Incredible Adventures of Van Helsing II - too big
 272470
-#The Incredible Adventures of Van Helsing: Final Cut - too big
-400170
 #The Life Of Greather - taste
 503830
 #The Outer Worlds - too big
 578650
-#The Vanishing of Ethan Carter Redux - too big
-400430
 #The World Next Door - taste
 755470
 #Thief - taste
 239160
-#Victor Vran ARPG - too big
-345180
 #Warhammer 40,000: Space Marine - Anniversary Edition - too big
 55150
 #Warhammer: Vermintide 2 - online
@@ -196,14 +182,6 @@
 424840
 #The Witcher Adventure Game - taste
 303800
-#The Witcher: Enhanced Edition Director's Cut - too big
-20900
-#Yakuza 0 - too big
-638970
-#Yakuza: Like a Dragon - too big
-1235140
-#Blair Witch - too big
-1092660
 #Metro Exodus Enchanced Edition - other version
 1449560
 #Sinless + OST - ???
